@@ -1,0 +1,14 @@
+[Unit]
+Description=Leroy
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/Projects/project-leroy
+ExecStart=python3 detect.py --serve-in-foreground
+Restart=on-abort
+EnvironmentFile=/home/pi/Project/project-leroy/service/leroy.env
+
+[Install]
+WantedBy=multi-user.target
+
