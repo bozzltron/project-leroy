@@ -46,6 +46,7 @@ def main():
   labels = dataset_utils.read_label_file(args.label)
   # Initialize engine.
   engine = ClassificationEngine(args.model)
+  
   # Run inference.
   if args.image:
     img = Image.open(args.image)
@@ -56,21 +57,24 @@ def main():
   if args.dir:
     f = []
     for (dirpath, dirnames, filenames) in os.walk(args.dir):
-      for filename in filenames:
-          if "boxed" in filename:
-            filepath = "storage/{}".format(filename)
-            img = Image.open(filepath)
-            for result in engine.classify_with_image(img, top_k=3):
-              label = labels[result[0]]
-              percent = int(100 * result[1])
-              if result[1] > .80 and label != "background":
-                newpath = filename.replace(".png", "_{}_{}.png".format(label.replace(" ", "-"), percent))
-                newpath = "storage/classified/{}".format(newpath)
-                print('move {} -> {}'.format(filepath, newpath))
-                shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
-                fullpath = filepath.replace("boxed", "full")
-                newfullpath = newpath.replace("boxed", "full")
-                shutil.move(os.path.abspath(fullpath), os.path.abspath(newfullpath))
+          for filename in filenames:
+            try:
+              if "boxed" in filename:
+                filepath = "storage/{}".format(filename)
+                img = Image.open(filepath)
+                for result in engine.classify_with_image(img, top_k=3):
+                  label = labels[result[0]]
+                  percent = int(100 * result[1])
+                  if label != "background":
+                    newpath = filename.replace(".png", "_{}_{}.png".format(label.replace(" ", "-"), percent))
+                    newpath = "storage/classified/{}".format(newpath)
+                    print('move {} -> {}'.format(filepath, newpath))
+                    shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
+                    fullpath = filepath.replace("boxed", "full")
+                    newfullpath = newpath.replace("boxed", "full")
+                    shutil.move(os.path.abspath(fullpath), os.path.abspath(newfullpath))
+            except:
+                print("failed to classify ")
 
 if __name__ == '__main__':
   main()
