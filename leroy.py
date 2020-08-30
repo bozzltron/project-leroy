@@ -41,6 +41,7 @@ import time
 import logging
 from edgetpu.classification.engine import ClassificationEngine
 from edgetpu.utils import dataset_utils
+import psutil
 
 print("cv version" + cv2.__version__)
 
@@ -126,8 +127,8 @@ def main():
     classification_labels = load_labels(os.path.join(default_model_dir,default_classification_label))
 
     cap = cv2.VideoCapture(args.camera_idx)
-    #cap.set(3, 960)
-    #cap.set(4, 720)
+    cap.set(3, 960)
+    cap.set(4, 720)
     # 5 MP
     #cap.set(3, 2048)
     #cap.set(4, 1536)
@@ -148,7 +149,7 @@ def main():
             save_bird_img(cv2_im, objs, labels, classification_interpreter)
             cv2_im = append_objs_to_img(cv2_im, objs, labels)
             #cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
-            #cv2.resizeWindow('frame', 960, 720)
+            #cv2.resizeWindow('frame', 640, 480)
             cv2.imshow('frame', cv2_im)
         except KeyboardInterrupt:
             print('Interrupted')
@@ -172,33 +173,37 @@ def save_bird_img(cv2_im, objs, labels, classification_interpreter):
         percent = int(100 * obj.score)
         object_label = labels.get(obj.id, obj.id)
         label = '{}% {}'.format(percent, object_label)
-
+        hdd = psutil.disk_usage('/')
+        
         if object_label == 'bird' and percent > 70:
-            boxed_image_path = "storage/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H:%M:%S"), percent)
-            full_image_path = "storage/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H:%M:%S"), percent)
-            cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
-            cv2.imwrite( full_image_path, cv2_im ) 
+            if hdd.percent < 95:
+                boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
+                full_image_path = "storage/detected/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
+                cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
+                cv2.imwrite( full_image_path, cv2_im ) 
+            else:
+                print("Not enough disk space")
 
             # classification
-            print("pre-classify")
-            bird_cv2_im_rgb = cv2.cvtColor(cv2_im[y0:y1,x0:x1], cv2.COLOR_BGR2RGB)
-            print("convert to rgb")
-            bird_pil_im = Image.fromarray(bird_cv2_im_rgb)
-            print("convert to array")
-            common.set_input(classification_interpreter, bird_pil_im)
-            print("set input")
-            classification_interpreter.invoke()
-            print("invoke")
-            classification_objs = get_classification_output(classification_interpreter, score_threshold=0.1, top_k=3)
-            print("classifying")
-            print(classification_objs)
-            for bird_obj in classification_objs:
-              percent = int(100 * bird_obj.score)
+            #print("pre-classify")
+            #bird_cv2_im_rgb = cv2.cvtColor(cv2_im[y0:y1,x0:x1], cv2.COLOR_BGR2RGB)
+            ##print("convert to rgb")
+            #bird_pil_im = Image.fromarray(bird_cv2_im_rgb)
+            #print("convert to array")
+            #common.set_input(classification_interpreter, bird_pil_im)
+            #print("set input")
+            #classification_interpreter.invoke()
+            #print("invoke")
+            #classification_objs = get_classification_output(classification_interpreter, score_threshold=0.1, top_k=3)
+            #print("classifying")
+            #print(classification_objs)
+            #for bird_obj in classification_objs:
+            #  percent = int(100 * bird_obj.score)
               #object_label = classification_labels.get(bird_obj.id, bird_obj.id)
               #label = '{}% {}'.format(percent, object_label)
               #print(label)
-              if percent > 50:
-                  print("tweet")
+            #  if percent > 50:
+            #      print("tweet")
 
 def append_objs_to_img(cv2_im, objs, labels):
     height, width, channels = cv2_im.shape
