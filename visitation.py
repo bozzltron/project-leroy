@@ -38,6 +38,8 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '--dir', help='File path of the dir to be recognized.', required=True)
+  parser.add_argument(
+      '--date', help='Calculate visitations for one day.', required=False)
   args = parser.parse_args()
 
   visitations = []
@@ -45,23 +47,29 @@ def main():
     # filter to just boxed names
     filtered = filter(only_boxed, filenames)
     parsed = map(parse, filtered)
+
+    if args.date:
+        date = datetime.strptime(args.date, '%Y-%m-%d')
+        parsed = filter(lambda x : x["datetime"].date() == date.date(), parsed)
+
     birds = sorted(parsed, key=itemgetter('datetime'))
     current_visitation = initialize_visitation()
     for bird in birds:
-
-      if not current_visitation["species"]:
-        current_visitation["species"] = bird["species"]
-
-      #time_diff = target["datetime"] - bird["datetime"]
-      if current_visitation["species"] == bird["species"]:
-        current_visitation["records"].append(bird)
-      else:
+      valid = True
+      if current_visitation["species"] != bird["species"]:
         if len(current_visitation["records"]) > 0:
-            if len(current_visitation["records"]) > 1:
-              current_visitation["duration"] = (current_visitation["records"][-1]["datetime"] - current_visitation["records"][0]["datetime"]).total_seconds()
+          if len(current_visitation["records"]) > 1:
+            current_visitation["duration"] = (current_visitation["records"][-1]["datetime"] - current_visitation["records"][0]["datetime"]).total_seconds()
+          if len(current_visitation["records"]) == 1 and int(current_visitation["records"][0]["classification_score"]) < 50:
+            bad_visitation = current_visitation["records"][0]
+            print("detected poor visitation", bad_visitation["species"], bad_visitation["classification_score"])
+            valid = False
+          if valid:
             visitations.append(current_visitation)
-            current_visitation = initialize_visitation()
-  
+          current_visitation = initialize_visitation()
+        current_visitation["species"] = bird["species"]
+      current_visitation["records"].append(bird)
+
     #with open('visitations.json', 'w') as outfile:
     #  json.dump(visitations, outfile)
 
