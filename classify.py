@@ -58,9 +58,10 @@ def main():
     f = []
     for (dirpath, dirnames, filenames) in os.walk(args.dir):
           for filename in filenames:
+            print("attempting to classify {}".format(filename))
             try:
               if "boxed" in filename:
-                filepath = "storage/{}".format(filename)
+                filepath = "storage/detected/{}".format(filename)
                 img = Image.open(filepath)
                 for result in engine.classify_with_image(img, top_k=3):
                   label = labels[result[0]]
@@ -72,6 +73,7 @@ def main():
                     shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
                     fullpath = filepath.replace("boxed", "full")
                     newfullpath = newpath.replace("boxed", "full")
+                    print('move {} -> {}'.format(fullpath, newfullpath))
                     shutil.move(os.path.abspath(fullpath), os.path.abspath(newfullpath))
             except:
                 print("failed to classify ")
