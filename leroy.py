@@ -120,6 +120,7 @@ def main():
     bboxes = []
     colors = [] 
     visitation = []
+    trackers = []
 
     while cap.isOpened():
         try:
@@ -159,7 +160,9 @@ def main():
                     if new_bird:
                         bboxes.append(obj.bbox)
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-                        multiTracker.add(cv2.TrackerCSRT_create(), frame, obj.bbox)
+                        tracker = cv2.TrackerCSRT_create()
+                        trackers.append(tracker)
+                        multiTracker.add(tracker, frame, obj.bbox)
 
                     if hdd.percent < 95:
                         boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
@@ -170,7 +173,11 @@ def main():
                         print("Not enough disk space")
 
             if bird_detected == False:
-                multiTracker.release()
+                for tracker in trackers:
+                    tracker.clear()
+                boxes = []
+                colors = []
+                trackers = []
 
             for i, newbox in enumerate(boxes):
                 p1 = (int(newbox[0]), int(newbox[1]))
