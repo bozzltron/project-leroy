@@ -166,7 +166,7 @@ def main():
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
                         tracker = cv2.TrackerCSRT_create()
                         trackers.append(tracker)
-                        multiTracker.add(tracker, frame, obj.bbox)
+                        multiTracker.add(tracker, cv2_im, obj.bbox)
 
                     if hdd.percent < 95:
                         boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
@@ -177,6 +177,7 @@ def main():
                         print("Not enough disk space")
 
             if bird_detected == False:
+                logging.info("clearing trackers")
                 for tracker in trackers:
                     tracker.clear()
                 multiTracker = cv2.MultiTracker_create()
