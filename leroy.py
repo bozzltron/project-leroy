@@ -132,7 +132,7 @@ def main():
             if len(boxes) > 0:
                 logging.info("success {}".format(success))
                 logging.info("boxes {}".format(boxes))
-                
+
             cv2_im = frame
             cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
             pil_im = Image.fromarray(cv2_im_rgb)
@@ -185,10 +185,12 @@ def main():
                 p1 = (int(newbox[0]), int(newbox[1]))
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
                 cv2.rectangle(frame, p1, p2, colors[i], 2, 1)
+                cv2_im = cv2.rectangle(cv2_im, p1, p2, colors[i], 2, 1)
 
             cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
             cv2.resizeWindow('frame', 800, 600)
             cv2.imshow('frame', cv2_im)
+
         except KeyboardInterrupt:
             print('Interrupted')
             try:
