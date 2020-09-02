@@ -3,12 +3,14 @@ Description=Leroy
 After=multi-user.target
 
 [Service]
-Type=simple
+Type=idle
 WorkingDirectory=/home/pi/Projects/project-leroy
-ExecStart=python3 detect.py --serve-in-foreground
+ExecStart=run.sh
 Restart=on-abort
-EnvironmentFile=/home/pi/Project/project-leroy/service/leroy.env
+User=pi
+Environment=DISPLAY=:0
 
 [Install]
 WantedBy=multi-user.target
+
 

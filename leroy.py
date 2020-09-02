@@ -127,8 +127,11 @@ def main():
     classification_labels = load_labels(os.path.join(default_model_dir,default_classification_label))
 
     cap = cv2.VideoCapture(args.camera_idx)
-    cap.set(3, 960)
-    cap.set(4, 720)
+    cap.set(3, 1400)
+    cap.set(4, 1050)
+    # 4:3 resolutions
+    # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
+    # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
     # 5 MP
     #cap.set(3, 2048)
     #cap.set(4, 1536)
@@ -148,8 +151,8 @@ def main():
             objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
             save_bird_img(cv2_im, objs, labels, classification_interpreter)
             cv2_im = append_objs_to_img(cv2_im, objs, labels)
-            #cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
-            #cv2.resizeWindow('frame', 640, 480)
+            cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('frame', 640, 480)
             cv2.imshow('frame', cv2_im)
         except KeyboardInterrupt:
             print('Interrupted')
@@ -175,12 +178,13 @@ def save_bird_img(cv2_im, objs, labels, classification_interpreter):
         label = '{}% {}'.format(percent, object_label)
         hdd = psutil.disk_usage('/')
         
-        if object_label == 'bird' and percent > 70:
+        if object_label == 'bird' and percent > 20:
             if hdd.percent < 95:
                 boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
                 full_image_path = "storage/detected/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
                 cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
-                cv2.imwrite( full_image_path, cv2_im ) 
+                if percent > 90:
+                    cv2.imwrite( full_image_path, cv2_im ) 
             else:
                 print("Not enough disk space")
 
