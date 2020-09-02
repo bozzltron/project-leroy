@@ -1,32 +1,4 @@
 #!/usr/bin/python
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""A demo that runs object detection on camera frames using OpenCV.
-
-TEST_DATA=../all_models
-
-Run face detection model:
-python3 detect.py \
-  --model ${TEST_DATA}/mobilenet_ssd_v2_face_quant_postprocess_edgetpu.tflite
-
-Run coco model:
-python3 detect.py \
-  --model ${TEST_DATA}/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite \
-  --labels ${TEST_DATA}/coco_labels.txt
-
-"""
 import argparse
 import collections
 import common
@@ -42,6 +14,8 @@ import logging
 from edgetpu.classification.engine import ClassificationEngine
 from edgetpu.utils import dataset_utils
 import psutil
+from random import randint
+import uuid
 
 print("cv version" + cv2.__version__)
 
@@ -110,6 +84,7 @@ def main():
     parser.add_argument('--threshold', type=float, default=0.1,
                         help='classifier score threshold')
     args = parser.parse_args()
+    multiTracker = cv2.MultiTracker_create()
 
     #Initialize logging files
     logging.basicConfig(filename='storage/results.log',
@@ -136,23 +111,60 @@ def main():
     #cap.set(3, 2048)
     #cap.set(4, 1536)
     
+    bboxes = []
+    colors = [] 
+    visitation = []
+
     while cap.isOpened():
         try:
             ret, frame = cap.read()
             if not ret:
                 break
+            
+            success, boxes = multiTracker.update(frame)
+            logging.info("boxes", boxes)
             cv2_im = frame
-
             cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
             pil_im = Image.fromarray(cv2_im_rgb)
 
             common.set_input(interpreter, pil_im)
             interpreter.invoke()
             objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
-            save_bird_img(cv2_im, objs, labels, classification_interpreter)
-            cv2_im = append_objs_to_img(cv2_im, objs, labels)
-            cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
-            cv2.resizeWindow('frame', 640, 480)
+            height, width, channels = cv2_im.shape
+            
+            bird_detected = False
+            for obj in objs:
+                x0, y0, x1, y1 = list(obj.bbox)
+                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+                percent = int(100 * obj.score)
+                object_label = labels.get(obj.id, obj.id)
+                label = '{}% {}'.format(percent, object_label)
+                hdd = psutil.disk_usage('/')
+                
+                if object_label == 'bird' and percent > 20:
+                    bird_detected = True
+                    bboxes.append(obj.bbox)
+                    colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+                    multiTracker.add(cv2.TrackerCSRT_create(), frame, obj.bbox)
+
+                    if hdd.percent < 95:
+                        boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
+                        full_image_path = "storage/detected/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
+                        cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
+                        cv2.imwrite( full_image_path, cv2_im ) 
+                    else:
+                        print("Not enough disk space")
+
+            if bird_detected == False:
+                multiTracker.release()
+
+            for i, newbox in enumerate(boxes):
+                p1 = (int(newbox[0]), int(newbox[1]))
+                p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
+                cv2.rectangle(frame, p1, p2, colors[i], 2, 1)
+
+            #cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
+            #cv2.resizeWindow('frame', 640, 480)
             cv2.imshow('frame', cv2_im)
         except KeyboardInterrupt:
             print('Interrupted')
@@ -168,46 +180,6 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-def save_bird_img(cv2_im, objs, labels, classification_interpreter):
-    height, width, channels = cv2_im.shape
-    for obj in objs:
-        x0, y0, x1, y1 = list(obj.bbox)
-        x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
-        percent = int(100 * obj.score)
-        object_label = labels.get(obj.id, obj.id)
-        label = '{}% {}'.format(percent, object_label)
-        hdd = psutil.disk_usage('/')
-        
-        if object_label == 'bird' and percent > 20:
-            if hdd.percent < 95:
-                boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
-                full_image_path = "storage/detected/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
-                cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
-                if percent > 90:
-                    cv2.imwrite( full_image_path, cv2_im ) 
-            else:
-                print("Not enough disk space")
-
-            # classification
-            #print("pre-classify")
-            #bird_cv2_im_rgb = cv2.cvtColor(cv2_im[y0:y1,x0:x1], cv2.COLOR_BGR2RGB)
-            ##print("convert to rgb")
-            #bird_pil_im = Image.fromarray(bird_cv2_im_rgb)
-            #print("convert to array")
-            #common.set_input(classification_interpreter, bird_pil_im)
-            #print("set input")
-            #classification_interpreter.invoke()
-            #print("invoke")
-            #classification_objs = get_classification_output(classification_interpreter, score_threshold=0.1, top_k=3)
-            #print("classifying")
-            #print(classification_objs)
-            #for bird_obj in classification_objs:
-            #  percent = int(100 * bird_obj.score)
-              #object_label = classification_labels.get(bird_obj.id, bird_obj.id)
-              #label = '{}% {}'.format(percent, object_label)
-              #print(label)
-            #  if percent > 50:
-            #      print("tweet")
 
 def append_objs_to_img(cv2_im, objs, labels):
     height, width, channels = cv2_im.shape

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Project Leroy</title>
+    <style type="text/css">
+      .images img {
+        max-height:50px;
+      }
+      time {
+        display:block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Project  Leroy</h1>
+    <div id="content"></div>
+  </body>
+  <script type="text/javascript">
+    fetch('/visitations.json')
+      .then(
+        function(response) {
+          if (response.status !== 200) {
+            console.log('Looks like there was a problem. Status Code: ' +
+              response.status);
+            return;
+          }
+
+          // Examine the text in the response
+          response.json().then(function(visitations) {
+            var destination = document.getElementById('content');
+            console.log("here", visitations.length)
+            for(var i=0; i<visitations.length; i++){
+              var visit = visitations[i];
+              var container = document.createElement('div');
+              var name = document.createElement('h3');
+              name.innerHTML = visit.species;
+
+              var time = document.createElement('time');
+              time.innerHTML = visit.records[0].datetime;
+
+              var images = document.createElement('div');
+              images.className = "images";
+              for(var j=0; j<visit.records.length; j++){
+                let url = "/storage/classified/" + visit.records[j].filename;
+                let image = document.createElement("img");
+                image.src = url;
+                images.appendChild(image);
+              }
+
+              container.appendChild(name);
+              container.appendChild(time);
+
+              if(visit["best_photo"]) {
+                var bestImage = document.createElement('img');
+                bestImage.src = "/storage/classified/" + visit["best_photo"];
+                container.appendChild(bestImage);
+              }
+              
+              container.appendChild(images);
+              destination.appendChild(container);
+            }
+          });
+        }
+      )
+      .catch(function(err) {
+        console.log('Fetch Error :-S', err);
+      });
+  </script>
+</html>

@@ -7,6 +7,7 @@ from datetime import datetime
 import itertools
 from operator import itemgetter
 import json
+from itertools import groupby
 
 def classification_scores(bird):
   return bird["classification_score"]
@@ -31,8 +32,28 @@ def initialize_visitation():
   return {
       "species": "",
       "duration": 1,
-      "records": []
+      "records": [],
+      "best_photo": ""
     }
+
+def find_best_photo(records):
+  best = 0
+  best_index = 0
+  for index, record in enumerate(records, start=0):
+    total_score = int(record["classification_score"]) + int(record["detection_score"])
+    if best < total_score:
+      best = total_score
+      best_index = index
+  return best_index
+
+def datetime_parser(dct):
+    for k, v in dct.items():
+        if isinstance(v, basestring) and re.search("\ UTC", v):
+            try:
+                dct[k] = datetime.datetime.strptime(v, DATE_FORMAT)
+            except:
+                pass
+    return dct
 
 def main():
   parser = argparse.ArgumentParser()
@@ -59,6 +80,8 @@ def main():
       if current_visitation["species"] != bird["species"]:
         if len(current_visitation["records"]) > 0:
           if len(current_visitation["records"]) > 1:
+            best_photo_index = find_best_photo(current_visitation["records"]) 
+            current_visitation["best_photo"] = current_visitation["records"][best_photo_index]["filename"]
             current_visitation["duration"] = (current_visitation["records"][-1]["datetime"] - current_visitation["records"][0]["datetime"]).total_seconds()
           if len(current_visitation["records"]) == 1 and int(current_visitation["records"][0]["classification_score"]) < 50:
             bad_visitation = current_visitation["records"][0]
@@ -70,8 +93,24 @@ def main():
         current_visitation["species"] = bird["species"]
       current_visitation["records"].append(bird)
 
-    #with open('visitations.json', 'w') as outfile:
-    #  json.dump(visitations, outfile)
+    # # find visitations that need merged
+    # lists_to_join = []
+    # for idx, visit in enumerate(visitations):
+    #   lookahead = visitations[idx+1] if idx < len(visitations) else None
+    #   if lookahead and (visit["species"] == lookahead["species"]):
+    #     diff = lookahead["records"][0]["datetime"] - visit["records"][-1]["datetime"]
+    #     if diff.total_seconds < 60:
+    #       lists_to_join.append([idx, idx + 1])
+
+    # # merge them
+    # for indexes in lists_to_join:
+    #   destination = visitations[indexes[0]]
+    #   source = visitations[indexes[1]]
+    #   destination['records'] = destination["records"] + source["records"]
+    1
+    # # clean up
+    # for indexes in lists_to_join:
+    #   visitations.remove(indexes[1])  
 
     print(len(visitations), " visitations")
     for visitation in visitations:
@@ -81,7 +120,18 @@ def main():
       print("  Duration: ", visitation["duration"])
       print("  Num of Records: ", len(visitation["records"]))
       print("  Classification Scores: ", list(map(lambda x : x["classification_score"], visitation["records"])))
+      print("  Best Photo: ", visitation["best_photo"])
+    
+  with open('visitations.json', 'w') as outfile:
+     json.dump(visitations, outfile, default=str)
 
+    # groups = []
+    # uniquekeys = []
+    # for k, g in groupby(visitations, key=lambda x:x['species']):
+    #     groups.append(list(g))      # Store group iterator as a list
+    #     uniquekeys.append(k)
+    # print("groups")
+    # print(groups)
 
 if __name__ == '__main__':
   main()
