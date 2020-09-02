@@ -176,7 +176,7 @@ def main():
                     else:
                         print("Not enough disk space")
 
-            if bird_detected == False:
+            if bird_detected == False and len(trackers) > 0:
                 logging.info("clearing trackers")
                 for tracker in trackers:
                     tracker.clear()
