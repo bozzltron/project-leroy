@@ -177,6 +177,7 @@ def main():
             if bird_detected == False:
                 for tracker in trackers:
                     tracker.clear()
+                multiTracker = cv2.MultiTracker_create()
                 boxes = []
                 colors = []
                 trackers = []
@@ -184,9 +185,8 @@ def main():
             for i, newbox in enumerate(boxes):
                 p1 = (int(newbox[0]), int(newbox[1]))
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
-                cv2.rectangle(frame, p1, p2, colors[i], 2, 1)
                 cv2_im = cv2.rectangle(cv2_im, p1, p2, colors[i], 2, 1)
-
+            
             cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
             cv2.resizeWindow('frame', 800, 600)
             cv2.imshow('frame', cv2_im)
