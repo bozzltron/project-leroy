@@ -1,5 +1,11 @@
 IMAGE=project-leroy
 
+build:
+	docker build . -t $(IMAGE):latest
+
+run: build
+	docker run -t $(IMAGE):latest
+
 recent_logs:
 	sudo journalctl -u leroy.service -b
 

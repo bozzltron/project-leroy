@@ -67,6 +67,12 @@ def get_classification_output(interpreter, score_threshold, top_k, image_scale=1
 
     return [make(i) for i in range(top_k) if scores[i] >= score_threshold]
 
+def intersects(box1, box2):
+    box1x0, box1y0, box1x1, box1y1 = list(box1)
+    box2x0, box2y0, box2x1, box2y1 = list(box2)
+    #return not (self.top_right.x < other.bottom_left.x or self.bottom_left.x > other.top_right.x or self.top_right.y < other.bottom_left.y or self.bottom_left.y > other.top_right.y)
+    return not (box1x0 < box2x1 or box1x1 > box2x0 or box1y0 < box2y1 or box1y1 > box2y0)
+
 def main():
     default_model_dir = 'all_models'
     default_model = 'mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite'
@@ -102,8 +108,8 @@ def main():
     classification_labels = load_labels(os.path.join(default_model_dir,default_classification_label))
 
     cap = cv2.VideoCapture(args.camera_idx)
-    cap.set(3, 1600)
-    cap.set(4, 1200)
+    cap.set(3, 960)
+    cap.set(4, 720)
     # 4:3 resolutions
     # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
     # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
@@ -144,9 +150,16 @@ def main():
                 
                 if object_label == 'bird' and percent > 30:
                     bird_detected = True
-                    bboxes.append(obj.bbox)
-                    colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-                    multiTracker.add(cv2.TrackerCSRT_create(), frame, obj.bbox)
+                    new_bird = True
+                    
+                    for bbox in boxes:
+                        if intersects(bbox, obj.bbox):
+                            new_bird = False
+                    
+                    if new_bird:
+                        bboxes.append(obj.bbox)
+                        colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+                        multiTracker.add(cv2.TrackerCSRT_create(), frame, obj.bbox)
 
                     if hdd.percent < 95:
                         boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
