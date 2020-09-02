@@ -157,9 +157,11 @@ def main():
                     
                     for bbox in boxes:
                         if intersects(bbox, obj.bbox):
+                            logging.info("intersected.. same bird")
                             new_bird = False
                     
                     if new_bird:
+                        logging.info("found a new bird")
                         bboxes.append(obj.bbox)
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
                         tracker = cv2.TrackerCSRT_create()
