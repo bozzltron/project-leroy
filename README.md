@@ -6,10 +6,10 @@ Leroy is a AI birdwatcher built from Google Coral and Raspberry Pi.
 1. Setup a virtual environment
 2. Install requirements
 
-## Run the detection demo (SSD models)
+## Run detection and classification
 
 ```
-python3 detect.py
+python3 leroy.py
 ```
 
 By default, this uses the ```mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite``` model.

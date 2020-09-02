@@ -127,8 +127,8 @@ def main():
     classification_labels = load_labels(os.path.join(default_model_dir,default_classification_label))
 
     cap = cv2.VideoCapture(args.camera_idx)
-    cap.set(3, 1400)
-    cap.set(4, 1050)
+    cap.set(3, 1440)
+    cap.set(4, 1080)
     # 4:3 resolutions
     # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
     # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
