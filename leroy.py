@@ -128,8 +128,8 @@ def main():
                 break
             
             success, boxes = multiTracker.update(frame)
-            logging.info("success", success)
-            logging.info("boxes", boxes)
+            logging.info("success {}".format(success))
+            logging.info("boxes {}".format(boxes))
             cv2_im = frame
             cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
             pil_im = Image.fromarray(cv2_im_rgb)
