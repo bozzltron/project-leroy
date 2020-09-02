@@ -122,6 +122,7 @@ def main():
                 break
             
             success, boxes = multiTracker.update(frame)
+            logging.info("success", success)
             logging.info("boxes", boxes)
             cv2_im = frame
             cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
@@ -141,7 +142,7 @@ def main():
                 label = '{}% {}'.format(percent, object_label)
                 hdd = psutil.disk_usage('/')
                 
-                if object_label == 'bird' and percent > 20:
+                if object_label == 'bird' and percent > 30:
                     bird_detected = True
                     bboxes.append(obj.bbox)
                     colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
@@ -163,8 +164,8 @@ def main():
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
                 cv2.rectangle(frame, p1, p2, colors[i], 2, 1)
 
-            #cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
-            #cv2.resizeWindow('frame', 640, 480)
+            cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('frame', 800, 600)
             cv2.imshow('frame', cv2_im)
         except KeyboardInterrupt:
             print('Interrupted')
