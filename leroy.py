@@ -160,7 +160,7 @@ def main():
                 label = '{}% {}'.format(percent, object_label)
                 hdd = psutil.disk_usage('/')
                 
-                if object_label == 'bird' and percent > 50:
+                if object_label == 'bird' and percent > 40:
                     bird_detected = True
                     new_bird = True
                     
@@ -232,21 +232,6 @@ def main():
 
     cap.release()
     cv2.destroyAllWindows()
-
-
-def append_objs_to_img(cv2_im, objs, labels):
-    height, width, channels = cv2_im.shape
-    for obj in objs:
-        x0, y0, x1, y1 = list(obj.bbox)
-        x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
-        percent = int(100 * obj.score)
-        object_label = labels.get(obj.id, obj.id)
-        label = '{}% {}'.format(percent, object_label)
-
-        cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 255, 0), 2)
-        cv2_im = cv2.putText(cv2_im, label, (x0, y0+30),
-                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
-    return cv2_im
 
 if __name__ == '__main__':
     main()
