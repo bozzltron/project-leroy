@@ -114,8 +114,8 @@ def main():
     # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
     # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
     # 5 MP
-    cap.set(3, 2048)
-    cap.set(4, 1536)
+    #cap.set(3, 2048)
+    #cap.set(4, 1536)
     
     bboxes = []
     colors = [] 
@@ -199,8 +199,8 @@ def main():
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
                 cv2_im = cv2.rectangle(cv2_im, p1, p2, colors[i], 2, 1)
             
-            cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
-            cv2.resizeWindow('Leroy', 800, 600)
+            #cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
+            #cv2.resizeWindow('Leroy', 800, 600)
             cv2.imshow('Leroy', cv2_im)
 
         except KeyboardInterrupt:
