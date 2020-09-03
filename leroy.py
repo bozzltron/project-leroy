@@ -68,6 +68,8 @@ def get_classification_output(interpreter, score_threshold, top_k, image_scale=1
     return [make(i) for i in range(top_k) if scores[i] >= score_threshold]
 
 def intersects(box1, box2):
+    logging.info("box1 {}".format(box1))
+    logging.info("box2 {}".format(box2))
     box1x0, box1y0, box1x1, box1y1 = list(box1)
     box2x0, box2y0, box2x1, box2y1 = list(box2)
     #return not (self.top_right.x < other.bottom_left.x or self.bottom_left.x > other.top_right.x or self.top_right.y < other.bottom_left.y or self.bottom_left.y > other.top_right.y)
@@ -121,6 +123,7 @@ def main():
     colors = [] 
     visitation = []
     trackers = []
+    started_tracking = None
 
     while cap.isOpened():
         try:
@@ -129,6 +132,10 @@ def main():
                 break
             
             success, boxes = multiTracker.update(frame)
+            
+            if success:
+                started_tracking = time.time()
+
             if len(boxes) > 0:
                 logging.info("success {}".format(success))
                 logging.info("boxes {}".format(boxes))
@@ -151,7 +158,7 @@ def main():
                 label = '{}% {}'.format(percent, object_label)
                 hdd = psutil.disk_usage('/')
                 
-                if object_label == 'bird' and percent > 30:
+                if object_label == 'bird' and percent > 50:
                     bird_detected = True
                     new_bird = True
                     
@@ -185,14 +192,16 @@ def main():
                                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
             if bird_detected == False and len(trackers) > 0:
-                logging.info("clearing trackers")
-                for tracker in trackers:
-                    tracker.clear()
-                multiTracker = cv2.MultiTracker_create()
-                boxes = []
-                colors = []
-                trackers = []
-                bboxes = []
+                now = time.time()
+                if started_tracking - now > 30:
+                    logging.info("clearing trackers")
+                    for tracker in trackers:
+                        tracker.clear()
+                    multiTracker = cv2.MultiTracker_create()
+                    boxes = []
+                    colors = []
+                    trackers = []
+                    bboxes = []
 
             for i, newbox in enumerate(boxes):
                 x0, y0, x1, y1 = list(newbox)
