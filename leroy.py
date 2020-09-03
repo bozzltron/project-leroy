@@ -200,7 +200,7 @@ def main():
                                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
             if bird_detected == True and save_one_with_boxes == True:
-                with_boxes_image_path = "storage/with_boxes/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
+                with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
                 cv2.imwrite( with_boxes_image_path, cv2_im ) 
                 save_one_with_boxes = False
 
