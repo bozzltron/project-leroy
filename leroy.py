@@ -108,14 +108,14 @@ def main():
     classification_labels = load_labels(os.path.join(default_model_dir,default_classification_label))
 
     cap = cv2.VideoCapture(args.camera_idx)
-    cap.set(3, 1920)
-    cap.set(4, 1440)
+    #cap.set(3, 1920)
+    #cap.set(4, 1440)
     # 4:3 resolutions
     # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
     # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
     # 5 MP
-    #cap.set(3, 2048)
-    #cap.set(4, 1536)
+    cap.set(3, 2048)
+    cap.set(4, 1536)
     
     bboxes = []
     colors = [] 
@@ -195,9 +195,9 @@ def main():
                 bboxes = []
 
             for i, newbox in enumerate(boxes):
-                p1 = (int(newbox[0]), int(newbox[1]))
-                p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
-                cv2_im = cv2.rectangle(cv2_im, p1, p2, colors[i], 2, 1)
+                x0, y0, x1, y1 = list(newbox)
+                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+                cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 0, 255), 2)
             
             cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
             cv2.resizeWindow('Leroy', 800, 600)
