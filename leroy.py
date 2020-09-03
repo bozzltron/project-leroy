@@ -184,6 +184,7 @@ def main():
                 boxes = []
                 colors = []
                 trackers = []
+                bboxes = []
 
             for i, newbox in enumerate(boxes):
                 p1 = (int(newbox[0]), int(newbox[1]))
