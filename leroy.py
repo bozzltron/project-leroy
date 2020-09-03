@@ -180,12 +180,14 @@ def main():
                         multiTracker.add(tracker, cv2_im, obj.bbox)
 
                     if hdd.percent < 95:
-                        boxed_image_path = "storage/detected/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
-                        full_image_path = "storage/detected/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent)
-                        #cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
-                        #cv2.imwrite( full_image_path, cv2_im ) 
+                        boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
+                        full_image_path = "storage/detected/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
+                        cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
+                        if percent > 95:
+                            cv2.imwrite( full_image_path, cv2_im ) 
+
                     else:
-                        print("Not enough disk space")
+                        logging.info("Not enough disk space")
 
                 percent = int(100 * obj.score)
                 object_label = labels.get(obj.id, obj.id)
