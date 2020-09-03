@@ -160,7 +160,7 @@ def main():
                             logging.info("intersected.. same bird")
                             new_bird = False
                     
-                    if new_bird:
+                    if new_bird and len(bboxes) == 0:
                         logging.info("found a new bird")
                         bboxes.append(obj.bbox)
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
@@ -188,7 +188,7 @@ def main():
             for i, newbox in enumerate(boxes):
                 p1 = (int(newbox[0]), int(newbox[1]))
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
-                cv2_im = cv2.rectangle(cv2_im, p1, p2, colors[i], 2, 1)
+                cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 255, 0), 2)
             
             cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
             cv2.resizeWindow('Leroy', 800, 600)
