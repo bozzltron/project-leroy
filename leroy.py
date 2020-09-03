@@ -124,6 +124,8 @@ def main():
     visitation = []
     trackers = []
     started_tracking = None
+    last_tracked = None
+    visitation_id = None
 
     while cap.isOpened():
         try:
@@ -134,7 +136,7 @@ def main():
             success, boxes = multiTracker.update(frame)
             
             if success:
-                started_tracking = time.time()
+                last_tracked = time.time()
 
             if len(boxes) > 0:
                 logging.info("success {}".format(success))
@@ -169,6 +171,8 @@ def main():
                     
                     if new_bird and len(bboxes) == 0:
                         logging.info("found a new bird")
+                        visitation_id =  uuid.uuid4()
+                        started_tracking = time.time()
                         bboxes.append(obj.bbox)
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
                         tracker = cv2.TrackerCSRT_create()
@@ -193,7 +197,8 @@ def main():
 
             if bird_detected == False and len(trackers) > 0:
                 now = time.time()
-                if started_tracking - now > 30:
+                if now - last_tracked > 30:
+                    logging.info("visitation {} lasted {} seconds".format(visitation_id, now - started_tracking))
                     logging.info("clearing trackers")
                     for tracker in trackers:
                         tracker.clear()
