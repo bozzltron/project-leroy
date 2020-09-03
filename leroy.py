@@ -176,6 +176,14 @@ def main():
                     else:
                         print("Not enough disk space")
 
+                percent = int(100 * obj.score)
+                object_label = labels.get(obj.id, obj.id)
+                label = '{}% {}'.format(percent, object_label)
+
+                cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 255, 0), 2)
+                cv2_im = cv2.putText(cv2_im, label, (x0, y0+30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+
             if bird_detected == False and len(trackers) > 0:
                 logging.info("clearing trackers")
                 for tracker in trackers:
@@ -189,7 +197,7 @@ def main():
             for i, newbox in enumerate(boxes):
                 p1 = (int(newbox[0]), int(newbox[1]))
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
-                cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 255, 0), 2)
+                cv2_im = cv2.rectangle(cv2_im, p1, p2, colors[i], 2, 1)
             
             cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
             cv2.resizeWindow('Leroy', 800, 600)
