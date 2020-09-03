@@ -126,6 +126,7 @@ def main():
     started_tracking = None
     last_tracked = None
     visitation_id = None
+    save_one_with_boxes = False
 
     while cap.isOpened():
         try:
@@ -178,6 +179,7 @@ def main():
                         tracker = cv2.TrackerCSRT_create()
                         trackers.append(tracker)
                         multiTracker.add(tracker, cv2_im, obj.bbox)
+                        save_one_with_boxes = True
 
                     if hdd.percent < 95:
                         boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
@@ -196,6 +198,11 @@ def main():
                 cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 255, 0), 2)
                 cv2_im = cv2.putText(cv2_im, label, (x0, y0+30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+
+            if bird_detected == True and save_one_with_boxes == True:
+                with_boxes_image_path = "storage/with_boxes/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
+                cv2.imwrite( with_boxes_image_path, cv2_im ) 
+                save_one_with_boxes = False
 
             if bird_detected == False and len(trackers) > 0:
                 now = time.time()
