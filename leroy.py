@@ -131,6 +131,7 @@ def main():
     out = None
     fps_timer = time.time()
     fps_counter = 0
+    fps_stop = time.time() + 30
 
     while cap.isOpened():
         try:
@@ -138,11 +139,12 @@ def main():
             if not ret:
                 break
             
-            # fps_counter = fps_counter + 1
-            # if time.time() - fps_timer >= 1:
-            #     logging.info("{} fps".format(fps_counter))
-            #     fps_counter = 0
-            #     fps_timer = time.time()
+            fps_counter = fps_counter + 1
+            now = time.time()
+            if (now - fps_timer >= 1) and now < fps_stop:
+                logging.info("{} fps".format(fps_counter))
+                fps_counter = 0
+                fps_timer = time.time()
 
             success, boxes = multiTracker.update(frame)
 
