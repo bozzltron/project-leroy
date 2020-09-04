@@ -129,6 +129,8 @@ def main():
     save_one_with_boxes = False
     recording = False
     out = None
+    fps_timer = time.time()
+    fps_counter = 0
 
     while cap.isOpened():
         try:
@@ -136,6 +138,11 @@ def main():
             if not ret:
                 break
             
+            fps_counter = fps_counter + 1
+            if time.time() - fps_counter >= 1:
+                logging.info("{} fps".format(fps_counter))
+                fps_counter = 0
+
             success, boxes = multiTracker.update(frame)
 
             if success:
