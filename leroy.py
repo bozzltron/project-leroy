@@ -215,7 +215,7 @@ def main():
             if recording == True:
                 fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                 out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), 0x7634706d, 20.0, (2048,1536))
-                out.write(frame)
+                out.write(cv2_im)
 
             if bird_detected == True and save_one_with_boxes == True:
                 with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
