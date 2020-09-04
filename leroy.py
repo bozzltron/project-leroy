@@ -153,6 +153,7 @@ def main():
             height, width, channels = cv2_im.shape
             
             bird_detected = False
+            boxes_to_draw = []
             for obj in objs:
                 x0, y0, x1, y1 = list(obj.bbox)
                 x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
@@ -195,9 +196,18 @@ def main():
                 object_label = labels.get(obj.id, obj.id)
                 label = '{}% {}'.format(percent, object_label)
 
-                cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 255, 0), 2)
-                cv2_im = cv2.putText(cv2_im, label, (x0, y0+30),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                # postpone drawing so we don't get lines in the photos
+                boxes_to_draw.append({
+                    "p1": (x0, y0),
+                    "p2": (x1, y1),
+                    "label": label,
+                    "label_p": (x0, y0+30)
+                })
+
+            for box in boxes_to_draw:
+                cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (0, 255, 0), 2)
+                cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
             if bird_detected == True and save_one_with_boxes == True:
                 with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)

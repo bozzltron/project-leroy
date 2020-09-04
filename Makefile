@@ -28,7 +28,7 @@ classify:
   python3 classify.py --dir=storage/detected
 
 sync_from_pi:
-	rsync -r -a -v -e "ssh -p22" --delete pi@10.0.4.79:/home/pi/Projects/project-leroy/storage `pwd`/storage/ 
+	rsync -avzhe "ssh -p22" pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/ `pwd`/storage
 
 copy_from_pi:
-	scp -r pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/classified/ `pwd`/storage/classified/
+	scp -r pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/classified/* `pwd`/storage/classified

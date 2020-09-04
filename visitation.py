@@ -18,8 +18,9 @@ def parse(filename):
     "filename": filename,
     "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
     "detection_score": data[3],
-    "species": data[4].replace("-", " "),
-    "classification_score": data[5].replace(".png", "")
+    "visitation_id": "" if len(data) == 6 else data[4],
+    "species": data[4].replace("-", " ") if len(data) == 6 else data[5].replace("-", " "),
+    "classification_score": data[5].replace(".png", "") if len(data) == 6 else data[6].replace(".png", "")
   }
 
 def only_boxed(name):  
@@ -55,6 +56,16 @@ def datetime_parser(dct):
                 pass
     return dct
 
+def find_species(records):
+  species = ""
+  highest_count = 0
+  for k,v in groupby(records,key=lambda x:x['species']):
+    length = len(list(v))
+    if length > highest_count:
+      highest_count = length
+      species = k
+  return species
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument(
@@ -74,64 +85,38 @@ def main():
         parsed = filter(lambda x : x["datetime"].date() == date.date(), parsed)
 
     birds = sorted(parsed, key=itemgetter('datetime'))
-    current_visitation = initialize_visitation()
-    for bird in birds:
-      valid = True
-      if current_visitation["species"] != bird["species"]:
-        if len(current_visitation["records"]) > 0:
-          if len(current_visitation["records"]) > 1:
-            best_photo_index = find_best_photo(current_visitation["records"]) 
-            current_visitation["best_photo"] = current_visitation["records"][best_photo_index]["filename"]
-            current_visitation["duration"] = (current_visitation["records"][-1]["datetime"] - current_visitation["records"][0]["datetime"]).total_seconds()
-          if len(current_visitation["records"]) == 1 and int(current_visitation["records"][0]["classification_score"]) < 50:
-            bad_visitation = current_visitation["records"][0]
-            print("detected poor visitation", bad_visitation["species"], bad_visitation["classification_score"])
-            valid = False
-          if valid:
-            visitations.append(current_visitation)
-          current_visitation = initialize_visitation()
-        current_visitation["species"] = bird["species"]
-      current_visitation["records"].append(bird)
+    for k,v in groupby(birds,key=lambda x:x['visitation_id']):
+      records = list(v)
+      best_photo_index = find_best_photo(records) 
+      visitations.append({
+        "species": find_species(records),
+        "duration": (records[-1]["datetime"] - records[0]["datetime"]).total_seconds(),
+        "records": records,
+        "best_photo": records[best_photo_index]["filename"]
+      })
 
-    # # find visitations that need merged
-    # lists_to_join = []
-    # for idx, visit in enumerate(visitations):
-    #   lookahead = visitations[idx+1] if idx < len(visitations) else None
-    #   if lookahead and (visit["species"] == lookahead["species"]):
-    #     diff = lookahead["records"][0]["datetime"] - visit["records"][-1]["datetime"]
-    #     if diff.total_seconds < 60:
-    #       lists_to_join.append([idx, idx + 1])
+  for visit in visitations:
+    if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 80:
+      visitations.remove(visit)
 
-    # # merge them
-    # for indexes in lists_to_join:
-    #   destination = visitations[indexes[0]]
-    #   source = visitations[indexes[1]]
-    #   destination['records'] = destination["records"] + source["records"]
-    1
-    # # clean up
-    # for indexes in lists_to_join:
-    #   visitations.remove(indexes[1])  
-
-    print(len(visitations), " visitations")
-    for visitation in visitations:
-      print("----------")
-      print("  Species: ", visitation["species"])
-      print("  Date: ", visitation["records"][0]["datetime"])
-      print("  Duration: ", visitation["duration"])
-      print("  Num of Records: ", len(visitation["records"]))
-      print("  Classification Scores: ", list(map(lambda x : x["classification_score"], visitation["records"])))
-      print("  Best Photo: ", visitation["best_photo"])
-    
   with open('visitations.json', 'w') as outfile:
-     json.dump(visitations, outfile, default=str)
+    json.dump(visitations, outfile, default=str)
 
-    # groups = []
-    # uniquekeys = []
-    # for k, g in groupby(visitations, key=lambda x:x['species']):
-    #     groups.append(list(g))      # Store group iterator as a list
-    #     uniquekeys.append(k)
-    # print("groups")
-    # print(groups)
+  for visitation in visitations:
+    print("----------")
+    print("  Species: ", visitation["species"])
+    print("  Date: ", visitation["records"][0]["datetime"])
+    print("  Duration: ", visitation["duration"])
+    print("  Num of Records: ", len(visitation["records"]))
+    print("  Classification Scores: ", list(map(lambda x : x["classification_score"], visitation["records"])))
+    print("  Best Photo: ", visitation["best_photo"])
+    
+  tweet = "Today I was visited {} times. ".format(len(visitations))
+
+  for k,v in groupby(visitations,key=lambda x:x['species']):
+    tweet = tweet + "{} times by {}. ".format(len(list(v)), k)
+
+  print(tweet)
 
 if __name__ == '__main__':
   main()
