@@ -138,11 +138,11 @@ def main():
             if not ret:
                 break
             
-            fps_counter = fps_counter + 1
-            if time.time() - fps_timer >= 1:
-                logging.info("{} fps".format(fps_counter))
-                fps_counter = 0
-                fps_timer = time.time()
+            # fps_counter = fps_counter + 1
+            # if time.time() - fps_timer >= 1:
+            #     logging.info("{} fps".format(fps_counter))
+            #     fps_counter = 0
+            #     fps_timer = time.time()
 
             success, boxes = multiTracker.update(frame)
 
@@ -224,7 +224,7 @@ def main():
                 if out == None:
                     #fourcc = cv2.VideoWriter_fourcc(*'XVID')
                     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 20.0, (2048,1536))
+                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 3.0, (2048,1536))
                 out.write(cv2_im)
                 
             if bird_detected == True and save_one_with_boxes == True:
