@@ -140,7 +140,7 @@ def main():
             
             if recording == True:
                 fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 20.0, (2048,1536))
+                out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), 0x7634706d, 20.0, (2048,1536))
                 out.write(frame)
 
             if success:
@@ -183,13 +183,13 @@ def main():
                         visitation_id =  uuid.uuid4()
                         started_tracking = time.time()
                         recording = True
+                        save_one_with_boxes = True
                         bboxes.append(obj.bbox)
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
                         tracker = cv2.TrackerCSRT_create()
                         trackers.append(tracker)
                         multiTracker.add(tracker, cv2_im, obj.bbox)
-                        save_one_with_boxes = True
-
+                        
                     if hdd.percent < 95:
                         boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
                         full_image_path = "storage/detected/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
@@ -235,7 +235,6 @@ def main():
                     trackers = []
                     bboxes = []
                     recording = False
-                    out.release()
 
             for i, newbox in enumerate(boxes):
                 x0, y0, x1, y1 = list(newbox)
@@ -259,6 +258,7 @@ def main():
 
     cap.release()
     cv2.destroyAllWindows()
+    out.release()
 
 if __name__ == '__main__':
     main()
