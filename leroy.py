@@ -127,6 +127,8 @@ def main():
     last_tracked = None
     visitation_id = None
     save_one_with_boxes = False
+    recording = False
+    out = None
 
     while cap.isOpened():
         try:
@@ -136,6 +138,12 @@ def main():
             
             success, boxes = multiTracker.update(frame)
             
+            if recording == True:
+                fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+                out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 20.0, (2048,1536))
+                frame = cv2.flip(frame,0)
+                out.write(frame)
+
             if success:
                 last_tracked = time.time()
 
@@ -175,6 +183,7 @@ def main():
                         logging.info("found a new bird")
                         visitation_id =  uuid.uuid4()
                         started_tracking = time.time()
+                        recording = True
                         bboxes.append(obj.bbox)
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
                         tracker = cv2.TrackerCSRT_create()
@@ -226,6 +235,8 @@ def main():
                     colors = []
                     trackers = []
                     bboxes = []
+                    recording = False
+                    out.release()
 
             for i, newbox in enumerate(boxes):
                 x0, y0, x1, y1 = list(newbox)
