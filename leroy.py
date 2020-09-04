@@ -137,11 +137,6 @@ def main():
                 break
             
             success, boxes = multiTracker.update(frame)
-            
-            if recording == True:
-                fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), 0x7634706d, 20.0, (2048,1536))
-                out.write(frame)
 
             if success:
                 last_tracked = time.time()
@@ -216,6 +211,11 @@ def main():
                 cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (0, 255, 0), 2)
                 cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+
+            if recording == True:
+                fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+                out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), 0x7634706d, 20.0, (2048,1536))
+                out.write(frame)
 
             if bird_detected == True and save_one_with_boxes == True:
                 with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
