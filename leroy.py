@@ -213,10 +213,10 @@ def main():
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
             if recording == True:
-                #fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                 if out == None:
-                    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                    out = cv2.VideoWriter("storage/video/{}.avi".format(visitation_id), fourcc, 20.0, (2048,1536))
+                    #fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 20.0, (2048,1536))
                 out.write(cv2_im)
                 
             if bird_detected == True and save_one_with_boxes == True:
