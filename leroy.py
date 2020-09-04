@@ -217,7 +217,7 @@ def main():
                 #fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                 out = cv2.VideoWriter("storage/video/{}.avi".format(visitation_id), fourcc, 20.0, (2048,1536))
                 out.write(cv2_im)
-
+                
             if bird_detected == True and save_one_with_boxes == True:
                 with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
                 cv2.imwrite( with_boxes_image_path, cv2_im ) 
@@ -225,7 +225,7 @@ def main():
 
             if bird_detected == False and len(trackers) > 0:
                 now = time.time()
-                if now - last_tracked > 30:
+                if now - last_tracked > 10:
                     logging.info("visitation {} lasted {} seconds".format(visitation_id, now - started_tracking))
                     logging.info("clearing trackers")
                     for tracker in trackers:
@@ -236,6 +236,7 @@ def main():
                     trackers = []
                     bboxes = []
                     recording = False
+                    out.release()
 
             for i, newbox in enumerate(boxes):
                 x0, y0, x1, y1 = list(newbox)
