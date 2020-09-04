@@ -139,7 +139,7 @@ def main():
                 break
             
             fps_counter = fps_counter + 1
-            if time.time() - fps_counter >= 1:
+            if time.time() - fps_timer >= 1:
                 logging.info("{} fps".format(fps_counter))
                 fps_counter = 0
 
