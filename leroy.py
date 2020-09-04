@@ -116,8 +116,8 @@ def main():
     # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
     # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
     # 5 MP
-    #cap.set(3, 2048)
-    #cap.set(4, 1536)
+    cap.set(3, 2048)
+    cap.set(4, 1536)
     
     bboxes = []
     colors = [] 
@@ -138,11 +138,11 @@ def main():
             if not ret:
                 break
             
-            fps_counter = fps_counter + 1
-            if time.time() - fps_timer >= 1:
-                logging.info("{} fps".format(fps_counter))
-                fps_counter = 0
-                fps_timer = time.time()
+            # fps_counter = fps_counter + 1
+            # if time.time() - fps_timer >= 1:
+            #     logging.info("{} fps".format(fps_counter))
+            #     fps_counter = 0
+            #     fps_timer = time.time()
 
             success, boxes = multiTracker.update(frame)
 
@@ -224,7 +224,7 @@ def main():
                 if out == None:
                     #fourcc = cv2.VideoWriter_fourcc(*'XVID')
                     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 3.0, (640,480))
+                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 3.0, (2048,1536))
                 out.write(cv2_im)
                 
             if bird_detected == True and save_one_with_boxes == True:
@@ -253,8 +253,8 @@ def main():
                 x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
                 cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 0, 255), 2)
             
-            #cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
-            #cv2.resizeWindow('Leroy', 800, 600)
+            cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('Leroy', 800, 600)
             cv2.imshow('Leroy', cv2_im)
 
         except KeyboardInterrupt:
