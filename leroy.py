@@ -142,6 +142,7 @@ def main():
             if time.time() - fps_timer >= 1:
                 logging.info("{} fps".format(fps_counter))
                 fps_counter = 0
+                fps_timer = time.time()
 
             success, boxes = multiTracker.update(frame)
 
