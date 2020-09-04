@@ -141,7 +141,6 @@ def main():
             if recording == True:
                 fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                 out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 20.0, (2048,1536))
-                frame = cv2.flip(frame,0)
                 out.write(frame)
 
             if success:
