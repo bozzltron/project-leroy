@@ -217,7 +217,7 @@ def main():
 
             if bird_detected == False and len(trackers) > 0:
                 now = time.time()
-                if now - last_tracked > 20:
+                if now - last_tracked > 60:
                     logging.info("visitation {} lasted {} seconds".format(visitation_id, now - started_tracking))
                     logging.info("clearing trackers")
                     for tracker in trackers:
