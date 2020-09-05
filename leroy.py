@@ -115,6 +115,8 @@ def main():
     while cap.isOpened():
         try:
             frame = vs.read()
+            if not vs.grabbed:
+                break
             
             fps.update()
             if fps._numFrames < 100:
