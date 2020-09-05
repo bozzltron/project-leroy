@@ -122,8 +122,6 @@ def main():
             if fps._numFrames < 100:
                 logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
                 logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-            else: 
-                fps.stop()
 
             success, boxes = multiTracker.update(frame)
 
