@@ -121,7 +121,6 @@ def main():
 
             if fps._numFrames < 500:
                 fps.update()
-                logging.info("update fps {}".format(fps._numFrames))
             else:
                 fps.stop()
                 current_fps = fps.fps()
