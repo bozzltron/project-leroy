@@ -241,16 +241,16 @@ def main():
                 cv2.resizeWindow('Leroy', 800, 600)
                 cv2.imshow('Leroy', cv2_im)
 
-            except KeyboardInterrupt:
-                print('Interrupted')
-                try:
-                    sys.exit(0)
-                except SystemExit:
-                    os._exit(0)
-            except:
-                logging.exception('Something happened.')
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        except KeyboardInterrupt:
+            print('Interrupted')
+            try:
+                sys.exit(0)
+            except SystemExit:
+                os._exit(0)
+        except:
+            logging.exception('Something happened.')
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     cap.release()
     cv2.destroyAllWindows()
