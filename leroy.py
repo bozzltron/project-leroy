@@ -93,13 +93,7 @@ def main():
     interpreter.allocate_tensors()
     labels = load_labels(args.labels)
 
-    camera = PiCamera()
-    camera.resolution = (2048, 1536)
-    camera.framerate = 32
-    rawCapture = PiRGBArray(camera, size=(2048, 1536))
-    stream = camera.capture_continuous(rawCapture, format="bgr",
-        use_video_port=True)
-    vs = PiVideoStream().start()
+    vs = PiVideoStream(resolution=(2048, 1536), framerate=32).start()
     #cap = cv2.VideoCapture(args.camera_idx)
     cap = vs.stream
     #cap.set(3, 1920)
