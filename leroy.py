@@ -3,21 +3,24 @@ import argparse
 import collections
 import common
 import cv2
-import numpy as np
 import os
 import sys
-from PIL import Image
+import numpy as np
 import re
-import tflite_runtime.interpreter as tflite
 import time
 import logging
-from edgetpu.utils import dataset_utils
 import psutil
-from random import randint
 import uuid
+import imutils
+import tflite_runtime.interpreter as tflite
+from PIL import Image
+from edgetpu.utils import dataset_utils
+from random import randint
 from imutils.video import FPS
 from imutils.video import WebcamVideoStream
-import imutils
+from imutils.video.pivideostream import PiVideoStream
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 
 print("cv version" + cv2.__version__)
 
@@ -89,7 +92,14 @@ def main():
     interpreter = common.make_interpreter(args.model)
     interpreter.allocate_tensors()
     labels = load_labels(args.labels)
-    vs = WebcamVideoStream(src=args.camera_idx).start()
+
+    camera = PiCamera()
+    camera.resolution = (2048, 1536)
+    camera.framerate = 32
+    rawCapture = PiRGBArray(camera, size=(2048, 1536))
+    stream = camera.capture_continuous(rawCapture, format="bgr",
+        use_video_port=True)
+    vs = PiVideoStream().start()
     #cap = cv2.VideoCapture(args.camera_idx)
     cap = vs.stream
     #cap.set(3, 1920)
@@ -98,8 +108,8 @@ def main():
     # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
     # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
     # 5 MP
-    cap.set(3, 2048)
-    cap.set(4, 1536)
+    #cap.set(3, 2048)
+    #cap.set(4, 1536)
     
     bboxes = []
     colors = [] 
