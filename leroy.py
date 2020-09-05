@@ -16,6 +16,8 @@ from edgetpu.utils import dataset_utils
 import psutil
 from random import randint
 import uuid
+from .fps import FPS
+from .webcam_video_stream import WebcamVideoStream
 
 print("cv version" + cv2.__version__)
 
@@ -79,8 +81,6 @@ def main():
     default_model_dir = 'all_models'
     default_model = 'mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite'
     default_labels = 'coco_labels.txt'
-    default_classification_model = 'mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite'
-    default_classification_label = 'inat_bird_labels.txt'
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', help='.tflite model path',
                         default=os.path.join(default_model_dir,default_model))
@@ -104,11 +104,6 @@ def main():
     interpreter.allocate_tensors()
     labels = load_labels(args.labels)
 
-    # Prepare labels.
-    classification_interpreter = common.make_interpreter(os.path.join(default_model_dir,default_classification_model))
-    classification_interpreter.allocate_tensors()
-    classification_labels = load_labels(os.path.join(default_model_dir,default_classification_label))
-
     cap = cv2.VideoCapture(args.camera_idx)
     #cap.set(3, 1920)
     #cap.set(4, 1440)
@@ -129,9 +124,7 @@ def main():
     save_one_with_boxes = False
     recording = False
     out = None
-    fps_timer = time.time()
-    fps_counter = 0
-    fps_stop = time.time() + 30
+    fps = FPS().start()
 
     while cap.isOpened():
         try:
@@ -139,12 +132,12 @@ def main():
             if not ret:
                 break
             
-            fps_counter = fps_counter + 1
-            now = time.time()
-            if (now - fps_timer >= 1) and now < fps_stop:
-                logging.info("{} fps".format(fps_counter))
-                fps_counter = 0
-                fps_timer = time.time()
+            if fps._numFrames < 200:
+                fps.update()
+            else:
+                fps.stop()
+                print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+                print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
             success, boxes = multiTracker.update(frame)
 
