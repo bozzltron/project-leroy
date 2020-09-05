@@ -93,10 +93,9 @@ def main():
     interpreter.allocate_tensors()
     labels = load_labels(args.labels)
 
-    #vs = WebcamVideoStream(src=args.camera_idx).start()
-    #cap = vs.stream
-    cap = cv2.VideoCapture(args.camera_idx)
-    
+    vs = WebcamVideoStream(src=args.camera_idx).start()
+    #cap = cv2.VideoCapture(args.camera_idx)
+    cap = vs.stream
     #cap.set(3, 1920)
     #cap.set(4, 1440)
     # 4:3 resolutions
@@ -122,7 +121,7 @@ def main():
 
     while cap.isOpened():
         try:
-            frame = cap.read()
+            frame = vs.read()
 
             if frame is not None:
                 if fps._numFrames < 500:
