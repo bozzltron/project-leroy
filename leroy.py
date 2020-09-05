@@ -93,7 +93,12 @@ def main():
     interpreter.allocate_tensors()
     labels = load_labels(args.labels)
 
-    vs = WebcamVideoStream(src=args.camera_idx).start()
+    vs = None
+    try:
+        vs = WebcamVideoStream(src=args.camera_idx).start()
+    except:
+        logging.exception('Faild loading video.')
+        
     #cap = cv2.VideoCapture(args.camera_idx)
     cap = vs.stream
     #cap.set(3, 1920)
