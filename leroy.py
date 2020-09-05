@@ -211,7 +211,7 @@ def main():
 
                 if recording == True:
                     if out == None:
-                        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+                        fourcc = cv2.VideoWriter_fourcc(*'H264')
                         out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
                     out.write(cv2_im)
                     
