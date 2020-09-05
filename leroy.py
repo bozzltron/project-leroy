@@ -88,8 +88,9 @@ def main():
     interpreter = common.make_interpreter(args.model)
     interpreter.allocate_tensors()
     labels = load_labels(args.labels)
-
-    cap = cv2.VideoCapture(args.camera_idx)
+    vs = WebcamVideoStream(src=args.camera_idx).start()
+    #cap = cv2.VideoCapture(args.camera_idx)
+    cap = vs.stream
     #cap.set(3, 1920)
     #cap.set(4, 1440)
     # 4:3 resolutions
@@ -113,16 +114,16 @@ def main():
 
     while cap.isOpened():
         try:
-            ret, frame = cap.read()
+            ret, frame = vs.read()
             if not ret:
                 break
             
-            if fps._numFrames < 200:
-                fps.update()
-            else:
-                fps.stop()
+            fps.update()
+            if fps._numFrames < 100:
                 logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
                 logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+            else: 
+                fps.stop()
 
             success, boxes = multiTracker.update(frame)
 
@@ -250,6 +251,7 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
     out.release()
-
+    vs.stop()
+    
 if __name__ == '__main__':
     main()
