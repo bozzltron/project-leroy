@@ -119,137 +119,138 @@ def main():
         try:
             frame = vs.read()
 
-            if fps._numFrames < 500:
-                fps.update()
-            else:
-                fps.stop()
-                current_fps = fps.fps()
-                logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-                logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-                fps = FPS().start()
+            if frame is not None:
+                if fps._numFrames < 500:
+                    fps.update()
+                else:
+                    fps.stop()
+                    current_fps = fps.fps()
+                    logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+                    logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+                    fps = FPS().start()
 
-            success, boxes = multiTracker.update(frame)
+                success, boxes = multiTracker.update(frame)
 
-            if success:
-                last_tracked = time.time()
+                if success:
+                    last_tracked = time.time()
 
-            if len(boxes) > 0:
-                logging.info("success {}".format(success))
-                logging.info("boxes {}".format(boxes))
+                if len(boxes) > 0:
+                    logging.info("success {}".format(success))
+                    logging.info("boxes {}".format(boxes))
 
-            cv2_im = frame
-            cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
-            pil_im = Image.fromarray(cv2_im_rgb)
+                cv2_im = frame
+                cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+                pil_im = Image.fromarray(cv2_im_rgb)
 
-            common.set_input(interpreter, pil_im)
-            interpreter.invoke()
-            objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
-            height, width, channels = cv2_im.shape
-            
-            bird_detected = False
-            boxes_to_draw = []
-            for obj in objs:
-                x0, y0, x1, y1 = list(obj.bbox)
-                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
-                percent = int(100 * obj.score)
-                object_label = labels.get(obj.id, obj.id)
-                label = '{}% {}'.format(percent, object_label)
-                hdd = psutil.disk_usage('/')
+                common.set_input(interpreter, pil_im)
+                interpreter.invoke()
+                objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
+                height, width, channels = cv2_im.shape
                 
-                if object_label == 'bird' and percent > 40:
-                    bird_detected = True
-                    new_bird = True
+                bird_detected = False
+                boxes_to_draw = []
+                for obj in objs:
+                    x0, y0, x1, y1 = list(obj.bbox)
+                    x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+                    percent = int(100 * obj.score)
+                    object_label = labels.get(obj.id, obj.id)
+                    label = '{}% {}'.format(percent, object_label)
+                    hdd = psutil.disk_usage('/')
                     
-                    for bbox in boxes:
-                        if intersects(bbox, obj.bbox):
-                            logging.info("intersected.. same bird")
-                            new_bird = False
-                    
-                    if new_bird and len(bboxes) == 0:
-                        logging.info("found a new bird")
-                        visitation_id =  uuid.uuid4()
-                        started_tracking = time.time()
-                        recording = True
-                        save_one_with_boxes = True
-                        bboxes.append(obj.bbox)
-                        colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-                        tracker = cv2.TrackerCSRT_create()
-                        trackers.append(tracker)
-                        multiTracker.add(tracker, cv2_im, obj.bbox)
+                    if object_label == 'bird' and percent > 40:
+                        bird_detected = True
+                        new_bird = True
                         
-                    if hdd.percent < 95:
-                        boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
-                        full_image_path = "storage/detected/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
-                        cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
-                        if percent > 95:
-                            cv2.imwrite( full_image_path, cv2_im ) 
+                        for bbox in boxes:
+                            if intersects(bbox, obj.bbox):
+                                logging.info("intersected.. same bird")
+                                new_bird = False
+                        
+                        if new_bird and len(bboxes) == 0:
+                            logging.info("found a new bird")
+                            visitation_id =  uuid.uuid4()
+                            started_tracking = time.time()
+                            recording = True
+                            save_one_with_boxes = True
+                            bboxes.append(obj.bbox)
+                            colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+                            tracker = cv2.TrackerCSRT_create()
+                            trackers.append(tracker)
+                            multiTracker.add(tracker, cv2_im, obj.bbox)
+                            
+                        if hdd.percent < 95:
+                            boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
+                            full_image_path = "storage/detected/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
+                            cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
+                            if percent > 95:
+                                cv2.imwrite( full_image_path, cv2_im ) 
 
-                    else:
-                        logging.info("Not enough disk space")
+                        else:
+                            logging.info("Not enough disk space")
 
-                percent = int(100 * obj.score)
-                object_label = labels.get(obj.id, obj.id)
-                label = '{}% {}'.format(percent, object_label)
+                    percent = int(100 * obj.score)
+                    object_label = labels.get(obj.id, obj.id)
+                    label = '{}% {}'.format(percent, object_label)
 
-                # postpone drawing so we don't get lines in the photos
-                boxes_to_draw.append({
-                    "p1": (x0, y0),
-                    "p2": (x1, y1),
-                    "label": label,
-                    "label_p": (x0, y0+30)
-                })
+                    # postpone drawing so we don't get lines in the photos
+                    boxes_to_draw.append({
+                        "p1": (x0, y0),
+                        "p2": (x1, y1),
+                        "label": label,
+                        "label_p": (x0, y0+30)
+                    })
 
-            for box in boxes_to_draw:
-                cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (0, 255, 0), 2)
-                cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                for box in boxes_to_draw:
+                    cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (0, 255, 0), 2)
+                    cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
-            if recording == True:
-                if out == None:
-                    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
-                out.write(cv2_im)
+                if recording == True:
+                    if out == None:
+                        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+                        out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
+                    out.write(cv2_im)
+                    
+                if bird_detected == True and save_one_with_boxes == True:
+                    with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
+                    cv2.imwrite( with_boxes_image_path, cv2_im ) 
+                    save_one_with_boxes = False
+
+                if bird_detected == False and len(trackers) > 0:
+                    now = time.time()
+                    if now - last_tracked > 60:
+                        logging.info("visitation {} lasted {} seconds".format(visitation_id, now - started_tracking))
+                        logging.info("clearing trackers")
+                        for tracker in trackers:
+                            tracker.clear()
+                        multiTracker = cv2.MultiTracker_create()
+                        boxes = []
+                        colors = []
+                        trackers = []
+                        bboxes = []
+                        recording = False
+                        out.release()
+                        out = None
+
+                for i, newbox in enumerate(boxes):
+                    x0, y0, x1, y1 = list(newbox)
+                    x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+                    cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 0, 255), 2)
                 
-            if bird_detected == True and save_one_with_boxes == True:
-                with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
-                cv2.imwrite( with_boxes_image_path, cv2_im ) 
-                save_one_with_boxes = False
+                cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Leroy', 800, 600)
+                cv2.imshow('Leroy', cv2_im)
 
-            if bird_detected == False and len(trackers) > 0:
-                now = time.time()
-                if now - last_tracked > 60:
-                    logging.info("visitation {} lasted {} seconds".format(visitation_id, now - started_tracking))
-                    logging.info("clearing trackers")
-                    for tracker in trackers:
-                        tracker.clear()
-                    multiTracker = cv2.MultiTracker_create()
-                    boxes = []
-                    colors = []
-                    trackers = []
-                    bboxes = []
-                    recording = False
-                    out.release()
-                    out = None
-
-            for i, newbox in enumerate(boxes):
-                x0, y0, x1, y1 = list(newbox)
-                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
-                cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 0, 255), 2)
-            
-            cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
-            cv2.resizeWindow('Leroy', 800, 600)
-            cv2.imshow('Leroy', cv2_im)
-
-        except KeyboardInterrupt:
-            print('Interrupted')
-            try:
-                sys.exit(0)
-            except SystemExit:
-                os._exit(0)
-        except:
-            logging.exception('Something happened.')
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            except KeyboardInterrupt:
+                print('Interrupted')
+                try:
+                    sys.exit(0)
+                except SystemExit:
+                    os._exit(0)
+            except:
+                logging.exception('Something happened.')
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
     cap.release()
     cv2.destroyAllWindows()
