@@ -123,13 +123,11 @@ def main():
                 fps.update()
                 logging.info("update fps {}".format(fps._numFrames))
             else:
-                logging.info("print fps")
-                if is_stopped == False:
-                    logging.info("really print fps")
-                    fps.stop()
-                    logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-                    logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-                    is_stopped = True
+                fps.stop()
+                current_fps = fps.fps()
+                logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+                logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+                fps = FPS().start()
 
             success, boxes = multiTracker.update(frame)
 
@@ -210,7 +208,7 @@ def main():
             if recording == True:
                 if out == None:
                     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 3.0, (2048,1536))
+                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
                 out.write(cv2_im)
                 
             if bird_detected == True and save_one_with_boxes == True:
