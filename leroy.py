@@ -121,8 +121,11 @@ def main():
 
             if fps._numFrames < 100:
                 fps.update()
+                logging.info("update fps")
             else:
+                logging.info("print fps")
                 if is_stopped == False:
+                    logging.info("really print fps")
                     fps.stop()
                     logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
                     logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
