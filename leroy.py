@@ -116,7 +116,6 @@ def main():
     while cap.isOpened():
         try:
             frame = vs.read()
-            frame = imutils.resize(frame, width=2048)
 
             if fps._numFrames < 100:
                 fps.update()
