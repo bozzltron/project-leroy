@@ -119,9 +119,9 @@ def main():
         try:
             frame = vs.read()
 
-            if fps._numFrames < 1000:
+            if fps._numFrames < 500:
                 fps.update()
-                logging.info("update fps")
+                logging.info("update fps {}".format(fps._numFrames))
             else:
                 logging.info("print fps")
                 if is_stopped == False:
