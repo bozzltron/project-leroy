@@ -122,7 +122,7 @@ def main():
 
     while cap.isOpened():
         try:
-            frame = vs.read()
+            frame = cap.read()
 
             if frame is not None:
                 if fps._numFrames < 500:
