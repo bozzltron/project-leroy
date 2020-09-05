@@ -11,7 +11,6 @@ import re
 import tflite_runtime.interpreter as tflite
 import time
 import logging
-from edgetpu.classification.engine import ClassificationEngine
 from edgetpu.utils import dataset_utils
 import psutil
 from random import randint
@@ -52,20 +51,6 @@ def get_output(interpreter, score_threshold, top_k, image_scale=1.0):
                       ymin=np.maximum(0.0, ymin),
                       xmax=np.minimum(1.0, xmax),
                       ymax=np.minimum(1.0, ymax)))
-
-    return [make(i) for i in range(top_k) if scores[i] >= score_threshold]
-
-def get_classification_output(interpreter, score_threshold, top_k, image_scale=1.0):
-    """Returns list of detected objects."""
-    scores = common.classification_output_tensor(interpreter, 0)
-    
-    print('scores')
-    print(scores)
-    
-    def make(i):
-        return Object(
-            score=scores[i]
-        )
 
     return [make(i) for i in range(top_k) if scores[i] >= score_threshold]
 
@@ -136,8 +121,8 @@ def main():
                 fps.update()
             else:
                 fps.stop()
-                print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-                print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+                logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+                logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
             success, boxes = multiTracker.update(frame)
 
@@ -217,7 +202,6 @@ def main():
 
             if recording == True:
                 if out == None:
-                    #fourcc = cv2.VideoWriter_fourcc(*'XVID')
                     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                     out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 3.0, (2048,1536))
                 out.write(cv2_im)
