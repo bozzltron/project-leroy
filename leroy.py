@@ -118,10 +118,13 @@ def main():
             frame = vs.read()
             frame = imutils.resize(frame, width=2048)
 
-            fps.update()
             if fps._numFrames < 100:
-                logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-                logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+                fps.update()
+            else:
+                if fps.stopped == False:
+                    fps.stop()
+                    logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+                    logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
             success, boxes = multiTracker.update(frame)
 
