@@ -112,6 +112,8 @@ def main():
     recording = False
     out = None
     fps = FPS().start()
+    is_stopped = False
+    current_fps = 4.0
 
     while cap.isOpened():
         try:
@@ -120,10 +122,11 @@ def main():
             if fps._numFrames < 100:
                 fps.update()
             else:
-                if fps.stopped == False:
+                if is_stopped == False:
                     fps.stop()
                     logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
                     logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+                    is_stopped = True
 
             success, boxes = multiTracker.update(frame)
 
