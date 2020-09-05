@@ -119,7 +119,7 @@ def main():
     is_stopped = False
     current_fps = 4.0
 
-    while cap.isOpened():
+    while vs is not None:
         try:
             frame = vs.read()
 
