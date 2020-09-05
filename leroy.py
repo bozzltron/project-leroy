@@ -15,8 +15,8 @@ from edgetpu.utils import dataset_utils
 import psutil
 from random import randint
 import uuid
-from imutils import FPS
-from imutils import WebcamVideoStream
+from imutils.video import FPS
+from imutils.video import WebcamVideoStream
 
 print("cv version" + cv2.__version__)
 
