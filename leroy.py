@@ -17,6 +17,7 @@ from random import randint
 import uuid
 from imutils.video import FPS
 from imutils.video import WebcamVideoStream
+import imutils
 
 print("cv version" + cv2.__version__)
 
@@ -115,9 +116,8 @@ def main():
     while cap.isOpened():
         try:
             frame = vs.read()
-            if not vs.grabbed:
-                break
-            
+            frame = imutils.resize(frame, width=2048)
+
             fps.update()
             if fps._numFrames < 100:
                 logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
