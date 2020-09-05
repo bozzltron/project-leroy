@@ -6,7 +6,7 @@ RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" |
 RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
 RUN apt update
-RUN apt install libedgetpu1-std python3 python3-pip python3-edgetpu python3-opencv -y
+RUN apt install libedgetpu1-std python3 python3-pip python3-edgetpu python3-opencv ffmpeg -y
 RUN pip3 install https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp37-cp37m-linux_x86_64.whl
 RUN pip3 install image psutil opencv-contrib-python
 

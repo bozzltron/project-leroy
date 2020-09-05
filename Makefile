@@ -32,3 +32,13 @@ sync_from_pi:
 
 copy_from_pi:
 	scp -r pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/classified/* `pwd`/storage/classified
+
+mp4_to_gif:
+	docker run -t -v `pwd`/storage/:/usr/src/app/ --entrypoint="bash" $(IMAGE):latest ffmpeg \
+		-i ${INPUT} \
+		-r 15 \
+		-vf scale=512:-1 \
+		${OUTPUT} 
+
+bash:
+	docker run -it -v `pwd`/storage/:/usr/src/app/ --entrypoint="bash" $(IMAGE):latest
