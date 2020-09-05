@@ -89,6 +89,7 @@ def main():
       records = list(v)
       best_photo_index = find_best_photo(records) 
       visitations.append({
+        "visitation_id": k,
         "species": find_species(records),
         "duration": (records[-1]["datetime"] - records[0]["datetime"]).total_seconds(),
         "records": records,

@@ -50,7 +50,16 @@
               container.appendChild(name);
               container.appendChild(time);
 
-              if(visit["best_photo"]) {
+              if(visit["visitation_id"] && visit["best_photo"]) {
+                var video = document.createElement('video');
+                var source = document.createElement('source');
+                video.controls = true;
+                video.poster = "/storage/classified/" + visit["best_photo"];
+                source.type = "video/mp4";
+                source.src = "/storage/video/" + visit["visitation_id"] + ".mp4";
+                video.appendChild(source);
+                container.appendChild(video);
+              } else if(visit["best_photo"]) {
                 var bestImage = document.createElement('img');
                 bestImage.src = "/storage/classified/" + visit["best_photo"];
                 container.appendChild(bestImage);

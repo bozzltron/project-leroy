@@ -143,8 +143,8 @@ def main():
                     logging.info("boxes {}".format(boxes))
 
                 cv2_im = frame
-                cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
-                pil_im = Image.fromarray(cv2_im_rgb)
+                #cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+                pil_im = Image.fromarray(cv2_im)
 
                 common.set_input(interpreter, pil_im)
                 interpreter.invoke()
@@ -241,9 +241,9 @@ def main():
                     x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
                     cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 0, 255), 2)
                 
-                #cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
-                #cv2.resizeWindow('Leroy', 800, 600)
-                #cv2.imshow('Leroy', cv2_im)
+                cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Leroy', 800, 600)
+                cv2.imshow('Leroy', cv2_im)
 
         except KeyboardInterrupt:
             print('Interrupted')
