@@ -93,7 +93,7 @@ def main():
     interpreter.allocate_tensors()
     labels = load_labels(args.labels)
 
-    vs = WebcamVideoStream(src=args.camera_idx).start()
+    vs = PiVideoStream(resolution=(2048, 1536), framerate=32).start()
     #cap = cv2.VideoCapture(args.camera_idx)
     cap = vs.stream
     #cap.set(3, 1920)
@@ -102,8 +102,8 @@ def main():
     # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
     # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
     # 5 MP
-    cap.set(3, 2048)
-    cap.set(4, 1536)
+    #cap.set(3, 2048)
+    #cap.set(4, 1536)
     
     bboxes = []
     colors = [] 
@@ -119,7 +119,7 @@ def main():
     is_stopped = False
     current_fps = 4.0
 
-    while cap.isOpened():
+    while vs is not None:
         try:
             frame = vs.read()
 
@@ -143,7 +143,7 @@ def main():
                     logging.info("boxes {}".format(boxes))
 
                 cv2_im = frame
-                cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+                #cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
                 pil_im = Image.fromarray(cv2_im)
 
                 common.set_input(interpreter, pil_im)
