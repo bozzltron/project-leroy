@@ -98,7 +98,7 @@ def main():
         vs = WebcamVideoStream(src=args.camera_idx).start()
     except:
         logging.exception('Faild loading video.')
-
+        
     #cap = cv2.VideoCapture(args.camera_idx)
     cap = vs.stream
     #cap.set(3, 1920)
@@ -120,7 +120,6 @@ def main():
     save_one_with_boxes = False
     recording = False
     out = None
-
     fps = FPS().start()
     is_stopped = False
     current_fps = 4.0
@@ -215,20 +214,17 @@ def main():
                     cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
-                logging.info("recording check")
                 if recording == True:
                     if out == None:
                         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                         out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
                     out.write(cv2_im)
                     
-                logging.info("save with boxes check")
                 if bird_detected == True and save_one_with_boxes == True:
                     with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
                     cv2.imwrite( with_boxes_image_path, cv2_im ) 
                     save_one_with_boxes = False
 
-                logging.info("clear tracker chech")
                 if bird_detected == False and len(trackers) > 0:
                     now = time.time()
                     if now - last_tracked > 60:
@@ -236,6 +232,7 @@ def main():
                         logging.info("clearing trackers")
                         for tracker in trackers:
                             tracker.clear()
+                        multiTracker = cv2.MultiTracker_create()
                         boxes = []
                         colors = []
                         trackers = []
