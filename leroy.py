@@ -98,7 +98,7 @@ def main():
         vs = WebcamVideoStream(src=args.camera_idx).start()
     except:
         logging.exception('Faild loading video.')
-        
+
     #cap = cv2.VideoCapture(args.camera_idx)
     cap = vs.stream
     #cap.set(3, 1920)
@@ -232,7 +232,6 @@ def main():
                         logging.info("clearing trackers")
                         for tracker in trackers:
                             tracker.clear()
-                        multiTracker = cv2.MultiTracker_create()
                         boxes = []
                         colors = []
                         trackers = []
