@@ -218,7 +218,7 @@ def main():
                 logging.info("recording check")
                 if recording == True:
                     if out == None:
-                        fourcc = cv2.VideoWriter_fourcc(*'mp4')
+                        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                         out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
                     out.write(cv2_im)
                     
@@ -228,7 +228,7 @@ def main():
                     cv2.imwrite( with_boxes_image_path, cv2_im ) 
                     save_one_with_boxes = False
 
-                logging.info("clear tracker check")
+                logging.info("clear tracker chech")
                 if bird_detected == False and len(trackers) > 0:
                     now = time.time()
                     if now - last_tracked > 60:
