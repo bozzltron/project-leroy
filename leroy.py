@@ -212,8 +212,8 @@ def main():
 
             if recording == True and disk_has_space():
                 if out == None:
-                    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
+                    #mp4 = 0x00000021
+                    out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), 0x00000021, 4.0, (2048,1536))
                 out.write(cv2_im_rgb)
                 
             if bird_detected == False and len(trackers) > 0:
