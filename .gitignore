@@ -3,6 +3,6 @@ bin
 lib
 share
 storage
-run.log
+*.log
 visitations.json
 
