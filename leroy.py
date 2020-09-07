@@ -66,6 +66,10 @@ def intersects(box1, box2):
     #return not (self.top_right.x < other.bottom_left.x or self.bottom_left.x > other.top_right.x or self.top_right.y < other.bottom_left.y or self.bottom_left.y > other.top_right.y)
     return not (box1x0 < box2x1 or box1x1 > box2x0 or box1y0 < box2y1 or box1y1 > box2y0)
 
+def disk_has_space():
+    hdd = psutil.disk_usage('/')
+    return hdd.percent < 95
+
 def main():
     default_model_dir = 'all_models'
     default_model = 'mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite'
@@ -138,8 +142,6 @@ def main():
                     logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
                     fps = FPS().start()
 
-                success, boxes = multiTracker.update(frame)
-
                 if success:
                     last_tracked = time.time()
 
@@ -150,6 +152,8 @@ def main():
                 cv2_im = frame
                 cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
                 pil_im = Image.fromarray(cv2_im)
+
+                success, boxes = multiTracker.update(cv2_im)
 
                 common.set_input(interpreter, pil_im)
                 interpreter.invoke()
@@ -164,7 +168,6 @@ def main():
                     percent = int(100 * obj.score)
                     object_label = labels.get(obj.id, obj.id)
                     label = '{}% {}'.format(percent, object_label)
-                    hdd = psutil.disk_usage('/')
                     
                     if object_label == 'bird' and percent > 40:
                         bird_detected = True
@@ -187,7 +190,7 @@ def main():
                             trackers.append(tracker)
                             multiTracker.add(tracker, cv2_im, obj.bbox)
                             
-                        if hdd.percent < 95:
+                        if disk_has_space():
                             boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
                             full_image_path = "storage/detected/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
                             cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
@@ -214,17 +217,12 @@ def main():
                     cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
-                if recording == True:
+                if recording == True and disk_has_space():
                     if out == None:
                         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                         out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
                     out.write(cv2_im)
                     
-                if bird_detected == True and save_one_with_boxes == True:
-                    with_boxes_image_path = "storage/with_boxes/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id)
-                    cv2.imwrite( with_boxes_image_path, cv2_im ) 
-                    save_one_with_boxes = False
-
                 if bird_detected == False and len(trackers) > 0:
                     now = time.time()
                     if now - last_tracked > 60:
