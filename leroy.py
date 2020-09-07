@@ -114,7 +114,6 @@ def main():
     started_tracking = None
     last_tracked = None
     visitation_id = None
-    save_one_with_boxes = False
     recording = False
     out = None
     fps = FPS().start()
@@ -178,7 +177,6 @@ def main():
                         visitation_id =  uuid.uuid4()
                         started_tracking = time.time()
                         recording = True
-                        save_one_with_boxes = True
                         bboxes.append(obj.bbox)
                         colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
                         tracker = cv2.TrackerCSRT_create()
@@ -216,7 +214,7 @@ def main():
                 if out == None:
                     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
                     out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
-                out.write(cv2_im)
+                out.write(cv2_im_rgb)
                 
             if bird_detected == False and len(trackers) > 0:
                 now = time.time()
