@@ -256,7 +256,6 @@ def main():
 
         cap.release()
         cv2.destroyAllWindows()
-        out.release()
 
     except: 
         logging.exception('Failed on main program.')
