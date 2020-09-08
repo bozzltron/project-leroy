@@ -18,9 +18,7 @@ from edgetpu.utils import dataset_utils
 from random import randint
 from imutils.video import FPS
 from imutils.video import WebcamVideoStream
-from imutils.video.pivideostream import PiVideoStream
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+from multiprocessing import Process
 
 print("cv version" + cv2.__version__)
 
