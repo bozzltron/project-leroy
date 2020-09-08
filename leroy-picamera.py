@@ -211,8 +211,8 @@ def main():
 
                 if recording == True:
                     if out == None:
-                        fourcc = cv2.VideoWriter_fourcc(*'H264')
-                        out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
+                        fourcc = cv2.VideoWriter_fourcc(*'X264')
+                        out = cv2.VideoWriter("storage/video/{}.avi".format(visitation_id), fourcc, 4.0, (2048,1536))
                     out.write(cv2_im)
                     
                 if bird_detected == True and save_one_with_boxes == True:
