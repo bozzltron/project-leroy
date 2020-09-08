@@ -98,7 +98,7 @@ def main():
         interpreter.allocate_tensors()
         labels = load_labels(args.labels)
 
-        pipline_r = 'rtspsrc location=rtsp://web_camera_ip latency=100 ! rtph264depay ! h264parse ! v4l2h264dec capture-io-mode=4 ! v4l2video12convert output-io-mode=5 capture-io-mode=4 ! appsink sync=false'
+        pipeline_r = 'rtspsrc location=rtsp://web_camera_ip latency=100 ! rtph264depay ! h264parse ! v4l2h264dec capture-io-mode=4 ! v4l2video12convert output-io-mode=5 capture-io-mode=4 ! appsink sync=false'
         cap = cv2.VideoCapture(pipeline_r)
             
         #cap.set(3, 1920)
