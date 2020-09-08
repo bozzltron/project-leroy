@@ -165,7 +165,7 @@ def main():
                     object_label = labels.get(obj.id, obj.id)
                     label = '{}% {}'.format(percent, object_label)
                     
-                    if object_label == 'bird' and percent > 30:
+                    if object_label == 'bird' and percent > 20:
                         bird_detected = True
                         new_bird = True
                         
@@ -214,8 +214,8 @@ def main():
 
                 if recording == True and disk_has_space():
                     if out == None:
-                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                        out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
+                        fourcc = cv2.VideoWriter_fourcc(*'H264')
+                        out = cv2.VideoWriter("storage/video/{}.h264".format(visitation_id), fourcc, 4.0, (2048,1536))
                     out.write(cv2_im)
                     
                 if bird_detected == False and len(trackers) > 0:
@@ -231,8 +231,9 @@ def main():
                         trackers = []
                         bboxes = []
                         recording = False
-                        out.release()
-                        out = None
+                        if out is not None:
+                            out.release()
+                            out = None
 
                 for i, newbox in enumerate(boxes):
                     x0, y0, x1, y1 = list(newbox)
