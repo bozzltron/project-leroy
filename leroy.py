@@ -98,8 +98,7 @@ def main():
         interpreter.allocate_tensors()
         labels = load_labels(args.labels)
 
-        pipeline_r = 'rtspsrc location=rtsp://web_camera_ip latency=100 ! rtph264depay ! h264parse ! v4l2h264dec capture-io-mode=4 ! v4l2video12convert output-io-mode=5 capture-io-mode=4 ! appsink sync=false'
-        cap = cv2.VideoCapture(pipeline_r)
+        cap = cv2.VideoCapture('videotestsrc ! video/x-raw,framerate=20/1 ! videoscale ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
             
         #cap.set(3, 1920)
         #cap.set(4, 1440)
@@ -215,8 +214,9 @@ def main():
 
                 if recording == True and disk_has_space():
                     if out == None:
-                        fourcc = cv2.VideoWriter_fourcc(*'X264')
-                        out = cv2.VideoWriter("storage/video/{}.avi".format(visitation_id), fourcc, 4.0, (2048,1536))
+                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                        out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
+                        #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
                     out.write(cv2_im)
                     
                 if bird_detected == False and len(trackers) > 0:
