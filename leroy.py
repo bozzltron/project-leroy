@@ -165,7 +165,7 @@ def main():
                     object_label = labels.get(obj.id, obj.id)
                     label = '{}% {}'.format(percent, object_label)
                     
-                    if object_label == 'bird' and percent > 40:
+                    if object_label == 'bird' and percent > 30:
                         bird_detected = True
                         new_bird = True
                         
