@@ -121,6 +121,8 @@ def main():
         is_stopped = False
         current_fps = 4.0
         boxes = []
+        photo_per_visitation_count = 0
+        photo_per_visitation_max = 10
 
         while cap.isOpened():
             try:
@@ -184,10 +186,11 @@ def main():
                             trackers.append(tracker)
                             multiTracker.add(tracker, cv2_im, obj.bbox)
                             
-                        if disk_has_space():
+                        if disk_has_space() and photo_per_visitation_count <= photo_per_visitation_max:
                             boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
                             full_image_path = "storage/detected/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
                             cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
+                            photo_per_visitation_count = photo_per_visitation_count + 1
                             if percent > 95:
                                 cv2.imwrite( full_image_path, cv2_im ) 
 
@@ -230,6 +233,7 @@ def main():
                         colors = []
                         trackers = []
                         bboxes = []
+                        photo_per_visitation_count = 0
                         recording = False
                         if out is not None:
                             out.release()
