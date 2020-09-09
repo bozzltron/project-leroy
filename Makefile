@@ -1,10 +1,26 @@
-IMAGE=project-leroy
+IMAGE=michaelbosworth/project-leroy
 
 build:
 	docker build . -t $(IMAGE):latest
 
-run: build
-	docker run -t $(IMAGE):latest
+push:
+	docker push $(IMAGE):latest
+
+run:
+	docker run -v `pwd`/storage2:/usr/src/app/storage --privileged --restart unless-stopped --device /dev/gpiomem -p 5005:5005 -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
+
+start_machine:
+	docker-machine start
+
+change_docker_env: start_machine
+	eval $(docker-machine env default)
+
+run_on_mac:
+	docker run -it --privileged --device /dev/video0 -v `pwd`:/usr/app/src -v /dev/bus/usb:/dev/bus/usb -v `pwd`/dev_storage:/usr/src/app/storage -p 5005:5005 -t $(IMAGE):latest
+
+restore_docker_env:
+	docker-machine stop
+	eval $(docker-machine env -u)
 
 recent_logs:
 	sudo journalctl -u leroy.service -b

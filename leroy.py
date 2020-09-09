@@ -20,6 +20,7 @@ from imutils.video import FPS
 from imutils.video import WebcamVideoStream
 
 print("cv version" + cv2.__version__)
+print(cv2.getBuildInformation())
 
 Object = collections.namedtuple('Object', ['id', 'score', 'bbox'])
 
@@ -210,12 +211,12 @@ def main():
                     cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
-                if recording == True and disk_has_space():
-                    if out == None:
-                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                        out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
-                        #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
-                    out.write(cv2_im)
+                # if recording == True and disk_has_space():
+                #     if out == None:
+                #         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                #         out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
+                #         #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
+                #     out.write(cv2_im)
                     
                 if bird_detected == False and len(trackers) > 0:
                     now = time.time()

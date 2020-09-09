@@ -36,12 +36,16 @@ import argparse
 import contextlib
 import threading
 import time
+import imutils
+import time
+import cv2
 
 from edgetpu.basic import edgetpu_utils
 from edgetpu.classification.engine import ClassificationEngine
 from edgetpu.detection.engine import DetectionEngine
 import numpy as np
 from PIL import Image
+from imutils.video import VideoStream
 
 
 @contextlib.contextmanager
@@ -147,46 +151,64 @@ def run_two_models_two_tpus(classification_model, detection_model, image_name,
 
 def main():
   parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--classification_model',
-      help='Path of classification model.',
-      required=True)
-  parser.add_argument(
-      '--detection_model', help='Path of detection model.', required=True)
-  parser.add_argument('--image', help='Path of the image.', required=True)
-  parser.add_argument(
-      '--num_inferences',
-      help='Number of inferences to run.',
-      type=int,
-      default=2000)
-  parser.add_argument(
-      '--batch_size',
-      help='Runs one model batch_size times before switching to the other.',
-      type=int,
-      default=10)
-
+  parser.add_argument('--classification_model', help='Path of classification model.', required=False, default='all_models/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite')
+  parser.add_argument('--detection_model', help='Path of detection model.', required=False, default='all_models/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite')
+  parser.add_argument('--image', help='Path of the image.', required=False)
+  parser.add_argument('--classification_labels', required=False, default='all_models/coco_labels.txt')
+  parser.add_argument('--detection_labels', required=False, default='all_models/inat_birds_labels.txt')
   args = parser.parse_args()
 
   edge_tpus = edgetpu_utils.ListEdgeTpuPaths(
       edgetpu_utils.EDGE_TPU_STATE_UNASSIGNED)
-  if len(edge_tpus) <= 1:
-    print('This demo requires at least two Edge TPU available.')
+  
+  # initialize the video stream and allow the camera sensor to warmup
+  print("[INFO] starting video stream...")
+  vs = VideoStream(src=0, resolution=(2048, 1536)).start()
+  #vs = VideoStream(usePiCamera=False).start()
+  time.sleep(2.0)
 
-  print('Running %s and %s with one Edge TPU, # inferences %d, batch_size %d.' %
-        (args.classification_model, args.detection_model, args.num_inferences,
-         args.batch_size))
-  cost_one_tpu = run_two_models_one_tpu(args.classification_model,
-                                        args.detection_model, args.image,
-                                        args.num_inferences, args.batch_size)
-  print('Running %s and %s with two Edge TPUs, # inferences %d.' %
-        (args.classification_model, args.detection_model, args.num_inferences))
-  cost_two_tpus = run_two_models_two_tpus(args.classification_model,
-                                          args.detection_model, args.image,
-                                          args.num_inferences)
+  detection_model = DetectionEngine(args.detection_model)
+  classification_model = ClassificationEngine(args.classification_model)
 
-  print('Inference with one Edge TPU costs %.2f seconds.' % cost_one_tpu)
-  print('Inference with two Edge TPUs costs %.2f seconds.' % cost_two_tpus)
+  detection_labels = args.detection_labels
+  classification_labels = args.classification_labels
 
+  # loop over the frames from the video stream
+  while True:
+    # grab the frame from the threaded video stream and resize it
+    # to have a maximum width of 500 pixels
+    frame = vs.read()
+    frame = imutils.resize(frame, width=500)
+    orig = frame.copy()
+    # prepare the frame for classification by converting (1) it from
+    # BGR to RGB channel ordering and then (2) from a NumPy array to
+    # PIL image format
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame = Image.fromarray(frame)
+
+    # make predictions on the input frame
+    start = time.time()
+    results = detection_model.ClassifyWithImage(frame, top_k=1)
+    end = time.time()
+
+    # ensure at least one result was found
+    if len(results) > 0:
+      # draw the predicted class label, probability, and inference
+      # time on the output frame
+      (classID, score) = results[0]
+      text = "{}: {:.2f}% ({:.4f} sec)".format(detection_labels[classID],
+        score * 100, end - start)
+      cv2.putText(orig, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+        0.5, (0, 0, 255), 2)
+    # show the output frame and wait for a key press
+    cv2.imshow("Frame", orig)
+    key = cv2.waitKey(1) & 0xFF
+    # if the `q` key was pressed, break from the loop
+    if key == ord("q"):
+      break
+  # do a bit of cleanup
+  cv2.destroyAllWindows()
+  vs.stop()
 
 if __name__ == '__main__':
   main()

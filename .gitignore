@@ -3,6 +3,7 @@ bin
 lib
 share
 storage
+dev_storage
 *.log
 visitations.json
 
