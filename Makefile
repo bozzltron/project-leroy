@@ -7,7 +7,7 @@ push:
 	docker push $(IMAGE):latest
 
 run:
-	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`/storage2:/usr/src/app/storage -p 5005:5005 -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
+	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`/storage:/usr/src/app/storage -p 5005:5005 -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
 
 start_machine:
 	docker-machine start
