@@ -41,7 +41,7 @@ pi_edit_service:
 	sudo nano /etc/systemd/system/leroy.service
 
 classify:
-  python3 classify.py --dir=storage/detected
+	python3 classify.py --dir=storage/detected
 
 sync_from_pi:
 	rsync --remove-source-files --exclude 'detected/*' --exclude 'results.log' -avzhe "ssh -p22" pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/ `pwd`/storage
@@ -55,6 +55,6 @@ mp4_to_gif:
 
 mp4_to_h264:
 	docker run -t -e INPUT=${INPUT} -e OUTPUT=${OUTPUT} -v `pwd`:/usr/src/app/ --entrypoint="sh" $(IMAGE):latest ./encode.sh 
-	
+
 bash:
 	docker run -it -v `pwd`/storage/:/usr/src/app/ --entrypoint="bash" $(IMAGE):latest
