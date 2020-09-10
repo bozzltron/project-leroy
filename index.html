@@ -71,6 +71,7 @@
                   let url = "/storage/classified/" + visit.records[j].filename;
                   let image = document.createElement("img");
                   image.src = url;
+                  images.title = visit.records[j].filename;
                   images.appendChild(image);
                 }
               }
@@ -102,6 +103,7 @@
                 var bestImage = document.createElement('img');
                 bestImage.src = "/storage/classified/" + visit["best_photo"];
                 bestImage.className = "highlight";
+                bestImage.title = visit["best_photo"];
                 bestImage.onclick = function(e){
                   var dialog = e.target.nextSibling;
                   if (typeof dialog.showModal === "function") {

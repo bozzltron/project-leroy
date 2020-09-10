@@ -50,7 +50,6 @@ def find_best_photo(records):
   best_index = 0
   for index, record in enumerate(records, start=0):
     clarity_score = clarity(record['filename'])
-    print('clarity: {}'.format(clarity_score))
     total_score = int(record["classification_score"]) + int(record["detection_score"]) + clarity_score
     if best < total_score:
       best = total_score
@@ -98,13 +97,20 @@ def main():
     for k,v in groupby(birds,key=lambda x:x['visitation_id']):
       records = list(v)
       best_photo_index = find_best_photo(records) 
-      visitations.append({
+      save_visitation = True
+      highest_classification_score = 0
+      sorted_records = sorted(records, key=lambda k: int(k['classification_score'])) 
+      visitation = {
         "visitation_id": k,
         "species": find_species(records),
         "duration": (records[-1]["datetime"] - records[0]["datetime"]).total_seconds(),
         "records": records,
         "best_photo": records[best_photo_index]["filename"]
-      })
+      }
+      if len(sorted_records) > 0 and int(sorted_records[-1]['classification_score']) > 30:
+        visitations.append(visitation)
+      else:
+        print("bad visitation: {}".format(visitation))
 
   for visit in visitations:
     if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 90:
