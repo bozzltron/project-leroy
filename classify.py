@@ -61,10 +61,10 @@ def main():
     f = []
     for (dirpath, dirnames, filenames) in os.walk(args.dir):
           for filename in filenames:
-            print("attempting to classify {}".format(filename))
             try:
               if "boxed" in filename:
                 filepath = "{}{}".format(dirpath,filename)
+                print("attempting to classify {}".format(filepath))
                 img = Image.open(filepath)
                 for result in engine.classify_with_image(img, top_k=3):
                   label = labels[result[0]]
