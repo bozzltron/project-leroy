@@ -221,7 +221,7 @@ def main():
                     })
 
                 for box in boxes_to_draw:
-                        if label == "bird":
+                        if box["label"] == "bird":
                             cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
                             cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
                                     cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
