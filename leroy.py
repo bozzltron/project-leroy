@@ -196,8 +196,8 @@ def main():
                             multiTracker.add(tracker, cv2_im, obj.bbox)
                             
                         if disk_has_space() and photo_per_visitation_count <= photo_per_visitation_max:
-                            boxed_image_path = "storage/detected/{}/{}/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id, percent)
-                            full_image_path = "storage/detected/{}/{}/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id, percent)
+                            boxed_image_path = "storage/detected/{}/{}/boxed_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id, percent)
+                            full_image_path = "storage/detected/{}/{}/full_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id, percent)
                             cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
                             photo_per_visitation_count = photo_per_visitation_count + 1
                             if percent > 95:
