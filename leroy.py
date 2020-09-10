@@ -221,10 +221,10 @@ def main():
                     })
 
                 for box in boxes_to_draw:
-                        if box["label"] == "bird":
-                            cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
-                            cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
-                                    cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
+                    if box["label"] == "bird":
+                        cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
+                        cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
+                                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
 
                 if disk_has_space() and full_photo_per_visitation_count <= full_photo_per_visitation_max:
                     directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
@@ -254,6 +254,7 @@ def main():
                         trackers = []
                         bboxes = []
                         photo_per_visitation_count = 0
+                        full_photo_per_visitation_count = 0
                         recording = False
                         if out is not None:
                             out.release()
