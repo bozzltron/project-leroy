@@ -68,7 +68,7 @@
               images.className = "images";
               for(var j=0; j<visit.records.length; j++){
                 if(j<10) {
-                  let url = "/storage/classified/" + visit.records[j].filename;
+                  let url = visit.records[j].filename;
                   let image = document.createElement("img");
                   image.src = url;
                   images.title = visit.records[j].filename;
@@ -101,7 +101,7 @@
               //} 
               if(visit["best_photo"]) {
                 var bestImage = document.createElement('img');
-                bestImage.src = "/storage/classified/" + visit["best_photo"];
+                bestImage.src = visit["best_photo"];
                 bestImage.className = "highlight";
                 bestImage.title = visit["best_photo"];
                 bestImage.onclick = function(e){

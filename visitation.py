@@ -2,33 +2,53 @@ import argparse
 import os
 import shutil
 import string
-from collections import defaultdict
-from datetime import datetime
 import itertools
-from operator import itemgetter
 import json
-from itertools import groupby
 import cv2 
 
+from collections import defaultdict
+from datetime import datetime
+from operator import itemgetter
+from itertools import groupby
 def classification_scores(bird):
   return bird["classification_score"]
 
 def clarity(image_path):
 	# compute the Laplacian of the image and then return the focus
 	# measure, which is simply the variance of the Laplacian
-  image = cv2.imread("storage/classified/{}".format(image_path))
+  image = cv2.imread(image_path)
   gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
   return 0 if image is None else cv2.Laplacian(gray, cv2.CV_64F).var()
 
 def parse(filename):
+  path = filename.split('/')
   data = filename.split('_')
+  if len(data) == 6:
+    return {
+      "filename": filename,
+      "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
+      "detection_score": data[3],
+      "visitation_id": "",
+      "species": data[4].replace("-", " "),
+      "classification_score": data[5].replace(".png", "")
+    }
+  if len(data) == 7:  
+    return {
+      "filename": filename,
+      "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
+      "detection_score": data[3],
+      "visitation_id": data[4],
+      "species": data[5].replace("-", " "),
+      "classification_score": data[6].replace(".png", "")
+    }
+  
   return {
     "filename": filename,
-    "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
-    "detection_score": data[3],
-    "visitation_id": "" if len(data) == 6 else data[4],
-    "species": data[4].replace("-", " ") if len(data) == 6 else data[5].replace("-", " "),
-    "classification_score": data[5].replace(".png", "") if len(data) == 6 else data[6].replace(".png", "")
+    "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S') if len(data) == 7 else datetime.strptime("{} {}".format(path[2], data[1]), '%Y-%m-%d %H-%M-%S'),
+    "detection_score": data[2],
+    "visitation_id": path[3],
+    "species": data[3].replace("-", " "),
+    "classification_score": data[4].replace(".png", "")
   }
 
 def only_boxed(name):  
@@ -85,8 +105,12 @@ def main():
 
   visitations = []
   for (dirpath, dirnames, filenames) in os.walk(args.dir):
+    filepaths = []
+    for filename in filenames:
+        filepaths.append(os.path.join(dirpath, filename))
+
     # filter to just boxed names
-    filtered = filter(only_boxed, filenames)
+    filtered = filter(only_boxed, filepaths)
     parsed = map(parse, filtered)
 
     if args.date:
