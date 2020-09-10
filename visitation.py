@@ -131,10 +131,10 @@ def main():
         "records": records,
         "best_photo": records[best_photo_index]["filename"]
       }
-      if len(sorted_records) > 0 and int(sorted_records[-1]['classification_score']) > 30:
-        visitations.append(visitation)
-      else:
-        print("bad visitation: {}".format(visitation))
+      #if len(sorted_records) > 0 and int(sorted_records[-1]['classification_score']) > 25:
+      visitations.append(visitation)
+      #else:
+      #  print("bad visitation: {}".format(visitation))
 
   for visit in visitations:
     if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 90:

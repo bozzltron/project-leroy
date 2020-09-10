@@ -222,9 +222,10 @@ def main():
                     })
 
                 for box in boxes_to_draw:
-                    cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (0, 255, 0), 2)
-                    cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                    if label == "bird":
+                        cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
+                        cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
+                                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
 
                 # if recording == True and disk_has_space():
                 #     if out == None:

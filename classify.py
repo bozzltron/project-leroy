@@ -86,7 +86,7 @@ def main():
                     print('dryrun', args.dryrun)
                     if args.dryrun == False:
                       if not os.path.exists(new_dir):
-                                os.makedirs(new_dir)
+                        os.makedirs(new_dir)
                       shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
                       shutil.move(os.path.abspath(fullpath), os.path.abspath(newfullpath))
             except:
