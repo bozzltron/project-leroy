@@ -40,7 +40,10 @@ def main():
       '--image', help='File path of the image to be recognized.', required=False)
   parser.add_argument(
       '--dir', help='File path of the dir to be recognized.', required=False)
+  parser.add_argument(
+      '--dryrun', help='Whether to actually move files or not.', required=False, default=False)
   args = parser.parse_args()
+
 
   # Prepare labels.
   labels = dataset_utils.read_label_file(args.label)
@@ -67,14 +70,23 @@ def main():
                   label = labels[result[0]]
                   percent = int(100 * result[1])
                   if label != "background":
-                    newpath = filename.replace(".png", "_{}_{}.png".format(label.replace(" ", "-"), percent))
-                    newpath = "storage/classified/{}".format(newpath)
+                    print('dirpath', dirpath)
+                    path_sections = dirpath.split("/")
+                    new_dir = "storage/classified/"
+                    if len(path_sections) == 4:
+                      date = path_sections[2]
+                      visitation_id = path_sections[3]
+                      new_dir = "storage/classified/{}/{}".format(date, visitation_id)
+                    newname = filename.replace(".png", "_{}_{}.png".format(label.replace(" ", "-"), percent))
+                    newpath = "{}/{}".format(new_dir, newname)
                     print('move {} -> {}'.format(filepath, newpath))
-                    shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
                     fullpath = filepath.replace("boxed", "full")
                     newfullpath = newpath.replace("boxed", "full")
                     print('move {} -> {}'.format(fullpath, newfullpath))
-                    shutil.move(os.path.abspath(fullpath), os.path.abspath(newfullpath))
+                    print('dryrun', args.dryrun)
+                    if args.dryrun == False:
+                      shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
+                      shutil.move(os.path.abspath(fullpath), os.path.abspath(newfullpath))
             except:
                 print("failed to classify ")
 

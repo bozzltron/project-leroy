@@ -67,6 +67,15 @@ def disk_has_space():
     hdd = psutil.disk_usage('/')
     return hdd.percent < 95
 
+def clarity(image):
+	# compute the Laplacian of the image and then return the focus
+	# measure, which is simply the variance of the Laplacian
+  gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+  return 0 if image is None else cv2.Laplacian(gray, cv2.CV_64F).var()
+
+def is_focused(image):
+    return clarity(image) > 100
+
 def main():
 
     try:
@@ -187,8 +196,8 @@ def main():
                             multiTracker.add(tracker, cv2_im, obj.bbox)
                             
                         if disk_has_space() and photo_per_visitation_count <= photo_per_visitation_max:
-                            boxed_image_path = "storage/detected/boxed_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
-                            full_image_path = "storage/detected/full_{}_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), percent, visitation_id)
+                            boxed_image_path = "storage/detected/{}/{}/boxed_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id, percent)
+                            full_image_path = "storage/detected/{}/{}/full_{}_{}.png".format(time.strftime("%Y-%m-%d_%H-%M-%S"), visitation_id, percent)
                             cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
                             photo_per_visitation_count = photo_per_visitation_count + 1
                             if percent > 95:

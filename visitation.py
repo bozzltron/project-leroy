@@ -8,9 +8,17 @@ import itertools
 from operator import itemgetter
 import json
 from itertools import groupby
+import cv2 
 
 def classification_scores(bird):
   return bird["classification_score"]
+
+def clarity(image_path):
+	# compute the Laplacian of the image and then return the focus
+	# measure, which is simply the variance of the Laplacian
+  image = cv2.imread("storage/classified/{}".format(image_path))
+  gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+  return 0 if image is None else cv2.Laplacian(gray, cv2.CV_64F).var()
 
 def parse(filename):
   data = filename.split('_')
@@ -41,7 +49,9 @@ def find_best_photo(records):
   best = 0
   best_index = 0
   for index, record in enumerate(records, start=0):
-    total_score = int(record["classification_score"]) + int(record["detection_score"])
+    clarity_score = clarity(record['filename'])
+    print('clarity: {}'.format(clarity_score))
+    total_score = int(record["classification_score"]) + int(record["detection_score"]) + clarity_score
     if best < total_score:
       best = total_score
       best_index = index
@@ -97,7 +107,7 @@ def main():
       })
 
   for visit in visitations:
-    if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 80:
+    if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 90:
       visitations.remove(visit)
 
   with open('visitations.json', 'w') as outfile:
@@ -114,7 +124,7 @@ def main():
     
   tweet = "Today I was visited {} times. ".format(len(visitations))
 
-  for k,v in groupby(visitations,key=lambda x:x['species']):
+  for k,v in groupby(sorted(visitations, key = lambda i: i['species']),key=lambda x:x['species']):
     tweet = tweet + "{} times by {}. ".format(len(list(v)), k)
 
   print(tweet)

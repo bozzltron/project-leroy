@@ -3,8 +3,31 @@
   <head>
     <title>Project Leroy</title>
     <style type="text/css">
+      #content {
+        max-width:80%;
+        margin:auto;
+      }
+      .masonry {
+        display: flex;
+        flex-flow: row wrap;
+        margin-left: -8px; /* Adjustment for the gutter */
+        width: 100%;
+      }
+      .masonry-brick {
+        flex: auto;
+        border:1px solid #ccc;
+        background:#fff;
+        padding: 0.5em;
+        border-radius:4px;
+        margin: 0 8px 8px 0; /* Some gutter */
+        text-align:center;
+      }
+
       .images img {
-        max-height:50px;
+        padding:0.5em;
+        border: 1px dotted #ccc;
+        border-radius:4px;
+        margin:0 0.5em 0 0;
       }
       time {
         display:block;
@@ -13,7 +36,7 @@
   </head>
   <body>
     <h1>Project  Leroy</h1>
-    <div id="content"></div>
+    <div id="content" class="masonry"></div>
   </body>
   <script type="text/javascript">
     fetch('/visitations.json')
@@ -28,40 +51,63 @@
           // Examine the text in the response
           response.json().then(function(visitations) {
             var destination = document.getElementById('content');
-            console.log("here", visitations.length)
+            
             for(var i=0; i<visitations.length; i++){
               var visit = visitations[i];
+              var visitation_id = visit["visitation_id"].replace(/-/g,"");
               var container = document.createElement('div');
+              container.className = "masonry-brick";
+              container.id = visitation_id;
               var name = document.createElement('h3');
               name.innerHTML = visit.species;
 
               var time = document.createElement('time');
               time.innerHTML = visit.records[0].datetime;
 
-              var images = document.createElement('div');
+              var images = document.createElement('dialog');
               images.className = "images";
               for(var j=0; j<visit.records.length; j++){
-                let url = "/storage/classified/" + visit.records[j].filename;
-                let image = document.createElement("img");
-                image.src = url;
-                images.appendChild(image);
+                if(j<10) {
+                  let url = "/storage/classified/" + visit.records[j].filename;
+                  let image = document.createElement("img");
+                  image.src = url;
+                  images.appendChild(image);
+                }
               }
+              var button = document.createElement('button');
+              button.innerText = "x";
+              button.onclick = function(e){
+                var dialog = e.target.parentNode;
+                if (typeof dialog.close === "function") {
+                  dialog.close();
+                }
+              }
+              images.appendChild(button);
 
               container.appendChild(name);
               container.appendChild(time);
 
-              if(visit["visitation_id"] && visit["best_photo"]) {
-                var video = document.createElement('video');
-                var source = document.createElement('source');
-                video.controls = true;
-                video.poster = "/storage/classified/" + visit["best_photo"];
-                source.type = "video/mp4";
-                source.src = "/storage/video/" + visit["visitation_id"] + ".avi";
-                video.appendChild(source);
-                container.appendChild(video);
-              } else if(visit["best_photo"]) {
+              //if(visit["visitation_id"] && visit["best_photo"]) {
+                
+                //var video = document.createElement('video');
+                //var source = document.createElement('source');
+                //video.controls = true;
+                //video.poster = "/storage/classified/" + visit["best_photo"];
+                //source.type = "video/mp4";
+                //source.src = "/storage/video/" + visit["visitation_id"] + ".avi";
+                //video.appendChild(source);
+                //container.appendChild(video);
+              //} 
+              if(visit["best_photo"]) {
                 var bestImage = document.createElement('img');
                 bestImage.src = "/storage/classified/" + visit["best_photo"];
+                bestImage.className = "highlight";
+                bestImage.onclick = function(e){
+                  var dialog = e.target.nextSibling;
+                  if (typeof dialog.showModal === "function") {
+                    dialog.showModal();
+                  }
+                }
                 container.appendChild(bestImage);
               }
               
