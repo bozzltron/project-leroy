@@ -64,7 +64,7 @@ def main():
             print("attempting to classify {}".format(filename))
             try:
               if "boxed" in filename:
-                filepath = "storage/detected/{}".format(filename)
+                filepath = "{}{}".format(dirpath,filename)
                 img = Image.open(filepath)
                 for result in engine.classify_with_image(img, top_k=3):
                   label = labels[result[0]]
