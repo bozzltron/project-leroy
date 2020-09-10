@@ -132,6 +132,8 @@ def main():
         boxes = []
         photo_per_visitation_count = 0
         photo_per_visitation_max = 10
+        full_photo_per_visitation_max = 1
+        full_photo_per_visitation_count = 0
 
         while cap.isOpened():
             try:
@@ -200,11 +202,8 @@ def main():
                             if not os.path.exists(directory):
                                 os.makedirs(directory)
                             boxed_image_path = "{}/boxed_{}_{}.png".format(directory, time.strftime("%H-%M-%S"), percent)
-                            full_image_path = "{}/full_{}_{}.png".format(directory, time.strftime("%H-%M-%S"), percent)
                             cv2.imwrite( boxed_image_path, cv2_im[y0:y1,x0:x1] )
                             photo_per_visitation_count = photo_per_visitation_count + 1
-                            if percent > 95:
-                                cv2.imwrite( full_image_path, cv2_im ) 
 
                         else:
                             logging.info("Not enough disk space")
@@ -222,10 +221,18 @@ def main():
                     })
 
                 for box in boxes_to_draw:
-                    if label == "bird":
-                        cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
-                        cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
-                                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
+                        if label == "bird":
+                            cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
+                            cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
+                                    cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
+
+                if disk_has_space() and full_photo_per_visitation_count <= full_photo_per_visitation_max:
+                    directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)
+                    full_image_path = "{}/full_{}.png".format(directory, time.strftime("%H-%M-%S"))
+                    full_photo_per_visitation_count = full_photo_per_visitation_count + 1
+                    cv2.imwrite( full_image_path, cv2_im ) 
 
                 # if recording == True and disk_has_space():
                 #     if out == None:
