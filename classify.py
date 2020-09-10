@@ -63,7 +63,7 @@ def main():
           for filename in filenames:
             try:
               if "boxed" in filename:
-                filepath = "{}{}".format(dirpath,filename)
+                filepath = "{}/{}".format(dirpath,filename)
                 print("attempting to classify {}".format(filepath))
                 img = Image.open(filepath)
                 for result in engine.classify_with_image(img, top_k=3):
