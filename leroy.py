@@ -195,7 +195,8 @@ def main():
                             colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
                             tracker = cv2.TrackerCSRT_create()
                             trackers.append(tracker)
-                            multiTracker.add(tracker, cv2_im, obj.bbox)
+                            print('bbox {}'.format(obj.bbox))
+                            multiTracker.add(tracker, cv2_im, (obj.bbox.xmin, obj.bbox.ymin, obj.bbox.xmax-obj.bbox.xmin, obj.bbox.ymax-obj.bbox.ymin))
                             
                         if disk_has_space() and photo_per_visitation_count <= photo_per_visitation_max:
                             directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)

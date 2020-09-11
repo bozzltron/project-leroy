@@ -1,37 +1,3 @@
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""Demo to show running two models on one/two Edge TPU devices.
-
-This is a dummy example that compares running two different models using one
-Edge TPU vs two Edge TPUs. It requires that your system includes two Edge TPU
-devices.
-
-You give the script one classification model and one
-detection model, and it runs each model the number of times specified with the
-`num_inferences` argument, using the same image. It then reports the time
-spent using either one or two Edge TPU devices.
-
-Note: Running two models alternatively with one Edge TPU is cache unfriendly,
-as each model continuously kicks the other model off the device's cache when
-they each run. In this case, running several inferences with one model in a
-batch before switching to another model can help to some extent. It's also
-possible to co-compile both models so they can be cached simultaneously
-(if they fit; read more at coral.ai/docs/edgetpu/compiler/). But using two
-Edge TPUs with two threads can help more.
-"""
-
 import argparse
 import contextlib
 import threading
@@ -39,6 +5,7 @@ import time
 import imutils
 import time
 import cv2
+import re
 
 from edgetpu.basic import edgetpu_utils
 from edgetpu.classification.engine import ClassificationEngine
@@ -99,67 +66,25 @@ def run_two_models_one_tpu(classification_model, detection_model, image_name,
   return time.perf_counter() - start_time
 
 
-def run_two_models_two_tpus(classification_model, detection_model, image_name,
-                            num_inferences):
-  """Runs two models using two Edge TPUs with two threads.
+def classification_job(classification_model, image, num_inferences):
+  """Runs classification job."""
+  classification = classification_model.classify_with_image(image, top_k=num_inferences)
+  print("classification {}".format(classification)) 
 
-  Args:
-    classification_model: string, path to classification model
-    detection_model: string, path to detection model.
-    image_name: string, path to input image.
-    num_inferences: int, number of inferences to run for each model.
-
-  Returns:
-    double, wall time it takes to finish the job.
-  """
-
-  def classification_job(classification_model, image_name, num_inferences):
-    """Runs classification job."""
-    engine = ClassificationEngine(classification_model)
-    with open_image(image_name) as image:
-      tensor = get_input_tensor(engine, image)
-
-    # Using `classify_with_input_tensor` to exclude image down-scale cost.
-    for _ in range(num_inferences):
-      engine.classify_with_input_tensor(tensor, top_k=1)
-
-  def detection_job(detection_model, image_name, num_inferences):
-    """Runs detection job."""
-    engine = DetectionEngine(detection_model)
-    with open_image(image_name) as img:
-      # Resized image.
-      _, height, width, _ = engine.get_input_tensor_shape()
-      tensor = np.asarray(img.resize((width, height), Image.NEAREST)).flatten()
-
-    # Using `detect_with_input_tensor` to exclude image down-scale cost.
-    for _ in range(num_inferences):
-      engine.detect_with_input_tensor(tensor, top_k=1)
-
-  start_time = time.perf_counter()
-  classification_thread = threading.Thread(
-      target=classification_job,
-      args=(classification_model, image_name, num_inferences))
-  detection_thread = threading.Thread(
-      target=detection_job, args=(detection_model, image_name, num_inferences))
-
-  classification_thread.start()
-  detection_thread.start()
-  classification_thread.join()
-  detection_thread.join()
-  return time.perf_counter() - start_time
-
+def load_labels(path):
+    p = re.compile(r'\s*(\d+)(.+)')
+    with open(path, 'r', encoding='utf-8') as f:
+       lines = (p.match(line).groups() for line in f.readlines())
+       return {int(num): text.strip() for num, text in lines}
 
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--classification_model', help='Path of classification model.', required=False, default='all_models/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite')
   parser.add_argument('--detection_model', help='Path of detection model.', required=False, default='all_models/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite')
   parser.add_argument('--image', help='Path of the image.', required=False)
-  parser.add_argument('--classification_labels', required=False, default='all_models/coco_labels.txt')
-  parser.add_argument('--detection_labels', required=False, default='all_models/inat_birds_labels.txt')
+  parser.add_argument('--classification_labels', required=False, default='all_models/inat_bird_labels.txt')
+  parser.add_argument('--detection_labels', required=False, default='all_models/coco_labels.txt')
   args = parser.parse_args()
-
-  edge_tpus = edgetpu_utils.ListEdgeTpuPaths(
-      edgetpu_utils.EDGE_TPU_STATE_UNASSIGNED)
   
   # initialize the video stream and allow the camera sensor to warmup
   print("[INFO] starting video stream...")
@@ -169,38 +94,86 @@ def main():
 
   detection_model = DetectionEngine(args.detection_model)
   classification_model = ClassificationEngine(args.classification_model)
+  
+  detection_labels = load_labels(args.detection_labels)
+  print("detection_labels : {}".format(len(detection_labels)))
+  classification_labels = load_labels(args.classification_labels)
 
-  detection_labels = args.detection_labels
-  classification_labels = args.classification_labels
-
+  multiTracker = cv2.MultiTracker_create()
+  tracking_mode = False
+  tracking_expire = None
+  
   # loop over the frames from the video stream
   while True:
     # grab the frame from the threaded video stream and resize it
     # to have a maximum width of 500 pixels
     frame = vs.read()
-    frame = imutils.resize(frame, width=500)
-    orig = frame.copy()
+    #resized_frame = imutils.resize(frame, width=500)
+    resized_frame = frame
+    orig = resized_frame.copy()
     # prepare the frame for classification by converting (1) it from
     # BGR to RGB channel ordering and then (2) from a NumPy array to
     # PIL image format
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame = Image.fromarray(frame)
+    resized_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
+    resized_frame = Image.fromarray(resized_frame)
 
     # make predictions on the input frame
     start = time.time()
-    results = detection_model.ClassifyWithImage(frame, top_k=1)
-    end = time.time()
+    if tracking_mode:
+      success, boxes = multiTracker.update(orig)
+      if time.time() > tracking_expire:
+        tracking_mode = False
+        for tracker in multiTracker.getObjects():
+          tracker.clear()
+        multiTracker = cv2.MultiTracker_create()
+        
+      print('success {}'.format(success))
+      print('boxes {}'.format(boxes))
+      if success:
+        for box in boxes:
+          (x, y, w, h) = [int(v) for v in box]
+          cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
+          text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
+          cv2.putText(orig, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+    else:
+      objs = detection_model.detect_with_image(resized_frame, top_k=1)
+      end = time.time()
+      for obj in objs:
+          
+        # draw the predicted class label, probability, and inference
+        # time on the output frame
+        score = obj.score
+        box = obj.bounding_box
+        height, width, channels = orig.shape
+        label = detection_labels[obj.label_id]
+        
+        if label == "bird":
+        
+          p0, p1 = list(box)
+          x0, y0 = list(p0)
+          x1, y1 = list(p1)
+          x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+          cv2.rectangle(orig, (x0, y0), (x1, y1), (0, 255, 0), 2)
+          text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
+          cv2.putText(orig, text, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)  
+          
+          if score > 0.2:          
+            #im = Image.new('RGB', (x1-x0, y1-y0))
+            #im.putdata(frame[y0:y1,x0:x1])
+            #print("raw {}".format(frame[y0:y1,x0:x1])) 
+            #classification_thread = threading.Thread(target=classification_job,args=(classification_model, frame[y0:y1,x0:x1], 1))
+            #classification_thread.start()
+            #classification_thread.join()
+            
+            tracking_mode = True
+            tracking_expire = time.time() + 60
+            tracker = cv2.TrackerCSRT_create()    
+            print("add tracker {} {} {} {}".format(x0, y0, width, height) ) 
+            multiTracker.add(tracker, orig, (x0, y0, width/2, height/2))
 
-    # ensure at least one result was found
-    if len(results) > 0:
-      # draw the predicted class label, probability, and inference
-      # time on the output frame
-      (classID, score) = results[0]
-      text = "{}: {:.2f}% ({:.4f} sec)".format(detection_labels[classID],
-        score * 100, end - start)
-      cv2.putText(orig, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-        0.5, (0, 0, 255), 2)
     # show the output frame and wait for a key press
+    cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Frame", 800, 600)
     cv2.imshow("Frame", orig)
     key = cv2.waitKey(1) & 0xFF
     # if the `q` key was pressed, break from the loop
