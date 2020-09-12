@@ -9,19 +9,19 @@ RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 RUN apt update
 RUN apt install libedgetpu1-std python3 python3-pip python3-edgetpu -y
 
-RUN pip3 install https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp37-cp37m-linux_x86_64.whl
+RUN pip3 install https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp37-cp37m-linux_armv7l.whl
 
 ARG OPENCV_VERSION=4.2.0
 
 # Download OpenCV source
-RUN apt install wget cmake clang -y
-RUN cd /tmp && \
-    wget https://github.com/opencv/opencv/archive/$OPENCV_VERSION.tar.gz && \
-    tar -xvzf $OPENCV_VERSION.tar.gz && \
-    rm -vrf $OPENCV_VERSION.tar.gz 
+RUN apt install cmake clang git -y
+WORKDIR /tmp 
+RUN git clone https://github.com/opencv/opencv.git 
+RUN git clone https://github.com/opencv/opencv_contrib.git 
+
     # Configure
-RUN mkdir -vp /tmp/opencv-$OPENCV_VERSION/build
-WORKDIR /tmp/opencv-$OPENCV_VERSION/build
+RUN mkdir -vp /tmp/opencv/build
+WORKDIR /tmp/opencv/build
 RUN cmake \
         # Compiler params
         -D CMAKE_BUILD_TYPE=RELEASE \
@@ -31,6 +31,7 @@ RUN cmake \
         # No examples
         -D INSTALL_PYTHON_EXAMPLES=NO \
         -D INSTALL_C_EXAMPLES=NO \
+        -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules \
         # Support
         -D WITH_IPP=NO \
         -D WITH_1394=NO \
@@ -57,11 +58,11 @@ RUN cmake \
 RUN make -j`grep -c '^processor' /proc/cpuinfo`
 RUN make install
     # Cleanup
-RUN rm -vrf /tmp/opencv-$OPENCV_VERSION
+RUN rm -vrf /tmp/opencv
 
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN pip3 install -r requirements.txt
+RUN pip3 install image imutils psutil numpy
 
 EXPOSE 5005
 

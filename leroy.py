@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import argparse
 import collections
 import common
@@ -68,8 +67,8 @@ def disk_has_space():
     return hdd.percent < 95
 
 def clarity(image):
-	# compute the Laplacian of the image and then return the focus
-	# measure, which is simply the variance of the Laplacian
+    # compute the Laplacian of the image and then return the focus
+    # measure, which is simply the variance of the Laplacian
   gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
   return 0 if image is None else cv2.Laplacian(gray, cv2.CV_64F).var()
 
