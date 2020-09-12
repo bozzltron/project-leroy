@@ -196,7 +196,9 @@ def main():
                             tracker = cv2.TrackerCSRT_create()
                             trackers.append(tracker)
                             print('bbox {}'.format(obj.bbox))
-                            multiTracker.add(tracker, cv2_im, (obj.bbox.xmin, obj.bbox.ymin, obj.bbox.xmax-obj.bbox.xmin, obj.bbox.ymax-obj.bbox.ymin))
+                            width = obj.bbox.xmax-obj.bbox.xmin
+                            height = obj.bbox.ymax-obj.bbox.ymin
+                            multiTracker.add(tracker, cv2_im, (obj.bbox.xmin, obj.bbox.ymin, width/2, height/2))
                             
                         if disk_has_space() and photo_per_visitation_count <= photo_per_visitation_max:
                             directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
@@ -224,8 +226,7 @@ def main():
                 for box in boxes_to_draw:
                     if box["label"] == "bird":
                         cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
-                        cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"],
-                                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
+                        cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
 
                 if disk_has_space() and full_photo_per_visitation_count <= full_photo_per_visitation_max:
                     directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
