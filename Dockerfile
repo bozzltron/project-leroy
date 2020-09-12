@@ -1,5 +1,5 @@
 FROM debian:buster-slim
-
+# try jjanzic/docker-python3-opencv:contrib-opencv-4.0.1
 RUN apt update
 RUN apt install curl gnupg ca-certificates zlib1g-dev libjpeg-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libsm6 libxext6 libxrender-dev -y
 
