@@ -59,6 +59,7 @@ RUN make -j`grep -c '^processor' /proc/cpuinfo`
 RUN make install
     # Cleanup
 RUN rm -vrf /tmp/opencv
+RUN rm -vrf /tmp/opencv_contrib
 
 COPY . /usr/src/app
 WORKDIR /usr/src/app

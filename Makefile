@@ -3,6 +3,9 @@ IMAGE=michaelbosworth/project-leroy
 build:
 	docker build . -t $(IMAGE):latest
 
+build_alpine:
+	docker build . -f alpine.Dockerfile -t $(IMAGE):alpine
+
 push:
 	docker push $(IMAGE):latest
 
@@ -25,20 +28,32 @@ restore_docker_env:
 	docker-machine stop
 	eval $(docker-machine env -u)
 
-recent_logs:
+service_recent_logs:
 	sudo journalctl -u leroy.service -b
 
-logs:
+service_logs:
 	sudo journalctl -u leroy.service
 
-status:
+service_status:
 	sudo systemctl status leroy.service
 
-start:
+service_start:
 	sudo systemctl start leroy.service
 
-stop:
+service_stop:
 	sudo systemctl status leroy.service
+
+service_edit:
+	sudo nano /lib/systemd/system/leroy.service
+
+service_reload:
+	sudo systemctl daemon-reload
+
+service_enable:
+	sudo systemctl enable sample.service
+
+service_disable:
+	sudo systemctl disable sample.service
 
 pi_edit_service:
 	sudo nano /etc/systemd/system/leroy.service
