@@ -79,7 +79,7 @@ def main():
 
     try:
         default_model_dir = 'all_models'
-        default_model = 'mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite'
+        default_model = 'ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite'
         default_labels = 'coco_labels.txt'
         parser = argparse.ArgumentParser()
         parser.add_argument('--model', help='.tflite model path',
