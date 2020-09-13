@@ -50,10 +50,10 @@ service_reload:
 	sudo systemctl daemon-reload
 
 service_enable:
-	sudo systemctl enable sample.service
+	sudo systemctl enable leroy.service
 
 service_disable:
-	sudo systemctl disable sample.service
+	sudo systemctl disable leroy.service
 
 pi_edit_service:
 	sudo nano /etc/systemd/system/leroy.service
