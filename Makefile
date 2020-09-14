@@ -58,6 +58,9 @@ service_disable:
 service_restart:
 	sudo systemctl restart leroy.service
 
+cron_logs:
+	grep CRON /var/log/syslog
+
 pi_edit_service:
 	sudo nano /etc/systemd/system/leroy.service
 
