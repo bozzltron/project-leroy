@@ -19,7 +19,6 @@ class Visitations:
     photo_per_visitation_max = 10
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
-    trackers = []
     bboxes = []
     recording = False
     out = None
@@ -65,7 +64,7 @@ class Visitations:
                     self.visitation_id = self.add(obj, frame)
                     
                 if self.photo_per_visitation_count <= self.photo_per_visitation_max:
-                    Photo.capture(frame[y0:y1,x0:x1], visitation_id, percent, 'boxed')
+                    Photo.capture(frame[y0:y1,x0:x1], self.visitation_id, percent, 'boxed')
                     photo_per_visitation_count = photo_per_visitation_count + 1
 
                 else:
@@ -112,7 +111,7 @@ class Visitations:
         self.bboxes.append(obj.bbox)   
         width = obj.bbox.xmax-obj.bbox.xmin
         height = obj.bbox.ymax-obj.bbox.ymin
-        multiTracker.add(visitation.tracker, frame, (obj.bbox.xmin, obj.bbox.ymin, width/2, height/2))            
+        self.multiTracker.add(visitation.tracker, frame, (obj.bbox.xmin, obj.bbox.ymin, width/2, height/2))            
         return visitation.id
 
     def reset(self):
@@ -120,9 +119,8 @@ class Visitations:
         for visit in self.visitations:
             visit.tracker.clear()
         self.visitations = []
-        multiTracker = cv2.MultiTracker_create()
+        self.multiTracker = cv2.MultiTracker_create()
         boxes = []
-        self.trackers = []
         self.bboxes = []
         photo_per_visitation_count = 0
         full_photo_per_visitation_count = 0
