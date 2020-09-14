@@ -1,0 +1,9 @@
+version: '2.0'
+services:
+    web:
+        image: nginx:stable-alpine
+        volumes:
+        - ./web:/www/data
+        - ./storage:/www/data/files
+        ports:
+        - "8080:80"

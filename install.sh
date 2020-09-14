@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # setup python virtual env
 python3 -m venv .
 
@@ -26,4 +27,7 @@ wget https://github.com/google-coral/edgetpu/raw/master/test_data/mobilenet_v2_1
 wget https://github.com/google-coral/edgetpu/raw/master/test_data/inat_bird_labels.txt
 wget https://github.com/google-coral/edgetpu/raw/master/test_data/ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite
 wget https://dl.google.com/coral/canned_models/coco_labels.txt
+
+# add user to group allowing device access
+sudo usermod -aG plugdev $USER
 sudo reboot
