@@ -62,7 +62,7 @@ class Visitations:
                 if new_bird and len(self.bboxes) == 0:
                     logging.info("found a new bird")
                     started_tracking = time.time()
-                    visitation_id = self.add(obj, frame)
+                    self.visitation_id = self.add(obj, frame)
                     
                 if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                     Photo.capture(frame[y0:y1,x0:x1], visitation_id, percent, 'boxed')
@@ -89,8 +89,8 @@ class Visitations:
                 cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
 
         if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
-            if visitation_id:
-                Photo.capture(frame, visitation_id, percent, 'full')
+            if self.visitation_id:
+                Photo.capture(frame, self.visitation_id, percent, 'full')
                 full_photo_per_visitation_count = full_photo_per_visitation_count + 1
 
         # if recording == True and disk_has_space():
