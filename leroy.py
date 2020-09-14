@@ -126,21 +126,20 @@ def main():
                     logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
                     fps = FPS().start()
 
-                if frame:
-                    cv2_im = frame
-                    cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
-                    pil_im = Image.fromarray(cv2_im)
+                cv2_im = frame
+                cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+                pil_im = Image.fromarray(cv2_im)
 
-                    common.set_input(interpreter, pil_im)
-                    interpreter.invoke()
-                    objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
-                    height, width, channels = cv2_im.shape
-                    
-                    visitations.update(objs, cv2_im, labels)
-                    
-                    cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
-                    cv2.resizeWindow('Leroy', 800, 600)
-                    cv2.imshow('Leroy', cv2_im)
+                common.set_input(interpreter, pil_im)
+                interpreter.invoke()
+                objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
+                height, width, channels = cv2_im.shape
+                
+                visitations.update(objs, cv2_im, labels)
+                
+                cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Leroy', 800, 600)
+                cv2.imshow('Leroy', cv2_im)
 
             except KeyboardInterrupt:
                 print('Interrupted')
