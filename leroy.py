@@ -111,7 +111,11 @@ def main():
         while cap.isOpened():
             try:
                 
-                frame = vs.read()
+                (grabbed, frame) = vs.read()
+                # if the frame was not grabbed, then we have reached the end
+                # of the stream
+                if not grabbed:
+                    breakframe = vs.read()
  
                 if fps._numFrames < 500:
                     fps.update()
