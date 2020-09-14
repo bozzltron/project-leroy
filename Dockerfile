@@ -55,7 +55,7 @@ RUN cmake \
         -D PYTHON3_EXECUTABLE=`which python3` \
         -D BUILD_opencv_python3=YES .. 
     # Build
-RUN make -j`grep -c '^processor' /proc/cpuinfo`
+RUN make -j4
 RUN make install
     # Cleanup
 RUN rm -vrf /tmp/opencv
@@ -64,6 +64,7 @@ RUN rm -vrf /tmp/opencv_contrib
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 RUN pip3 install image imutils psutil numpy
+RUN usermod -aG plugdev $USER
 
 EXPOSE 5005
 
