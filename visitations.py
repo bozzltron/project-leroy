@@ -100,7 +100,7 @@ class Visitations:
         #         #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
         #     out.write(cv2_im)
             
-        if bird_detected == False and len(visitations) > 0:
+        if bird_detected == False and len(self.visitations) > 0:
             now = time.time()
             if now - last_tracked > 60:
                 self.reset()
