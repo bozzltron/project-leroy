@@ -80,7 +80,7 @@ def load_labels(path):
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--classification_model', help='Path of classification model.', required=False, default='all_models/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite')
-  parser.add_argument('--detection_model', help='Path of detection model.', required=False, default='all_models/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite')
+  parser.add_argument('--detection_model', help='Path of detection model.', required=False, default='all_models/ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite')
   parser.add_argument('--image', help='Path of the image.', required=False)
   parser.add_argument('--classification_labels', required=False, default='all_models/inat_bird_labels.txt')
   parser.add_argument('--detection_labels', required=False, default='all_models/coco_labels.txt')
