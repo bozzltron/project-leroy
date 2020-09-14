@@ -99,10 +99,8 @@ def main():
   print("detection_labels : {}".format(len(detection_labels)))
   classification_labels = load_labels(args.classification_labels)
 
-  multiTracker = cv2.MultiTracker_create()
-  tracking_mode = False
-  tracking_expire = None
-  
+  visitations = Visitations()
+
   # loop over the frames from the video stream
   while True:
     # grab the frame from the threaded video stream and resize it
@@ -117,59 +115,8 @@ def main():
     resized_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
     resized_frame = Image.fromarray(resized_frame)
 
-    # make predictions on the input frame
-    start = time.time()
-    if tracking_mode:
-      success, boxes = multiTracker.update(orig)
-      if time.time() > tracking_expire:
-        tracking_mode = False
-        for tracker in multiTracker.getObjects():
-          tracker.clear()
-        multiTracker = cv2.MultiTracker_create()
-        
-      print('success {}'.format(success))
-      print('boxes {}'.format(boxes))
-      if success:
-        for box in boxes:
-          (x, y, w, h) = [int(v) for v in box]
-          cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
-          text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
-          cv2.putText(orig, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-    else:
-      objs = detection_model.detect_with_image(resized_frame, top_k=1)
-      end = time.time()
-      for obj in objs:
-          
-        # draw the predicted class label, probability, and inference
-        # time on the output frame
-        score = obj.score
-        box = obj.bounding_box
-        height, width, channels = orig.shape
-        label = detection_labels[obj.label_id]
-        
-        if label == "bird":
-        
-          p0, p1 = list(box)
-          x0, y0 = list(p0)
-          x1, y1 = list(p1)
-          x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
-          cv2.rectangle(orig, (x0, y0), (x1, y1), (0, 255, 0), 2)
-          text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
-          cv2.putText(orig, text, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)  
-          
-          if score > 0.2:          
-            #im = Image.new('RGB', (x1-x0, y1-y0))
-            #im.putdata(frame[y0:y1,x0:x1])
-            #print("raw {}".format(frame[y0:y1,x0:x1])) 
-            #classification_thread = threading.Thread(target=classification_job,args=(classification_model, frame[y0:y1,x0:x1], 1))
-            #classification_thread.start()
-            #classification_thread.join()
-            
-            tracking_mode = True
-            tracking_expire = time.time() + 60
-            tracker = cv2.TrackerCSRT_create()    
-            print("add tracker {} {} {} {}".format(x0, y0, width, height) ) 
-            multiTracker.add(tracker, orig, (x0, y0, width/2, height/2))
+    objs = detection_model.detect_with_image(resized_frame, top_k=1)
+    visitations.update(objs, resized_frame, detection_labels)
 
     # show the output frame and wait for a key press
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
