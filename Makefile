@@ -55,6 +55,9 @@ service_enable:
 service_disable:
 	sudo systemctl disable leroy.service
 
+service_restart:
+	sudo systemctl disable leroy.service
+
 pi_edit_service:
 	sudo nano /etc/systemd/system/leroy.service
 
