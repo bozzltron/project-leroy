@@ -43,7 +43,7 @@ class Visitations:
     def update(self, objs, frame, labels):
         self.success, self.boxes = self.multiTracker.update(frame)
         height, width, channels = frame.shape
-        draw_tracking_boxes(self.boxes, frame)
+        self.draw_tracking_boxes(self.boxes, frame)
 
         bird_detected = False
         boxes_to_draw = []
@@ -114,11 +114,10 @@ class Visitations:
         return visitation.id
 
     def reset(self):
-        logging.info("visitation {} lasted {} seconds".format(visitation_id, now - started_tracking))
         logging.info("clearing trackers")
-        for visit in visitations:
+        for visit in self.visitations:
             visit.tracker.clear()
-        visitations = []
+        self.visitations = []
         multiTracker = cv2.MultiTracker_create()
         boxes = []
         colors = []
