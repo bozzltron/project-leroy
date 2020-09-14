@@ -109,7 +109,7 @@ class Visitations:
         visitation = Visitation()
         visitation.start()
         recording = True
-        bboxes.append(obj.bbox)   
+        self.bboxes.append(obj.bbox)   
         width = obj.bbox.xmax-obj.bbox.xmin
         height = obj.bbox.ymax-obj.bbox.ymin
         multiTracker.add(visitation.tracker, frame, (obj.bbox.xmin, obj.bbox.ymin, width/2, height/2))            
@@ -122,9 +122,8 @@ class Visitations:
         self.visitations = []
         multiTracker = cv2.MultiTracker_create()
         boxes = []
-        colors = []
-        trackers = []
-        bboxes = []
+        self.trackers = []
+        self.bboxes = []
         photo_per_visitation_count = 0
         full_photo_per_visitation_count = 0
         recording = False
