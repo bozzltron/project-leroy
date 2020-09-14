@@ -86,9 +86,9 @@ def main():
         labels = load_labels(args.labels)
 
         
-        vs = VideoStream(src=args.camera_idx, resolution=(2048, 1536)).start()
-        cap = vs.stream
-        #cap = cv2.VideoCapture(args.camera_idx)
+        #vs = VideoStream(src=args.camera_idx, resolution=(2048, 1536)).start()
+        #cap = vs.stream
+        cap = cv2.VideoCapture(args.camera_idx)
         #cap = cv2.VideoCapture('videotestsrc ! video/x-raw,framerate=20/1 ! videoscale ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
         time.sleep(2.0)
 
@@ -111,12 +111,10 @@ def main():
         while cap.isOpened():
             try:
                 
-                (grabbed, frame) = vs.read()
-                # if the frame was not grabbed, then we have reached the end
-                # of the stream
-                if not grabbed:
-                    breakframe = vs.read()
- 
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
                 if fps._numFrames < 500:
                     fps.update()
                 else:
