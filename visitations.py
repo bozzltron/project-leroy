@@ -38,7 +38,7 @@ class Visitations:
         for i, newbox in enumerate(boxes):
             x0, y0, x1, y1 = list(newbox)
             x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
-            cv2_im = cv2.rectangle(cv2_im, (x0, y0), (x1, y1), (0, 0, 255), 2)
+            frame = cv2.rectangle(frame, (x0, y0), (x1, y1), (0, 0, 255), 2)
 
     def update(self, objs, frame, labels):
         self.success, self.boxes = self.multiTracker.update(frame)
@@ -84,8 +84,8 @@ class Visitations:
 
         for box in boxes_to_draw:
             if box["label"] == "bird":
-                cv2_im = cv2.rectangle(cv2_im, box["p1"], box["p2"], (169, 68, 66), 5)
-                cv2_im = cv2.putText(cv2_im, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
+                frame = cv2.rectangle(frame, box["p1"], box["p2"], (169, 68, 66), 5)
+                frame = cv2.putText(frame, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
 
         if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
             if self.visitation_id:
@@ -95,9 +95,9 @@ class Visitations:
         # if recording == True and disk_has_space():
         #     if out == None:
         #         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        #         out = cv2.VideoWriter("storage/video/{}.mp4".format(visitation_id), fourcc, 4.0, (2048,1536))
+        #         out = cv2.VideoWriter("storage/video/{}.mp4".format(self.visitation_id), fourcc, 4.0, (2048,1536))
         #         #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
-        #     out.write(cv2_im)
+        #     out.write(frame)
             
         if bird_detected == False and len(self.visitations) > 0:
             now = time.time()
