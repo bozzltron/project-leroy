@@ -41,7 +41,7 @@ service_start:
 	sudo systemctl start leroy.service
 
 service_stop:
-	sudo systemctl status leroy.service
+	sudo systemctl stop leroy.service
 
 service_edit:
 	sudo nano /lib/systemd/system/leroy.service
