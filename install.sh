@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# setup python virtual env
+echo "setup python virtual env"
 python3 -m venv .
 
-# install dependencies
+echo "install dependencies"
 pip3 install https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp37-cp37m-linux_armv7l.whl
 sudo apt-get install libatlas-base-dev python3-opencvsudo libjasper-dev libqtgui4 libqt4-test
 pip3 install image imutils psutil
@@ -14,20 +14,23 @@ sudo apt-get update
 sudo apt-get install libedgetpu1-std
 sudo apt-get install python3-edgetpu
 
-# install service
+echo "install leroy service"
 sudo cp service/leroy.service /lib/systemd/system/leroy.service
 sudo chmod 644 /lib/systemd/system/leroy.service
 sudo systemctl daemon-reload
 sudo systemctl enable leroy.service
 mkdir all_models
 
-# download models and labels
+echo "download models and labels"
 cd all_models
 wget https://github.com/google-coral/edgetpu/raw/master/test_data/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite
 wget https://github.com/google-coral/edgetpu/raw/master/test_data/inat_bird_labels.txt
 wget https://github.com/google-coral/edgetpu/raw/master/test_data/ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite
 wget https://dl.google.com/coral/canned_models/coco_labels.txt
 
-# add user to group allowing device access
+echo "install messaging for cron"
+sudo apt install postfix
+
+echo "add user to group allowing device access"
 sudo usermod -aG plugdev $USER
 sudo reboot

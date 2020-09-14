@@ -17,7 +17,7 @@ from PIL import Image
 from edgetpu.utils import dataset_utils
 from random import randint
 from imutils.video import FPS
-from imutils.video import WebcamVideoStream
+from imutils.video import VideoStream
 from visitations import Visitations
 
 print("cv version" + cv2.__version__)
@@ -85,9 +85,13 @@ def main():
         interpreter.allocate_tensors()
         labels = load_labels(args.labels)
 
+        
+        vs = VideoStream(src=args.camera_idx, resolution=(2048, 1536)).start()
+        cap = vs.stream
+        #cap = cv2.VideoCapture(args.camera_idx)
         #cap = cv2.VideoCapture('videotestsrc ! video/x-raw,framerate=20/1 ! videoscale ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
-        cap = cv2.VideoCapture(args.camera_idx)
-            
+        time.sleep(2.0)
+
         #cap.set(3, 1920)
         #cap.set(4, 1440)
         # 4:3 resolutions
@@ -107,9 +111,7 @@ def main():
         while cap.isOpened():
             try:
                 
-                ret, frame = cap.read()
-                if not ret:
-                    break
+                frame = vs.read()
 
                 if fps._numFrames < 500:
                     fps.update()
