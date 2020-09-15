@@ -126,7 +126,7 @@ def main():
     start = time.time()
     
     success, boxes = multiTracker.update(orig)
-    if time.time() > tracking_expire:
+    if tracking_expire and time.time() > tracking_expire:
       tracking_mode = False
       for tracker in multiTracker.getObjects():
         tracker.clear()
