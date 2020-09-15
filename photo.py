@@ -14,12 +14,14 @@ class Photo:
     def is_focused(self, image):
         return clarity(image) > 100
 
+    @staticmethod
     def has_disk_space(self):
         hdd = psutil.disk_usage('/')
         return hdd.percent < 95
 
+    @staticmethod
     def capture(self, frame, visitation_id, detection_score, photo_type):
-        if has_disk_space():
+        if Photo.has_disk_space():
             directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
             if not os.path.exists(directory):
                 os.makedirs(directory)
