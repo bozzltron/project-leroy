@@ -25,7 +25,7 @@ def parse(filename):
   data = filename.split('_')
   if len(data) == 6:
     return {
-      "filename": filename,
+      "filename": filename.replace('/var/www/html', ''),
       "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
       "detection_score": data[3],
       "visitation_id": "",
@@ -34,7 +34,7 @@ def parse(filename):
     }
   if len(data) == 7:  
     return {
-      "filename": filename,
+      "filename": filename.replace('/var/www/html', ''),
       "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
       "detection_score": data[3],
       "visitation_id": data[4],
@@ -43,7 +43,7 @@ def parse(filename):
     }
   print('path'.format(path))
   return {
-    "filename": filename,
+    "filename": filename.replace('/var/www/html', ''),
     "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S') if len(data) == 7 else datetime.strptime("{} {}".format(path[5], data[1]), '%Y-%m-%d %H-%M-%S'),
     "detection_score": data[2],
     "visitation_id": path[6],
