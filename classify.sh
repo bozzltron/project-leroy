@@ -11,7 +11,7 @@ sleep 1
 
 DATE=$(date +'%Y-%m-%d')
 make generate_daily_report DATE=$DATE
-mv visitations.json /var/www/html/visitations.json
-cp -a web/. /var/www/html/
+mv -f visitations.json /var/www/html/visitations.json
+sudo cp -a web/. /var/www/html/
 
 sudo systemctl start leroy.service
