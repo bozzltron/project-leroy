@@ -124,7 +124,8 @@ def main():
                     logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
                     fps = FPS().start()
 
-                cv2_im = frame
+                cv2_im = frame.copy()
+                imutils.resize(cv2_im, width=500)
                 cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
                 pil_im = Image.fromarray(cv2_im)
 
