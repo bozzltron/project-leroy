@@ -91,8 +91,8 @@ def main():
         #cap = cv2.VideoCapture('videotestsrc ! video/x-raw,framerate=20/1 ! videoscale ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
         time.sleep(2.0)
 
-        #cap.set(3, 1920)
-        #cap.set(4, 1440)
+        cap.set(3, 3264)
+        cap.set(4, 2448)
         # 4:3 resolutions
         # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
         # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536
@@ -135,8 +135,8 @@ def main():
                 
                 visitations.update(objs, cv2_im, labels)
                 
-                #cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
-                #cv2.resizeWindow('Leroy', 800, 600)
+                cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Leroy', 800, 600)
                 cv2.imshow('Leroy', cv2_im)
 
             except KeyboardInterrupt:
