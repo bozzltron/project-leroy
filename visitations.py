@@ -111,7 +111,7 @@ class Visitations:
         self.bboxes.append(obj.bbox)   
         width = obj.bbox.xmax-obj.bbox.xmin
         height = obj.bbox.ymax-obj.bbox.ymin
-        self.multiTracker.add(visitation.tracker, frame, (obj.bbox.xmin, obj.bbox.ymin, width/2, height/2))            
+        self.multiTracker.add(visitation.tracker, frame, (obj.bbox.xmin, obj.bbox.ymin, width, height))            
         return visitation.id
 
     def reset(self):
