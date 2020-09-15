@@ -72,11 +72,11 @@ def main():
                   if label != "background":
                     print('dirpath', dirpath)
                     path_sections = dirpath.split("/")
-                    new_dir = "storage/classified/"
+                    new_dir = "/var/www/html/classified/"
                     if len(path_sections) == 4:
                       date = path_sections[2]
                       visitation_id = path_sections[3]
-                      new_dir = "storage/classified/{}/{}".format(date, visitation_id)
+                      new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
                     newname = filename.replace(".png", "_{}_{}.png".format(label.replace(" ", "-"), percent))
                     newpath = "{}/{}".format(new_dir, newname)
                     print('move {} -> {}'.format(filepath, newpath))

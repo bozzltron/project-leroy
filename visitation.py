@@ -140,7 +140,7 @@ def main():
     if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 90:
       visitations.remove(visit)
 
-  with open('visitations.json', 'w') as outfile:
+  with open('/var/www/html/visitations.json', 'w') as outfile:
     json.dump(visitations, outfile, default=str)
 
   for visitation in visitations:

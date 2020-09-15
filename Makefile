@@ -68,7 +68,7 @@ classify:
 	docker run -t -e DRY_RUN=${DRY_RUN} -v `pwd`:/usr/src/app/ $(IMAGE):latest classify.py --dir=storage/detected --dryrun=${DRY_RUN}
 
 generate_daily_report:
-	docker run -t -e DATE=${DATE} -v `pwd`:/usr/src/app/ $(IMAGE):latest visitation.py --dir=storage/classified --date=${DATE}
+	docker run -t -e DATE=${DATE} -v `pwd`:/usr/src/app/ $(IMAGE):latest visitation.py --dir=/var/www/html/classified --date=${DATE}
 
 sync_from_pi:
 	rsync --remove-source-files --exclude 'detected/*' --exclude 'results.log' -avzhe "ssh -p22" pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/ `pwd`/storage
