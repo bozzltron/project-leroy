@@ -138,7 +138,7 @@ def main():
                 
                 #cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
                 #cv2.resizeWindow('Leroy', 800, 600)
-                cv2.imshow('Leroy', cv2_im)
+                cv2.imshow('Leroy', frame)
 
             except KeyboardInterrupt:
                 print('Interrupted')
