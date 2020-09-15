@@ -127,14 +127,14 @@ def main():
           tracker.clear()
         multiTracker = cv2.MultiTracker_create()
         
-      print('success {}'.format(success))
-      print('boxes {}'.format(boxes))
-      if success:
-        for box in boxes:
-          (x, y, w, h) = [int(v) for v in box]
-          cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
-          text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
-          cv2.putText(orig, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        print('success {}'.format(success))
+        print('boxes {}'.format(boxes))
+        if success:
+          for box in boxes:
+            (x, y, w, h) = [int(v) for v in box]
+            cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
+            cv2.putText(orig, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
       else:
         objs = detection_model.detect_with_image(resized_frame, top_k=1)
         end = time.time()
