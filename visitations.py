@@ -101,7 +101,7 @@ class Visitations:
             
         if bird_detected == False and len(self.visitations) > 0:
             now = time.time()
-            if now - last_tracked > 60:
+            if now - last_tracked > 300:
                 self.reset()
 
     def add(self, obj, frame):
