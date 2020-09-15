@@ -15,12 +15,12 @@ class Photo:
         return clarity(image) > 100
 
     @staticmethod
-    def has_disk_space(self):
+    def has_disk_space():
         hdd = psutil.disk_usage('/')
         return hdd.percent < 95
 
     @staticmethod
-    def capture(self, frame, visitation_id, detection_score, photo_type):
+    def capture(frame, visitation_id, detection_score, photo_type):
         if Photo.has_disk_space():
             directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
             if not os.path.exists(directory):
