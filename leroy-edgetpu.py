@@ -78,6 +78,8 @@ def load_labels(path):
        return {int(num): text.strip() for num, text in lines}
 
 def intersects(box1, box2):
+  print("box1 {}".format(box1))
+  print("box2 {}".format(box2))
   box1x0, box1y0, box1x1, box1y1 = list(box1)
   box2x0, box2y0, box2x1, box2y1 = list(box2)
   return not (box1x0 < box2x1 or box1x1 > box2x0 or box1y0 < box2y1 or box1y1 > box2y0)
