@@ -65,7 +65,7 @@ class Visitations:
                     
                 if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                     Photo.capture(frame[y0:y1,x0:x1], self.visitation_id, percent, 'boxed')
-                    photo_per_visitation_count = photo_per_visitation_count + 1
+                    self.photo_per_visitation_count = self.photo_per_visitation_count + 1
 
                 else:
                     logging.info("Not enough disk space")
@@ -90,7 +90,7 @@ class Visitations:
         if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
             if self.visitation_id:
                 Photo.capture(frame, self.visitation_id, percent, 'full')
-                full_photo_per_visitation_count = full_photo_per_visitation_count + 1
+                self.full_photo_per_visitation_count = self.full_photo_per_visitation_count + 1
 
         # if recording == True and disk_has_space():
         #     if out == None:
@@ -122,8 +122,8 @@ class Visitations:
         self.multiTracker = cv2.MultiTracker_create()
         boxes = []
         self.bboxes = []
-        photo_per_visitation_count = 0
-        full_photo_per_visitation_count = 0
+        self.photo_per_visitation_count = 0
+        self.full_photo_per_visitation_count = 0
         recording = False
         if self.out is not None:
             self.out.release()
