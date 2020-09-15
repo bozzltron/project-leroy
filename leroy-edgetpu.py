@@ -77,6 +77,11 @@ def load_labels(path):
        lines = (p.match(line).groups() for line in f.readlines())
        return {int(num): text.strip() for num, text in lines}
 
+def intersects(box1, box2):
+  box1x0, box1y0, box1x1, box1y1 = list(box1)
+  box2x0, box2y0, box2x1, box2y1 = list(box2)
+  return not (box1x0 < box2x1 or box1x1 > box2x0 or box1y0 < box2y1 or box1y1 > box2y0)
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--classification_model', help='Path of classification model.', required=False, default='all_models/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite')
@@ -119,23 +124,23 @@ def main():
 
     # make predictions on the input frame
     start = time.time()
-    if tracking_mode:
-      success, boxes = multiTracker.update(orig)
-      if time.time() > tracking_expire:
-        tracking_mode = False
-        for tracker in multiTracker.getObjects():
-          tracker.clear()
-        multiTracker = cv2.MultiTracker_create()
-        
-      print('success {}'.format(success))
-      print('boxes {}'.format(boxes))
-      if success:
-        for box in boxes:
-          (x, y, w, h) = [int(v) for v in box]
-          cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
-          text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
-          cv2.putText(orig, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     
+    success, boxes = multiTracker.update(orig)
+    if time.time() > tracking_expire:
+      tracking_mode = False
+      for tracker in multiTracker.getObjects():
+        tracker.clear()
+      multiTracker = cv2.MultiTracker_create()
+      
+    print('success {}'.format(success))
+    print('boxes {}'.format(boxes))
+    if success:
+      for box in boxes:
+        (x, y, w, h) = [int(v) for v in box]
+        cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        text = "{}: {:.2f}% ({:.4f} sec)".format("bird", score * 100, end - start)
+        cv2.putText(orig, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+  
     objs = detection_model.detect_with_image(resized_frame, top_k=1)
     end = time.time()
     for obj in objs:
@@ -165,11 +170,18 @@ def main():
           #classification_thread.start()
           #classification_thread.join()
           
-          tracking_mode = True
-          tracking_expire = time.time() + 60
-          tracker = cv2.TrackerCSRT_create()    
-          print("add tracker {} {} {} {}".format(x0, y0, width, height) ) 
-          multiTracker.add(tracker, orig, (x0, y0, width/2, height/2))
+          is_intersection = False
+          for box in boxes:
+            (x, y, w, h) = [int(v) for v in box]
+            if intersects([x0, x1, y0, y1], [x, x+w, y, h+h]):
+              is_intersection = True
+              print("intersect.. already tracking")
+
+          if not is_intersection:
+            tracking_expire = time.time() + 60
+            tracker = cv2.TrackerCSRT_create()    
+            print("add tracker {} {} {} {}".format(x0, y0, width, height) ) 
+            multiTracker.add(tracker, orig, (x0, y0, width/2, height/2))
 
 
     # show the output frame and wait for a key press
