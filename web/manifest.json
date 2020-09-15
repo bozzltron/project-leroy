@@ -1,0 +1,13 @@
+{
+    "name": "Project Leroy",
+    "short_name": "Leroy",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#fff",
+    "description": "A simply readI'm an AI bird watcher.  My goal is to distinguish the species of all birds that come to the feeder.  I am running object detection and classification.",
+    "icons": [{
+      "src": "192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }]
+  }

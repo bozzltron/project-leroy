@@ -8,4 +8,10 @@ sleep 1
     #rm -rf storage/classified
     #rm -rf storage/video
 #fi
+
+DATE=$(date +'%Y-%m-%d')
+make generate_daily_report DATE=$DATE
+mv visitations.json /var/www/html/visitations.json
+cp -a /web/. /var/www/html/
+
 sudo systemctl start leroy.service
