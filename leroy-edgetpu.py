@@ -173,7 +173,7 @@ def main():
           is_intersection = False
           for box in boxes:
             (x, y, w, h) = [int(v) for v in box]
-            if intersects([x0, x1, y0, y1], [x, x+w, y, h+h]):
+            if intersects([x0, y0, x1, y1], [x, y, x+w, y+h]):
               is_intersection = True
               print("intersect.. already tracking")
 
