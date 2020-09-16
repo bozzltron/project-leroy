@@ -155,7 +155,7 @@ class Visitation:
     color = randint(64, 255), randint(64, 255), randint(64, 255)
     tracker = None
 
-    def __init__(self):
+    #def __init__(self):
         #self.tracker = cv2.TrackerCSRT_create()
 
     def end(self, timestamp):
