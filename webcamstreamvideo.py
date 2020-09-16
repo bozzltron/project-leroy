@@ -4,27 +4,27 @@ from threading import Thread
 import cv2
 
 class WebcamVideoStream:
-	def __init__(self, src=0, name="WebcamVideoStream", resolution=(320, 240)):
-		# initialize the video camera stream and read the first frame
-		# from the stream
-		self.stream = cv2.VideoCapture(src)
+    def __init__(self, src=0, name="WebcamVideoStream", resolution=(320, 240)):
+        # initialize the video camera stream and read the first frame
+        # from the stream
+        self.stream = cv2.VideoCapture(src)
         self.stream.set(3, resolution[0])
         self.stream.set(4, resolution[1])
-		(self.grabbed, self.frame) = self.stream.read()
+        (self.grabbed, self.frame) = self.stream.read()
 
-		# initialize the thread name
-		self.name = name
+        # initialize the thread name
+        self.name = name
 
-		# initialize the variable used to indicate if the thread should
-		# be stopped
-		self.stopped = False
-
-	def start(self):
-		# start the thread to read frames from the video stream
-		t = Thread(target=self.update, name=self.name, args=())
-		t.daemon = True
-		t.start()
-		return self
+        # initialize the variable used to indicate if the thread should
+        # be stopped
+        self.stopped = False
+    
+    def start(self):
+        # start the thread to read frames from the video stream
+        t = Thread(target=self.update, name=self.name, args=())
+        t.daemon = True
+        t.start()
+        return self
 
 	def update(self):
 		# keep looping infinitely until the thread is stopped
