@@ -14,7 +14,7 @@ class Visitations:
     boxes = []
     success = False
     photo_per_visitation_count = 0
-    photo_per_visitation_max = 10
+    photo_per_visitation_max = 20
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
     recording = False
@@ -85,7 +85,8 @@ class Visitations:
                 if time.time() - self.started_tracking < self.vistation_max_seconds:
                     if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
-                        capture(frame[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
+                        frame_without_boxes = frame.copy()
+                        capture(frame_without_boxes[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
                         logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
