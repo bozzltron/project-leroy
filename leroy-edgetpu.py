@@ -115,7 +115,7 @@ def main():
   
   # initialize the video stream and allow the camera sensor to warmup
   print("[INFO] starting video stream...")
-  vs = VideoStream(src=0, resolution=(3264, 2448)).start()
+  vs = VideoStream(src=0, usePiCamera=True, resolution=(3264, 2448)).start()
   #vs = VideoStream(usePiCamera=False).start()
   time.sleep(2.0)
 
@@ -139,7 +139,7 @@ def main():
     # PIL image format
     resized_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     resized_frame = Image.fromarray(resized_frame)
-    objs = detection_model.detect_with_image(resized_frame, top_k=1)
+    objs = detection_model.detect_with_image(resized_frame, top_k=3)
 
     visitations.update(objs, frame, detection_labels)
 
