@@ -146,9 +146,9 @@ def main():
     visitations.update(objs, frame, detection_labels)
 
     # show the output frame and wait for a key press
-    cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Frame", 800, 600)
-    cv2.imshow("Frame", orig)
+    cv2.namedWindow("Leroy", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Leroy", 800, 600)
+    cv2.imshow("Leroy", orig)
     key = cv2.waitKey(1) & 0xFF
     # if the `q` key was pressed, break from the loop
     if key == ord("q"):

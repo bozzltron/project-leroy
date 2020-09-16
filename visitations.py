@@ -24,7 +24,7 @@ class Visitations:
     last_tracked = None
     started_tracking = None
     visitation_id = None
-    vistation_max_seconds = 300
+    vistation_max_seconds = 300.0
 
     def intersects(box1, box2):
         logging.info("box1 {}".format(box1))
@@ -120,10 +120,14 @@ class Visitations:
         #         #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
         #     out.write(frame)
             
-        if bird_detected == False and len(self.visitations) > 0:
-            now = time.time()
-            if now - self.started_tracking > vistation_max_seconds:
+        # extend visitation if birds are still present
+        if time.time() - self.started_tracking > self.vistation_max_seconds:
+            logging.info("Extending visitation by 60")
+            if bird_detected == True:
+                self.started_tracking = time.time() + 60
+            else:
                 self.reset()
+          
 
     def add(self, obj, frame):
         visitation = Visitation()
