@@ -101,7 +101,6 @@ class Visitations:
                     logging.info("Not enough disk space")
 
             percent = int(100 * obj.score)
-            object_label = labels.get(obj.id, obj.id)
             label = '{}% {}'.format(percent, object_label)
 
             # postpone drawing so we don't get lines in the photos
