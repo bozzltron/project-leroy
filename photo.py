@@ -3,6 +3,7 @@ import psutil
 import os
 import time 
 import logging 
+import threading
 
 #Initialize logging files
 logging.basicConfig(filename='storage/results.log',
@@ -27,6 +28,12 @@ class Photo:
 
     @staticmethod
     def capture(frame, visitation_id, detection_score, photo_type):
+        thread = threading.Thread(target=Photo.save, args=(frame, visitation_id, detection_score, photo_type))
+        logging.info("Main : before running thread")
+        thread.start()
+
+    @staticmethod
+    def save(frame, visitation_id, detection_score, photo_type):
         logging.info('checking disk space')
         try:
             if Photo.has_disk_space():
