@@ -81,11 +81,18 @@ class Visitations:
                     self.started_tracking = time.time()
                     logging.info("visitation {} started".format(self.visitation_id))
                     
-                if self.started_tracking < self.vistation_max_seconds and self.photo_per_visitation_count <= self.photo_per_visitation_max:
-                    logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
-                    capture(frame[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
-                    logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
-                    self.photo_per_visitation_count = self.photo_per_visitation_count + 1
+                if self.started_tracking < self.vistation_max_seconds:
+                    if self.photo_per_visitation_count <= self.photo_per_visitation_max:
+                        logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
+                        capture(frame[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
+                        logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
+                        self.photo_per_visitation_count = self.photo_per_visitation_count + 1
+                else:
+                    if bird_detected == True:
+                        logging.info("Extending visitation by 60")
+                        self.started_tracking = time.time() + 60
+                    else:
+                        self.reset()
 
             percent = int(100 * obj.score)
             label = '{}% {}'.format(percent, object_label)
@@ -117,16 +124,7 @@ class Visitations:
         #         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         #         out = cv2.VideoWriter("storage/video/{}.mp4".format(self.visitation_id), fourcc, 4.0, (2048,1536))
         #         #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
-        #     out.write(frame)
-            
-        # extend visitation if birds are still present
-        if time.time() - self.started_tracking > self.vistation_max_seconds:
-            logging.info("Extending visitation by 60")
-            if bird_detected == True:
-                self.started_tracking = time.time() + 60
-            else:
-                self.reset()
-          
+        #     out.write(frame)      
 
     def add(self, obj, frame):
         visitation = Visitation()
