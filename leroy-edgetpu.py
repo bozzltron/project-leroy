@@ -142,7 +142,7 @@ def main():
     resized_frame = Image.fromarray(resized_frame)
     objs = detection_model.detect_with_image(resized_frame, top_k=1)
 
-    visitations.update(objs, resized_frame, detection_labels)
+    visitations.update(objs, frame, detection_labels)
 
     # show the output frame and wait for a key press
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
