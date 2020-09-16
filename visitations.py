@@ -12,7 +12,7 @@ logging.basicConfig(filename='storage/results.log',
 
 class Visitations:
     visitations = []
-    multiTracker = cv2.MultiTracker_create()
+    #multiTracker = cv2.MultiTracker_create()
     boxes = []
     success = False
     photo_per_visitation_count = 0
@@ -32,7 +32,26 @@ class Visitations:
         box1x0, box1y0, box1x1, box1y1 = list(box1)
         box2x0, box2y0, box2x1, box2y1 = list(box2)
         return not (box1x0 < box2x1 or box1x1 > box2x0 or box1y0 < box2y1 or box1y1 > box2y0)
-    
+
+    def bb_intersection_over_union(boxA, boxB):
+        # determine the (x, y)-coordinates of the intersection rectangle
+        xA = max(boxA[0], boxB[0])
+        yA = max(boxA[1], boxB[1])
+        xB = min(boxA[2], boxB[2])
+        yB = min(boxA[3], boxB[3])
+        # compute the area of intersection rectangle
+        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+        # compute the area of both the prediction and ground-truth
+        # rectangles
+        boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+        # compute the intersection over union by taking the intersection
+        # area and dividing it by the sum of prediction + ground-truth
+        # areas - the interesection area
+        iou = interArea / float(boxAArea + boxBArea - interArea)
+        # return the intersection over union value
+        return iou
+
     def draw_tracking_boxes(self, boxes, frame):
         height, width, channels = frame.shape
         for i, newbox in enumerate(boxes):
@@ -41,9 +60,9 @@ class Visitations:
             frame = cv2.rectangle(frame, (x0, y0), (x1, y1), (0, 0, 255), 2)
 
     def update(self, objs, frame, labels):
-        self.success, self.boxes = self.multiTracker.update(frame)
+        #self.success, self.boxes = self.multiTracker.update(frame)
         height, width, channels = frame.shape
-        self.draw_tracking_boxes(self.boxes, frame)
+        #self.draw_tracking_boxes(self.boxes, frame)
 
         bird_detected = False
         boxes_to_draw = []
@@ -116,10 +135,10 @@ class Visitations:
 
     def reset(self):
         logging.info("clearing trackers")
-        for visit in self.visitations:
-            visit.tracker.clear()
+        #for visit in self.visitations:
+        #    visit.tracker.clear()
         self.visitations = []
-        self.multiTracker = cv2.MultiTracker_create()
+        #self.multiTracker = cv2.MultiTracker_create()
         boxes = []
         self.bboxes = []
         self.photo_per_visitation_count = 0
@@ -137,7 +156,7 @@ class Visitation:
     tracker = None
 
     def __init__(self):
-        self.tracker = cv2.TrackerCSRT_create()
+        #self.tracker = cv2.TrackerCSRT_create()
 
     def end(self, timestamp):
         self.end_time = timestamp
