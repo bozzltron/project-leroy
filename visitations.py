@@ -162,12 +162,11 @@ class Visitations:
 class Visitation:
     start_time = None
     end_time = None
-    id =  uuid.uuid4()
-    color = randint(64, 255), randint(64, 255), randint(64, 255)
     tracker = None
 
-    #def __init__(self):
-        #self.tracker = cv2.TrackerCSRT_create()
+    def __init__(self):
+        self.id =  uuid.uuid4()
+        self.color = randint(64, 255), randint(64, 255), randint(64, 255)
 
     def end(self, timestamp):
         self.end_time = timestamp
