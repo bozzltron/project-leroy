@@ -22,7 +22,7 @@ class Visitations:
     last_tracked = None
     started_tracking = None
     visitation_id = None
-    vistation_max_seconds = 300.0
+    vistation_max_seconds = float(300)
 
     def intersects(box1, box2):
         logging.info("box1 {}".format(box1))
