@@ -116,6 +116,8 @@ def main():
   # initialize the video stream and allow the camera sensor to warmup
   print("[INFO] starting video stream...")
   vs = VideoStream(src=0, usePiCamera=True, resolution=(3264, 2448)).start()
+  vs.stream.set(3, 3264)
+  vs.stream.set(4, 2448)
   #vs = VideoStream(usePiCamera=False).start()
   time.sleep(2.0)
 
