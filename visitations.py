@@ -110,8 +110,8 @@ class Visitations:
 
         for box in boxes_to_draw:
             if "bird" in box["label"]:
-                frame = cv2.rectangle(frame, box["p1"], box["p2"], (169, 68, 66), 3)
-                frame = cv2.putText(frame, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 1.0, (169, 68, 66), 3)
+                frame = cv2.rectangle(frame, box["p1"], box["p2"], (169, 68, 66), 1)
+                #frame = cv2.putText(frame, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 1.0, (169, 68, 66), 3)
 
         if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
             if self.visitation_id:
