@@ -92,9 +92,11 @@ class Visitations:
                     logging.info("found a new bird")
                     started_tracking = time.time()
                     self.visitation_id = self.add(obj, frame)
+                    logging.info("visitation id {}".format(self.visitation_id))
                     
                 if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                     Photo.capture(frame[y0:y1,x0:x1], self.visitation_id, percent, 'boxed')
+                    logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                     self.photo_per_visitation_count = self.photo_per_visitation_count + 1
 
                 else:
@@ -119,6 +121,7 @@ class Visitations:
         if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
             if self.visitation_id:
                 Photo.capture(frame, self.visitation_id, percent, 'full')
+                logging.info("saved full image {} of {}".format(self.full_photo_per_visitation_count, self.full_photo_per_visitation_max))
                 self.full_photo_per_visitation_count = self.full_photo_per_visitation_count + 1
 
         # if recording == True and disk_has_space():
@@ -144,7 +147,7 @@ class Visitations:
         return visitation.id
 
     def reset(self):
-        logging.info("clearing trackers")
+        logging.info("visitation id {} over".format(self.visitation_id))
         #for visit in self.visitations:
         #    visit.tracker.clear()
         self.visitations = []
