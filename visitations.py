@@ -19,12 +19,12 @@ class Visitations:
     photo_per_visitation_max = 10
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
-    bboxes = []
     recording = False
     out = None
     last_tracked = None
     started_tracking = None
     visitation_id = None
+    vistation_max_seconds = 300
 
     def intersects(box1, box2):
         logging.info("box1 {}".format(box1))
@@ -79,7 +79,7 @@ class Visitations:
                 bird_detected = True
                 new_bird = True
                 
-                if new_bird and len(self.bboxes) == 0:
+                if new_bird and time.time() - self.started_tracking < self.vistation_max_seconds:
                     logging.info("found a new bird")
                     started_tracking = time.time()
                     self.visitation_id = self.add(obj, frame)
@@ -122,7 +122,7 @@ class Visitations:
             
         if bird_detected == False and len(self.visitations) > 0:
             now = time.time()
-            if now - last_tracked > 300:
+            if now - self.started_tracking > vistation_max_seconds:
                 self.reset()
 
     def add(self, obj, frame):
@@ -134,7 +134,6 @@ class Visitations:
     def reset(self):
         logging.info("visitation id {} over".format(self.visitation_id))
         self.visitations = []
-        self.bboxes = []
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
         recording = False
