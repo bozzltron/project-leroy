@@ -2,6 +2,12 @@ import cv2
 import psutil
 import os
 import time 
+import logging 
+
+#Initialize logging files
+logging.basicConfig(filename='storage/results.log',
+                    format='%(asctime)s-%(message)s',
+                    level=logging.DEBUG)
 
 class Photo:
 
@@ -21,9 +27,12 @@ class Photo:
 
     @staticmethod
     def capture(frame, visitation_id, detection_score, photo_type):
+        logging.info('checking disk space')
         if Photo.has_disk_space():
             directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
+            logging.info('making directories')
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            boxed_image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
-            cv2.imwrite( boxed_image_path, frame )
+            image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
+            logging.info('writing image {}'.format(image_path))
+            cv2.imwrite( image_path, frame )
