@@ -28,11 +28,14 @@ class Photo:
     @staticmethod
     def capture(frame, visitation_id, detection_score, photo_type):
         logging.info('checking disk space')
-        if Photo.has_disk_space():
-            directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
-            logging.info('making directories')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
-            logging.info('writing image {}'.format(image_path))
-            cv2.imwrite( image_path, frame )
+        try:
+            if Photo.has_disk_space():
+                directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
+                logging.info("making directories")
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+                image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
+                logging.info("writing image {}".format(image_path))
+                cv2.imwrite( image_path, frame )
+        except:
+            logging.exception("Failed to save image")
