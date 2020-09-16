@@ -11,8 +11,6 @@ logging.basicConfig(filename='storage/results.log',
                     level=logging.DEBUG)
 
 class Visitations:
-    visitations = []
-    #multiTracker = cv2.MultiTracker_create()
     boxes = []
     success = False
     photo_per_visitation_count = 0
@@ -77,15 +75,13 @@ class Visitations:
             
             if object_label == 'bird' and percent > 20:
                 bird_detected = True
-                new_bird = True
                 
-                if new_bird and time.time() - self.started_tracking < self.vistation_max_seconds:
-                    logging.info("found a new bird")
-                    started_tracking = time.time()
+                if self.visitation_id == None:
                     self.visitation_id = self.add(obj, frame)
-                    logging.info("visitation id {}".format(self.visitation_id))
+                    self.started_tracking = time.time()
+                    logging.info("visitation {} started".format(self.visitation_id))
                     
-                if self.photo_per_visitation_count <= self.photo_per_visitation_max:
+                if self.started_tracking < self.vistation_max_seconds and self.photo_per_visitation_count <= self.photo_per_visitation_max:
                     logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                     capture(frame[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
                     logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
@@ -140,9 +136,9 @@ class Visitations:
 
     def reset(self):
         logging.info("visitation id {} over".format(self.visitation_id))
-        self.visitations = []
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
+        self.visitation_id = None
         recording = False
         if self.out is not None:
             self.out.release()
