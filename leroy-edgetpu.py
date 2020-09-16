@@ -117,7 +117,7 @@ def main():
   print("[INFO] starting video stream...")
   vs = WebcamVideoStream(src=0, name="WebcamVideoStream", resolution=(3264, 2448)).start()
   #vs = VideoStream(usePiCamera=False).start()
-  time.sleep(2.0)
+  time.sleep(3.0)
 
   detection_model = DetectionEngine(args.detection_model)
   classification_model = ClassificationEngine(args.classification_model)
