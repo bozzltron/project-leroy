@@ -87,7 +87,7 @@ class Visitations:
                     
                 if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                     logging.info('saving photo {}, {}, {}'.format(self.visitation_id, percent, 'boxed'))
-                    capture(frame[y0:y1,x0:x1], self.visitation_id, percent, 'boxed')
+                    capture(frame[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
                     logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                     self.photo_per_visitation_count = self.photo_per_visitation_count + 1
 
