@@ -82,7 +82,7 @@ class Visitations:
                     self.started_tracking = time.time()
                     logging.info("visitation {} started".format(self.visitation_id))
                     
-                if self.started_tracking < self.vistation_max_seconds:
+                if time.time() - self.started_tracking < self.vistation_max_seconds:
                     if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         capture(frame[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
@@ -105,10 +105,8 @@ class Visitations:
                 "label": label,
                 "label_p": (x0, y0+30)
             }
-            logging.info("Adding box to draw {}".format(box))
             boxes_to_draw.append(box)
 
-        logging.info("Boxes to draw {}".format(boxes_to_draw))
         for box in boxes_to_draw:
             if "bird" in box["label"]:
                 frame = cv2.rectangle(frame, box["p1"], box["p2"], (169, 68, 66), 5)
