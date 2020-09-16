@@ -102,7 +102,7 @@ class Visitations:
 
         logging.info("Boxes to draw {}".format(boxes_to_draw))
         for box in boxes_to_draw:
-            if box["label"] == "bird":
+            if "bird" in box["label"]:
                 frame = cv2.rectangle(frame, box["p1"], box["p2"], (169, 68, 66), 5)
                 frame = cv2.putText(frame, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 2.0, (169, 68, 66), 5)
 
