@@ -52,17 +52,8 @@ class Visitations:
         # return the intersection over union value
         return iou
 
-    def draw_tracking_boxes(self, boxes, frame):
-        height, width, channels = frame.shape
-        for i, newbox in enumerate(boxes):
-            x0, y0, x1, y1 = list(newbox)
-            x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
-            frame = cv2.rectangle(frame, (x0, y0), (x1, y1), (0, 0, 255), 2)
-
     def update(self, objs, frame, labels):
-        #self.success, self.boxes = self.multiTracker.update(frame)
         height, width, channels = frame.shape
-        #self.draw_tracking_boxes(self.boxes, frame)
 
         bird_detected = False
         boxes_to_draw = []
@@ -139,20 +130,12 @@ class Visitations:
     def add(self, obj, frame):
         visitation = Visitation()
         visitation.start()
-        recording = True
-        self.bboxes.append(obj.bbox)   
-        width = obj.bbox.xmax-obj.bbox.xmin
-        height = obj.bbox.ymax-obj.bbox.ymin
-        #self.multiTracker.add(visitation.tracker, frame, (obj.bbox.xmin, obj.bbox.ymin, width, height))            
+        recording = True          
         return visitation.id
 
     def reset(self):
         logging.info("visitation id {} over".format(self.visitation_id))
-        #for visit in self.visitations:
-        #    visit.tracker.clear()
         self.visitations = []
-        #self.multiTracker = cv2.MultiTracker_create()
-        boxes = []
         self.bboxes = []
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
