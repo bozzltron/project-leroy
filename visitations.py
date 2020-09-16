@@ -68,6 +68,7 @@ class Visitations:
                 p0, p1 = list(box)
                 x0, y0 = list(p0)
                 x1, y1 = list(p1)
+                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
                 object_label = labels[obj.label_id]
             percent = int(100 * obj.score)
             
