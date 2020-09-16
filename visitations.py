@@ -68,7 +68,7 @@ class Visitations:
         boxes_to_draw = []
         object_label = ""
         for obj in objs:
-            if obj.bbox:
+            if hasattr(obj, 'bbox'):
                 # handle tflite result
                 x0, y0, x1, y1 = list(obj.bbox)
                 x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
