@@ -66,11 +66,22 @@ class Visitations:
 
         bird_detected = False
         boxes_to_draw = []
+        object_label = ""
         for obj in objs:
-            x0, y0, x1, y1 = list(obj.bbox)
-            x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+            if obj.bbox:
+                # handle tflite result
+                x0, y0, x1, y1 = list(obj.bbox)
+                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+                object_label = labels.get(obj.id, obj.id)
+            else:
+                # handle edgetpu result
+                box = obj.bounding_box
+                p0, p1 = list(box)
+                x0, y0 = list(p0)
+                x1, y1 = list(p1)
+                object_label = labels[obj.label_id]
             percent = int(100 * obj.score)
-            object_label = labels.get(obj.id, obj.id)
+            
             label = '{}% {}'.format(percent, object_label)
             
             if object_label == 'bird' and percent > 20:
