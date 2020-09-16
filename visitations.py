@@ -102,7 +102,7 @@ class Visitations:
                 "label_p": (x0, y0+30)
             }
             logging.info("Adding box to draw {}".format(box))
-            boxes_to_draw.append()
+            boxes_to_draw.append(box)
 
         logging.info("Boxes to draw {}".format(boxes_to_draw))
         for box in boxes_to_draw:
