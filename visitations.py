@@ -95,13 +95,16 @@ class Visitations:
             label = '{}% {}'.format(percent, object_label)
 
             # postpone drawing so we don't get lines in the photos
-            boxes_to_draw.append({
+            box = {
                 "p1": (x0, y0),
                 "p2": (x1, y1),
                 "label": label,
                 "label_p": (x0, y0+30)
-            })
+            }
+            logging.info("Adding box to draw {}".format(box))
+            boxes_to_draw.append()
 
+        logging.info("Boxes to draw {}".format(boxes_to_draw))
         for box in boxes_to_draw:
             if box["label"] == "bird":
                 frame = cv2.rectangle(frame, box["p1"], box["p2"], (169, 68, 66), 5)
