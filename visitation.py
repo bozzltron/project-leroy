@@ -69,7 +69,7 @@ def find_best_photo(records):
   best = 0
   best_index = 0
   for index, record in enumerate(records, start=0):
-    clarity_score = clarity(record['filename'])
+    clarity_score = clarity('/var/www/html{}'.format(record['filename']))
     total_score = int(record["classification_score"]) + int(record["detection_score"]) + clarity_score
     if best < total_score:
       best = total_score
