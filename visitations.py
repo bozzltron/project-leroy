@@ -2,7 +2,7 @@ import cv2
 import uuid
 import logging 
 import time
-from photo import Photo
+from photo import capture
 from random import randint
 
 #Initialize logging files
@@ -87,12 +87,9 @@ class Visitations:
                     
                 if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                     logging.info('saving photo {}, {}, {}'.format(self.visitation_id, percent, 'boxed'))
-                    Photo.capture(frame[y0:y1,x0:x1], self.visitation_id, percent, 'boxed')
+                    capture(frame[y0:y1,x0:x1], self.visitation_id, percent, 'boxed')
                     logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                     self.photo_per_visitation_count = self.photo_per_visitation_count + 1
-
-                else:
-                    logging.info("Not enough disk space")
 
             percent = int(100 * obj.score)
             label = '{}% {}'.format(percent, object_label)
@@ -112,7 +109,7 @@ class Visitations:
 
         if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
             if self.visitation_id:
-                Photo.capture(frame, self.visitation_id, percent, 'full')
+                capture(frame, self.visitation_id, percent, 'full')
                 logging.info("saved full image {} of {}".format(self.full_photo_per_visitation_count, self.full_photo_per_visitation_max))
                 self.full_photo_per_visitation_count = self.full_photo_per_visitation_count + 1
 
