@@ -45,6 +45,9 @@ def save(frame, visitation_id, detection_score, photo_type, y1=None, y0=None, x1
             logging.info("writing image {}".format(image_path))
             camera = PiCamera()
             camera.resolution = (3264, 2448)
+            if x0 and x1 and y0 and y1:
+                logging.info("zooming image")
+                camera.zoom = (x0, y0, x1-x0, y1-y0)
             camera.capture( image_path , 'png')
     
     except:

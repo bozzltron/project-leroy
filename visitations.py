@@ -14,7 +14,7 @@ class Visitations:
     boxes = []
     success = False
     photo_per_visitation_count = 0
-    photo_per_visitation_max = 20
+    photo_per_visitation_max = 5
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
     recording = False
@@ -23,32 +23,6 @@ class Visitations:
     started_tracking = None
     visitation_id = None
     vistation_max_seconds = float(300)
-
-    def intersects(box1, box2):
-        logging.info("box1 {}".format(box1))
-        logging.info("box2 {}".format(box2))
-        box1x0, box1y0, box1x1, box1y1 = list(box1)
-        box2x0, box2y0, box2x1, box2y1 = list(box2)
-        return not (box1x0 < box2x1 or box1x1 > box2x0 or box1y0 < box2y1 or box1y1 > box2y0)
-
-    def bb_intersection_over_union(boxA, boxB):
-        # determine the (x, y)-coordinates of the intersection rectangle
-        xA = max(boxA[0], boxB[0])
-        yA = max(boxA[1], boxB[1])
-        xB = min(boxA[2], boxB[2])
-        yB = min(boxA[3], boxB[3])
-        # compute the area of intersection rectangle
-        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-        # compute the area of both the prediction and ground-truth
-        # rectangles
-        boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-        # compute the intersection over union by taking the intersection
-        # area and dividing it by the sum of prediction + ground-truth
-        # areas - the interesection area
-        iou = interArea / float(boxAArea + boxBArea - interArea)
-        # return the intersection over union value
-        return iou
 
     def update(self, objs, frame, labels):
         height, width, channels = frame.shape
@@ -60,7 +34,6 @@ class Visitations:
             if hasattr(obj, 'bbox'):
                 # handle tflite result
                 x0, y0, x1, y1 = list(obj.bbox)
-                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
                 object_label = labels.get(obj.id, obj.id)
             else:
                 # handle edgetpu result
@@ -68,7 +41,6 @@ class Visitations:
                 p0, p1 = list(box)
                 x0, y0 = list(p0)
                 x1, y1 = list(p1)
-                x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
                 object_label = labels[obj.label_id]
             percent = int(100 * obj.score)
             
@@ -86,7 +58,7 @@ class Visitations:
                     if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         frame_without_boxes = frame.copy()
-                        capture(frame_without_boxes[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
+                        capture(frame_without_boxes, self.visitation_id, percent, 'boxed', y0, y1, x0, x1)
                         logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
@@ -101,8 +73,8 @@ class Visitations:
 
             # postpone drawing so we don't get lines in the photos
             box = {
-                "p1": (x0, y0),
-                "p2": (x1, y1),
+                "p1": (x0*width, y0*height),
+                "p2": (x1*width, y1*height),
                 "label": label,
                 "label_p": (x0, y0+30)
             }
