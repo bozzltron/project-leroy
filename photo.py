@@ -28,16 +28,30 @@ def capture(frame, visitation_id, detection_score, photo_type):
     logging.info("Main : before running thread")
     thread.start()
 
-def save(frame, visitation_id, detection_score, photo_type):
+def mkdirs(visitation_id):
+    directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
+    logging.info("making directories")
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    return directory
+
+def save(frame, visitation_id, detection_score, photo_type, y1=None, y0=None, x1=None, x0=None):
     logging.info('checking disk space')
     try:
         if has_disk_space():
-            directory = "storage/detected/{}/{}".format(time.strftime("%Y-%m-%d"), visitation_id)
-            logging.info("making directories")
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+            directory = mkdirs(visitation_id)
             image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
             logging.info("writing image {}".format(image_path))
-            cv2.imwrite( image_path, frame )
+            
+            cap = cv2.VideoCapture(0)
+            cap.set(3,3264) 
+            cap.set(4,2448)
+            if cap.isOpened():
+                _,image = cap.read()
+                cap.release() 
+            if y1 and y0 and x1 and x0:
+                height, width, channels = image.shape
+                image = image[y1*height:y0*height,x1*width:x0*width]
+            cv2.imwrite( image_path, image )
     except:
         logging.exception("Failed to save image")

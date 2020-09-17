@@ -85,3 +85,6 @@ mp4_to_h264:
 
 bash:
 	docker run -it -v `pwd`/storage/:/usr/src/app/ --entrypoint="bash" $(IMAGE):latest
+
+set_resolution:
+	v4l2-ctl -v width=3264,height=2448	
