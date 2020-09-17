@@ -144,6 +144,8 @@ def main():
     visitations.update(objs, frame, detection_labels)
 
     # show the output frame and wait for a key press
+    cv2.namedWindow("Leroy", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Leroy", 800, 600)
     cv2.imshow("Leroy", frame)
 
     key = cv2.waitKey(1) & 0xFF
