@@ -4,7 +4,6 @@ import os
 import time 
 import logging 
 import threading
-from picamera import PiCamera
 
 #Initialize logging files
 logging.basicConfig(filename='storage/results.log',
@@ -24,8 +23,8 @@ def has_disk_space():
     hdd = psutil.disk_usage('/')
     return hdd.percent < 95
 
-def capture(frame, visitation_id, detection_score, photo_type, y1=None, y0=None, x1=None, x0=None):
-    thread = threading.Thread(target=save, args=(frame, visitation_id, detection_score, photo_type, y1, y0, x1, x0))
+def capture(frame, visitation_id, detection_score, photo_type):
+    thread = threading.Thread(target=save, args=(frame, visitation_id, detection_score, photo_type))
     logging.info("Main : before running thread")
     thread.start()
 
@@ -36,19 +35,14 @@ def mkdirs(visitation_id):
         os.makedirs(directory)
     return directory
 
-def save(frame, visitation_id, detection_score, photo_type, y1=None, y0=None, x1=None, x0=None):
+def save(frame, visitation_id, detection_score, photo_type):
     logging.info('checking disk space')
     try:
         if has_disk_space():
+            height, width, channels = frame.shape
             directory = mkdirs(visitation_id)
             image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
             logging.info("writing image {}".format(image_path))
-            camera = PiCamera()
-            camera.resolution = (3264, 2448)
-            if x0 and x1 and y0 and y1:
-                logging.info("zooming image")
-                camera.zoom = (x0, y0, x1-x0, y1-y0)
-            camera.capture( image_path , 'png')
-    
+            cv2.imwrite( image_path, image )
     except:
         logging.exception("Failed to save image")
