@@ -39,10 +39,9 @@ def save(frame, visitation_id, detection_score, photo_type):
     logging.info('checking disk space')
     try:
         if has_disk_space():
-            height, width, channels = frame.shape
             directory = mkdirs(visitation_id)
             image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
             logging.info("writing image {}".format(image_path))
-            cv2.imwrite( image_path, image )
+            cv2.imwrite( image_path, frame )
     except:
         logging.exception("Failed to save image")
