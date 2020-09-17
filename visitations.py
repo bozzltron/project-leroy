@@ -14,7 +14,7 @@ class Visitations:
     boxes = []
     success = False
     photo_per_visitation_count = 0
-    photo_per_visitation_max = 5
+    photo_per_visitation_max = 10
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
     recording = False
