@@ -43,7 +43,8 @@ class Visitations:
                 x1, y1 = list(p1)
                 object_label = labels[obj.label_id]
             percent = int(100 * obj.score)
-            
+            x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
+
             label = '{}% {}'.format(percent, object_label)
             
             if object_label == 'bird' and percent > 20:
@@ -58,7 +59,7 @@ class Visitations:
                     if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         frame_without_boxes = frame.copy()
-                        capture(frame_without_boxes, self.visitation_id, percent, 'boxed')
+                        capture(frame_without_boxes[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
                         logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
