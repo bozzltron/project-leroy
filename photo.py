@@ -4,6 +4,7 @@ import os
 import time 
 import logging 
 import threading
+from picamera import PiCamera
 
 #Initialize logging files
 logging.basicConfig(filename='storage/results.log',
@@ -42,18 +43,9 @@ def save(frame, visitation_id, detection_score, photo_type, y1=None, y0=None, x1
             directory = mkdirs(visitation_id)
             image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
             logging.info("writing image {}".format(image_path))
-            
-            cap = cv2.VideoCapture(0)
-            cap.set(3,3264) 
-            cap.set(4,2448)
-            if cap.isOpened():
-                logging.info("capture 8MP image")
-                _,image = cap.read()
-                cap.release() 
-            if y1 and y0 and x1 and x0:
-                logging.info("crop 8MP image")
-                height, width, channels = image.shape
-                image = image[y1*height:y0*height,x1*width:x0*width]
-            cv2.imwrite( image_path, image )
+            camera = PiCamera()
+            camera.resolution = (3264, 2448)
+            camera.capture( image_path , 'png')
+    
     except:
         logging.exception("Failed to save image")
