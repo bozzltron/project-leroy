@@ -47,9 +47,11 @@ def save(frame, visitation_id, detection_score, photo_type, y1=None, y0=None, x1
             cap.set(3,3264) 
             cap.set(4,2448)
             if cap.isOpened():
+                logging.info("capture 8MP image")
                 _,image = cap.read()
                 cap.release() 
             if y1 and y0 and x1 and x0:
+                logging.info("crop 8MP image")
                 height, width, channels = image.shape
                 image = image[y1*height:y0*height,x1*width:x0*width]
             cv2.imwrite( image_path, image )
