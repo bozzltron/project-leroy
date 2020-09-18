@@ -33,4 +33,13 @@ sudo apt install postfix
 
 echo "add user to group allowing device access"
 sudo usermod -aG plugdev $USER
+
+echo "install nginx for web"
+sudo apt install nginx
+sudo usermod -a -G www-data pi
+
+echo "bad frame fix"
+sudo rmmod uvcvideo
+sudo modprobe uvcvideo nodrop=1 timeout=5000 quirks=0x80
+
 sudo reboot

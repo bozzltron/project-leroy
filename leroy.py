@@ -124,9 +124,10 @@ def main():
                     fps = FPS().start()
 
                 cv2_im = frame
-                #imutils.resize(cv2_im, width=500)
-                cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
-                pil_im = Image.fromarray(cv2_im)
+                resized_frame = frame.copy()
+                imutils.resize(resized_frame, width=500)
+                cv2_im_rgb = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
+                pil_im = Image.fromarray(resized_frame)
 
                 common.set_input(interpreter, pil_im)
                 interpreter.invoke()
