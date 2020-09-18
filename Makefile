@@ -71,7 +71,7 @@ generate_daily_report:
 	docker run -t -e DATE=${DATE} -v /var/www/html:/var/www/html -v `pwd`:/usr/src/app/ $(IMAGE):latest visitation.py --dir=/var/www/html/classified --date=${DATE}
 
 sync_from_pi:
-	rsync --remove-source-files --exclude 'detected/*' --exclude 'results.log' -avzhe "ssh -p22" pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/ `pwd`/storage
+	rsync --remove-source-files --exclude 'detected/*' --exclude 'results.log' -avzhe "ssh -p22" pi@10.0.4.79:/var/www/html/classified/ `pwd`/storage/classifed
 
 sync_to_pi:
 	rsync --remove-source-files -avzhe "ssh -p22" `pwd`/storage/detected/ pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/detected
