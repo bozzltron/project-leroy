@@ -26,7 +26,7 @@ class Visitations:
     visitation_id = None
     vistation_max_seconds = float(300)
 
-    def update(self, objs, frame, labels, cap, is_video_stream):
+    def update(self, objs, frame, labels):
         height, width, channels = frame.shape
 
         bird_detected = False
