@@ -10,7 +10,7 @@ sleep 1
 #fi
 
 DATE=$(date +'%Y-%m-%d')
-make generate_daily_report DATE=$DATE
+visitation.py --dir=/var/www/html/classified --date=${DATE}
 sudo cp -a web/. /var/www/html/
 
 sudo systemctl start leroy.service
