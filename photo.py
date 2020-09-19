@@ -24,8 +24,8 @@ def has_disk_space():
     hdd = psutil.disk_usage('/')
     return hdd.percent < 95
 
-def capture(frame, visitation_id, detection_score, photo_type, bounding_box=None):
-    thread = threading.Thread(target=save, args=(frame, visitation_id, detection_score, photo_type, bounding_box))
+def capture(frame, visitation_id, detection_score, photo_type):
+    thread = threading.Thread(target=save, args=(frame, visitation_id, detection_score, photo_type))
     logging.info("Main : before running thread")
     thread.start()
 
