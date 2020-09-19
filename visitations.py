@@ -67,8 +67,7 @@ class Visitations:
                         else:
                             cap.release()
                         filepath = capture(frame_without_boxes, self.visitation_id, percent, 'boxed', bounding_box)
-                        while not os.path.exists(filepath):
-                            logging.info("waiting for file photo capture...")
+                        time.sleep(1)
                         if is_video_stream:
                             VideoStream(src=0).start()
                         else:

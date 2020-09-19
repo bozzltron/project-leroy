@@ -51,7 +51,6 @@ def save(frame, visitation_id, detection_score, photo_type, bounding_box):
                 camera.zoom = (bounding_box['x0'], bounding_box['y0'], bounding_box['x1']-bounding_box['x0'], bounding_box['y1']-bounding_box['y0'])
 
             camera.capture( image_path , 'png')
-
-            return image_path
+            
     except:
         logging.exception("Failed to save image")
