@@ -66,7 +66,8 @@ class Visitations:
                             cap.stop()
                         else:
                             cap.release()
-                        filepath = capture(frame_without_boxes, self.visitation_id, percent, 'boxed', bounding_box)
+                        time.sleep(1)
+                        capture(frame_without_boxes, self.visitation_id, percent, 'boxed', bounding_box)
                         time.sleep(1)
                         if is_video_stream:
                             VideoStream(src=0).start()
