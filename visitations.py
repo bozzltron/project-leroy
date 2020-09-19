@@ -2,6 +2,7 @@ import cv2
 import uuid
 import logging 
 import time
+import os
 from photo import capture
 from random import randint
 
@@ -24,7 +25,7 @@ class Visitations:
     visitation_id = None
     vistation_max_seconds = float(300)
 
-    def update(self, objs, frame, labels):
+    def update(self, objs, frame, labels, cap):
         height, width, channels = frame.shape
 
         bird_detected = False
@@ -59,7 +60,12 @@ class Visitations:
                     if self.photo_per_visitation_count <= self.photo_per_visitation_max:
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         frame_without_boxes = frame.copy()
-                        capture(frame_without_boxes[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
+                        bounding_box = { x0: x0, x1:x1, y0:y0, y1:y1 }
+                        cap.release()
+                        filepath = capture(frame_without_boxes, self.visitation_id, percent, 'boxed', bounding_box)
+                        while not os.path.exists(filepath):
+                            logging.info("waiting for file photo capture...")
+                        cap = cv2.VideoCapture(0)
                         logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
