@@ -10,7 +10,7 @@ sleep 1
 #fi
 
 DATE=$(date +'%Y-%m-%d')
-visitation.py --dir=/var/www/html/classified --date=${DATE}
+python3 visitation.py --dir=/var/www/html/classified --date=${DATE}
 sudo cp -a web/. /var/www/html/
 
 sudo systemctl start leroy.service
