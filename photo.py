@@ -36,21 +36,21 @@ def mkdirs(visitation_id):
         os.makedirs(directory)
     return directory
 
-def save(frame, visitation_id, detection_score, photo_type, bounding_box):
+def save(frame, visitation_id, detection_score, photo_type):
     logging.info('checking disk space')
     try:
         if has_disk_space():
             directory = mkdirs(visitation_id)
             image_path = "{}/{}_{}_{}.png".format(directory, photo_type, time.strftime("%H-%M-%S"), detection_score)
             logging.info("writing image {}".format(image_path))
-            #cv2.imwrite( image_path, frame )
-            camera = PiCamera()
-            camera.resolution = (3264, 2448)
-            if bounding_box:
-                logging.info("zooming image")
-                camera.zoom = (bounding_box['x0'], bounding_box['y0'], bounding_box['x1']-bounding_box['x0'], bounding_box['y1']-bounding_box['y0'])
+            cv2.imwrite( image_path, frame )
+            # camera = PiCamera()
+            # camera.resolution = (3264, 2448)
+            # if bounding_box:
+            #     logging.info("zooming image")
+            #     camera.zoom = (bounding_box['x0'], bounding_box['y0'], bounding_box['x1']-bounding_box['x0'], bounding_box['y1']-bounding_box['y0'])
 
-            camera.capture( image_path , 'png')
+            # camera.capture( image_path , 'png')
 
     except:
         logging.exception("Failed to save image")
