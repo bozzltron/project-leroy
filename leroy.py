@@ -134,7 +134,7 @@ def main():
                 objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
                 height, width, channels = cv2_im.shape
                 
-                visitations.update(objs, cv2_im, labels, cap)
+                visitations.update(objs, cv2_im, labels, cap, False)
                 
                 #cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
                 #cv2.resizeWindow('Leroy', 800, 600)

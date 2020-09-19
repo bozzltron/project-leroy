@@ -118,7 +118,7 @@ def main():
   #vs = VideoStream(src=0, usePiCamera=True, resolution=(3280,2464)).start()
   #vs =  VideoStream(src=0, usePiCamera=True, resolution=(2560,1920)).start()
   #vs = VideoStream(src=0, usePiCamera=True, resolution=(2048,1536)).start()
-  vs = VideoStream(usePiCamera=False).start()
+  vs = VideoStream(src=0).start()
   time.sleep(2.0)
 
   detection_model = DetectionEngine(args.detection_model)
@@ -143,7 +143,7 @@ def main():
     resized_frame = Image.fromarray(resized_frame)
     objs = detection_model.detect_with_image(resized_frame, top_k=3)
 
-    visitations.update(objs, frame, detection_labels)
+    visitations.update(objs, frame, detection_labels, vs, True)
 
     # show the output frame and wait for a key press
     #cv2.namedWindow("Leroy", cv2.WINDOW_NORMAL)
