@@ -136,8 +136,8 @@ def main():
                 
                 visitations.update(objs, cv2_im, labels, cap)
                 
-                cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
-                cv2.resizeWindow('Leroy', 800, 600)
+                #cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
+                #cv2.resizeWindow('Leroy', 800, 600)
                 cv2.imshow('Leroy', cv2_im)
 
             except KeyboardInterrupt:
