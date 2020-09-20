@@ -125,7 +125,7 @@ def main():
 
                 cv2_im = frame
                 resized_frame = frame.copy()
-                resized_frame = imutils.resize(frame, width=640)
+                resized_frame = imutils.resize(frame, width=500)
                 cv2_im_rgb = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
                 pil_im = Image.fromarray(resized_frame)
 
@@ -134,7 +134,7 @@ def main():
                 objs = get_output(interpreter, score_threshold=args.threshold, top_k=args.top_k)
                 height, width, channels = cv2_im.shape
                 
-                visitations.update(objs, cv2_im, labels, cap, False)
+                visitations.update(objs, cv2_im, labels)
                 
                 cv2.namedWindow('Leroy',cv2.WINDOW_NORMAL)
                 cv2.resizeWindow('Leroy', 800, 600)
