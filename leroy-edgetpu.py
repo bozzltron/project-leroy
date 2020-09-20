@@ -115,9 +115,9 @@ def main():
   
   # initialize the video stream and allow the camera sensor to warmup
   print("[INFO] starting video stream...")
-  #vs = VideoStream(src=0, usePiCamera=True, resolution=(3280,2464)).start()
+  vs = VideoStream(src=0, usePiCamera=True, resolution=(3280,2464)).start()
   #vs =  VideoStream(src=0, usePiCamera=True, resolution=(2560,1920)).start()
-  vs = VideoStream(src=0, usePiCamera=True, resolution=(1920,1440)).start()
+  #vs = VideoStream(src=0, usePiCamera=True, resolution=(1920,1440)).start()
   #vs = VideoStream(src=0).start()
   time.sleep(2.0)
 
@@ -135,7 +135,7 @@ def main():
     # grab the frame from the threaded video stream and resize it
     # to have a maximum width of 500 pixels
     frame = vs.read()
-    #resized_frame = imutils.resize(frame, width=500)
+    resized_frame = imutils.resize(frame, width=640)
     # prepare the frame for classification by converting (1) it from
     # BGR to RGB channel ordering and then (2) from a NumPy array to
     # PIL image format
