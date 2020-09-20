@@ -7,14 +7,17 @@
     <meta name="theme-color" content="#fafafa">
     <link rel="manifest" href="/manifest.json">
     <style type="text/css">
+      html, body {
+        width:100%;
+      }
       #content {  
-        max-width:80%;
+        width:100%;
+        padding:0.5em;
         margin:auto;
       }
       .masonry {
         display: flex;
         flex-flow: row wrap;
-        margin-left: -8px; /* Adjustment for the gutter */
         width: 100%;
       }
       .masonry-brick {
@@ -23,7 +26,7 @@
         background:#fff;
         padding: 0.5em;
         border-radius:4px;
-        margin: 0 8px 8px 0; /* Some gutter */
+        margin: 0 0 0.5em 0; /* Some gutter */
         text-align:center;
       }
 
@@ -31,7 +34,7 @@
         padding:0.5em;
         border: 1px dotted #ccc;
         border-radius:4px;
-        margin:0 0.5em 0 0;
+        width:100%;
       }
       time {
         display:block;
