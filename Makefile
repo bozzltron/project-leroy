@@ -88,3 +88,6 @@ bash:
 
 set_resolution:
 	v4l2-ctl -v width=3280,height=2464	
+
+tail:
+	tail -f storage/results.log
