@@ -24,6 +24,11 @@ print("cv version" + cv2.__version__)
 
 Object = collections.namedtuple('Object', ['id', 'score', 'bbox'])
 
+#Initialize logging files
+logging.basicConfig(filename='storage/results.log',
+                    format='%(asctime)s-%(message)s',
+                    level=logging.DEBUG)
+
 def load_labels(path):
     p = re.compile(r'\s*(\d+)(.+)')
     with open(path, 'r', encoding='utf-8') as f:

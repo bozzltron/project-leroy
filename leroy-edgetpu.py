@@ -7,6 +7,7 @@ import imutils
 import time
 import cv2
 import re
+import logging
 
 from edgetpu.basic import edgetpu_utils
 from edgetpu.classification.engine import ClassificationEngine
@@ -16,6 +17,7 @@ from PIL import Image
 from imutils.video import VideoStream
 from visitations import Visitations
 from webcamstreamvideo import WebcamVideoStream
+
 @contextlib.contextmanager
 def open_image(path):
   with open(path, 'rb') as f:
@@ -105,58 +107,66 @@ def bb_intersection_over_union(boxA, boxB):
 	return iou
 
 def main():
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--classification_model', help='Path of classification model.', required=False, default='all_models/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite')
-  parser.add_argument('--detection_model', help='Path of detection model.', required=False, default='all_models/ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite')
-  parser.add_argument('--image', help='Path of the image.', required=False)
-  parser.add_argument('--classification_labels', required=False, default='all_models/inat_bird_labels.txt')
-  parser.add_argument('--detection_labels', required=False, default='all_models/coco_labels.txt')
-  args = parser.parse_args()
-  
-  # initialize the video stream and allow the camera sensor to warmup
-  print("[INFO] starting video stream...")
-  #vs = VideoStream(src=0, usePiCamera=True, resolution=(3280,2464)).start()
-  vs = VideoStream(src=0, usePiCamera=True, resolution=(2048,1536)).start()
-  #vs = VideoStream(src=0, usePiCamera=True, resolution=(1920,1440)).start()
-  #vs = VideoStream(src=0).start()
-  time.sleep(2.0)
+  try:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--classification_model', help='Path of classification model.', required=False, default='all_models/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite')
+    parser.add_argument('--detection_model', help='Path of detection model.', required=False, default='all_models/ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite')
+    parser.add_argument('--image', help='Path of the image.', required=False)
+    parser.add_argument('--classification_labels', required=False, default='all_models/inat_bird_labels.txt')
+    parser.add_argument('--detection_labels', required=False, default='all_models/coco_labels.txt')
+    args = parser.parse_args()
+    
+    #Initialize logging files
+    logging.basicConfig(filename='storage/results.log',
+                        format='%(asctime)s-%(message)s',
+                        level=logging.DEBUG)
 
-  detection_model = DetectionEngine(args.detection_model)
-  classification_model = ClassificationEngine(args.classification_model)
-  
-  detection_labels = load_labels(args.detection_labels)
-  print("detection_labels : {}".format(len(detection_labels)))
-  classification_labels = load_labels(args.classification_labels)
+    # initialize the video stream and allow the camera sensor to warmup
+    print("[INFO] starting video stream...")
+    #vs = VideoStream(src=0, usePiCamera=True, resolution=(3280,2464)).start()
+    vs = VideoStream(src=0, usePiCamera=True, resolution=(2048,1536)).start()
+    #vs = VideoStream(src=0, usePiCamera=True, resolution=(1920,1440)).start()
+    #vs = VideoStream(src=0).start()
+    time.sleep(2.0)
 
-  visitations = Visitations()
+    detection_model = DetectionEngine(args.detection_model)
+    classification_model = ClassificationEngine(args.classification_model)
+    
+    detection_labels = load_labels(args.detection_labels)
+    print("detection_labels : {}".format(len(detection_labels)))
+    classification_labels = load_labels(args.classification_labels)
 
-  # loop over the frames from the video stream
-  while True:
-    # grab the frame from the threaded video stream and resize it
-    # to have a maximum width of 640 pixels
-    frame = vs.read()
-    resized_frame = imutils.resize(frame, width=500)  
-    # prepare the frame for classification by converting (1) it from
-    # BGR to RGB channel ordering and then (2) from a NumPy array to
-    # PIL image format
-    resized_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    resized_frame = Image.fromarray(resized_frame)
-    objs = detection_model.detect_with_image(resized_frame, top_k=3)
+    visitations = Visitations()
 
-    visitations.update(objs, frame, detection_labels)
+    # loop over the frames from the video stream
+    while True:
+      # grab the frame from the threaded video stream and resize it
+      # to have a maximum width of 640 pixels
+      frame = vs.read()
+      resized_frame = imutils.resize(frame, width=500)  
+      # prepare the frame for classification by converting (1) it from
+      # BGR to RGB channel ordering and then (2) from a NumPy array to
+      # PIL image format
+      resized_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+      resized_frame = Image.fromarray(resized_frame)
+      objs = detection_model.detect_with_image(resized_frame, top_k=3)
 
-    # show the output frame and wait for a key press
-    cv2.namedWindow("Leroy", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Leroy", 800, 600)
-    cv2.imshow("Leroy", frame)
+      visitations.update(objs, frame, detection_labels)
 
-    key = cv2.waitKey(1) & 0xFF
-    # if the `q` key was pressed, break from the loop
-    if key == ord("q"):
-      break
-  # do a bit of cleanup
-  cv2.destroyAllWindows()
-  vs.stop()
+      # show the output frame and wait for a key press
+      cv2.namedWindow("Leroy", cv2.WINDOW_NORMAL)
+      cv2.resizeWindow("Leroy", 800, 600)
+      cv2.imshow("Leroy", frame)
+
+      key = cv2.waitKey(1) & 0xFF
+      # if the `q` key was pressed, break from the loop
+      if key == ord("q"):
+        break
+    # do a bit of cleanup
+    cv2.destroyAllWindows()
+    vs.stop()
+  except: 
+    logging.exception('Failed on main program.')
 
 if __name__ == '__main__':
   main()
