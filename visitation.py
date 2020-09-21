@@ -136,9 +136,9 @@ def main():
       #else:
       #  print("bad visitation: {}".format(visitation))
 
-  for visit in visitations:
-    if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 90:
-      visitations.remove(visit)
+  # for visit in visitations:
+  #   if len(visit["records"]) == 1 and int(visit["records"][0]["classification_score"]) < 90:
+  #     visitations.remove(visit)
 
   with open('/var/www/html/visitations.json', 'w') as outfile:
     json.dump(visitations, outfile, default=str)
