@@ -140,28 +140,31 @@ def main():
 
     # loop over the frames from the video stream
     while True:
-      # grab the frame from the threaded video stream and resize it
-      # to have a maximum width of 640 pixels
-      frame = vs.read()
-      resized_frame = imutils.resize(frame, width=500)  
-      # prepare the frame for classification by converting (1) it from
-      # BGR to RGB channel ordering and then (2) from a NumPy array to
-      # PIL image format
-      resized_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-      resized_frame = Image.fromarray(resized_frame)
-      objs = detection_model.detect_with_image(resized_frame, top_k=3)
+      try:
+        # grab the frame from the threaded video stream and resize it
+        # to have a maximum width of 640 pixels
+        frame = vs.read()
+        resized_frame = imutils.resize(frame, width=500)  
+        # prepare the frame for classification by converting (1) it from
+        # BGR to RGB channel ordering and then (2) from a NumPy array to
+        # PIL image format
+        resized_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        resized_frame = Image.fromarray(resized_frame)
+        objs = detection_model.detect_with_image(resized_frame, top_k=3)
 
-      visitations.update(objs, frame, detection_labels)
+        visitations.update(objs, frame, detection_labels)
 
-      # show the output frame and wait for a key press
-      cv2.namedWindow("Leroy", cv2.WINDOW_NORMAL)
-      cv2.resizeWindow("Leroy", 800, 600)
-      cv2.imshow("Leroy", frame)
+        # show the output frame and wait for a key press
+        cv2.namedWindow("Leroy", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("Leroy", 800, 600)
+        cv2.imshow("Leroy", frame)
 
-      key = cv2.waitKey(1) & 0xFF
-      # if the `q` key was pressed, break from the loop
-      if key == ord("q"):
-        break
+        key = cv2.waitKey(1) & 0xFF
+        # if the `q` key was pressed, break from the loop
+        if key == ord("q"):
+          break
+      except:
+        logging.exception('Failed while looping.')
     # do a bit of cleanup
     cv2.destroyAllWindows()
     vs.stop()
