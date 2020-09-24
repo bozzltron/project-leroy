@@ -88,6 +88,7 @@ bash:
 
 set_resolution:
 	v4l2-ctl -v width=3280,height=2464	
+	bcm2835-v4l2 max_video_width=3280 max_video_height=2464
 
 tail:
 	tail -f storage/results.log
