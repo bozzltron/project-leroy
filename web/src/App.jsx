@@ -41,7 +41,7 @@ export default function MediaCard() {
   // this useEffect will run once
   // similar to componentDidMount()
   useEffect(() => {
-    fetch("/vistitations.json")
+    fetch("/visitations.json")
       .then(res => res.json())
       .then(
         (result) => {
