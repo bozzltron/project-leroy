@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { makeStyles, createStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
-import visitations from './visitations';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Container from '@material-ui/core/Container';
@@ -33,7 +32,7 @@ const useStyles = makeStyles((theme) =>
 
 export default function MediaCard() {
   const classes = useStyles();
-  const [items, setItems] = useState(visitations);
+  const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -44,10 +43,10 @@ export default function MediaCard() {
     fetch("/visitations.json")
       .then(res => res.json())
       .then(
-        (result) => {
+        (items) => {
           setIsLoaded(true);
-          if(result.items.length > 0) {
-            setItems(result.items);
+          if(items.length > 0) {
+            setItems(items);
           }
         },  
         // Note: it's important to handle errors here
