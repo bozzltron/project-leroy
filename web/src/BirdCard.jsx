@@ -44,7 +44,7 @@ createStyles({
 export default function BirdCard({visit}) {
     const classes = useStyles();
     const [open, setOpen] = React.useState(false);
-    const path = window.location.href.includes("10.0.4.79") ? "/" : "http://10.0.4.79";
+    const path = window.location.href.includes("10.0.4.79") ? "" : "http://10.0.4.79";
 
     const handleOpen = () => {
       setOpen(true);
