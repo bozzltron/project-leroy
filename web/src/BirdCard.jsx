@@ -68,7 +68,7 @@ export default function BirdCard({visit}) {
                     {visit.species}
                 </Typography>
                 <Typography variant="body2" color="textSecondary" component="p">
-                    {visit.records.length} records
+                    {visit.records.length} records <br />
                     <time>{visit.records[0].datetime}</time>
                     {visit.id}
                 </Typography>
