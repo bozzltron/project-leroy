@@ -35,12 +35,13 @@ export default function MediaCard() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
-
+  const path = window.location.href.includes("10.0.4.79") ? "" : "http://10.0.4.79";
+  
   // Note: the empty deps array [] means
   // this useEffect will run once
   // similar to componentDidMount()
   useEffect(() => {
-    fetch("/visitations.json")
+    fetch(`${path}/visitations.json`)
       .then(res => res.json())
       .then(
         (items) => {

@@ -30,7 +30,10 @@ createStyles({
       overflowY: 'scroll',
       height: "80%",
       margin: "20px 20px 20px 20px",
-      padding: "20px"
+      padding: "20px",
+      [theme.breakpoints.down('xs')]: {
+        margin: "10px 10px 10px 10px",
+      }
   },
   image: {
       [theme.breakpoints.down('xs')]: {
@@ -68,7 +71,7 @@ export default function BirdCard({visit}) {
                     {visit.species}
                 </Typography>
                 <Typography variant="body2" color="textSecondary" component="p">
-                    {visit.records.length} records <br />
+                    {visit.records.length} photos <br />
                     <time>{visit.records[0].datetime}</time>
                     {visit.id}
                 </Typography>
@@ -96,7 +99,7 @@ export default function BirdCard({visit}) {
                             
                             {
                                 visit.records.map((record, index) => { 
-                                return <Grid item><img key={index} src={path + record.filename} alt={record.species}/></Grid>    
+                                return <Grid item><img className={classes.image} key={index} src={path + record.filename} alt={record.species}/></Grid>    
                                 })
                             }
                             
