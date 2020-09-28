@@ -77,8 +77,8 @@ class Visitations:
 
             # postpone drawing so we don't get lines in the photos
             box = {
-                "p1": (x0*width, y0*height),
-                "p2": (x1*width, y1*height),
+                "p1": (x0, y0),
+                "p2": (x1, y1),
                 "label": label,
                 "label_p": (x0, y0+30)
             }
