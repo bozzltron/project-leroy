@@ -31,6 +31,15 @@ import os
 import shutil
 import string
 
+def get_new_dir(dirpath):
+  new_dir = ""
+  path_sections = dirpath.split("/")
+  if len(path_sections) == 4:
+    date = path_sections[2]
+    visitation_id = path_sections[3]
+    new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
+  return new_dir
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument(
@@ -81,14 +90,18 @@ def main():
                     newpath = "{}/{}".format(new_dir, newname)
                     print('move {} -> {}'.format(filepath, newpath))
                     fullpath = filepath.replace("boxed", "full")
-                    newfullpath = newpath.replace("boxed", "full")
-                    print('move {} -> {}'.format(fullpath, newfullpath))
                     print('dryrun', args.dryrun)
                     if args.dryrun == False:
                       if not os.path.exists(new_dir):
                         os.makedirs(new_dir)
                       shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
-                      shutil.move(os.path.abspath(fullpath), os.path.abspath(newfullpath))
+              if "full" in filename:
+                new_dir = get_new_dir(dirpath)
+                new_path = "{}/{}".format(new_dir, filename)
+                if os.exists(new_dir):
+                  print('move {} -> {}'.format(filepath, new_path))
+                  if args.dryrun == False:
+                    shutil.move(os.path.abspath(filepath), os.path.abspath(new_path))
             except:
                 print("failed to classify ")
 
