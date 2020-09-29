@@ -89,7 +89,7 @@ def find_full_image(full_images, visitation_id):
     if visitation_id in full_images[i]:
       index == i
   if index != -1:
-    return list[i]
+    return full_images[i]
   else:
     return ""
 
