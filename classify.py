@@ -100,9 +100,11 @@ def main():
                 print('new full image dir {}'.format(new_dir))
                 new_path = "{}/{}".format(new_dir, filename)
                 if os.exists(new_dir):
-                  print('move {} -> {}'.format(filepath, new_path))
+                  print('full image move move {} -> {}'.format(filepath, new_path))
                   if args.dryrun == False:
                     shutil.move(os.path.abspath(filepath), os.path.abspath(new_path))
+                else:
+                  print('full image new directory doesnt exist')
             except:
                 print("failed to classify ")
 
