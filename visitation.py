@@ -51,8 +51,8 @@ def parse(filename):
     "classification_score": data[4].replace(".png", "")
   }
 
-def only_boxed(name):  
-    if ("boxed" in name): 
+def only_boxed_or_full(name):  
+    if ("boxed" in name) or ("full" in name): 
         return True
     else: 
         return False
@@ -69,11 +69,12 @@ def find_best_photo(records):
   best = 0
   best_index = 0
   for index, record in enumerate(records, start=0):
-    clarity_score = clarity('/var/www/html{}'.format(record['filename']))
-    total_score = int(record["classification_score"]) + int(record["detection_score"]) + clarity_score
-    if best < total_score:
-      best = total_score
-      best_index = index
+    if not "full" in record['filename']:
+      clarity_score = clarity('/var/www/html{}'.format(record['filename']))
+      total_score = int(record["classification_score"]) + int(record["detection_score"]) + clarity_score
+      if best < total_score:
+        best = total_score
+        best_index = index
   return best_index
 
 def datetime_parser(dct):
@@ -110,7 +111,7 @@ def main():
         filepaths.append(os.path.join(dirpath, filename))
 
     # filter to just boxed names
-    filtered = filter(only_boxed, filepaths)
+    filtered = filter(only_boxed_or_full, filepaths)
     parsed = map(parse, filtered)
 
     if args.date:
