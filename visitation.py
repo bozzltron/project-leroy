@@ -83,10 +83,10 @@ def find_best_photo(records):
         best_index = index
   return best_index
 
-def find_full_image(list, visitation_id):
+def find_full_image(full_images, visitation_id):
   index = -1
-  for i in range(len(list)):
-    if visitation_id in list[i]:
+  for i in range(len(full_images)):
+    if visitation_id in full_images[i]:
       index == i
   if index != -1:
     return list[i]
@@ -127,7 +127,7 @@ def main():
         filepaths.append(os.path.join(dirpath, filename))
 
     # filter to just boxed names
-    full_images = filter(only_full, filepaths)
+    full_images = list(filter(only_full, filepaths))
     filtered = filter(only_boxed, filepaths)
     parsed = map(parse, filtered)
 
