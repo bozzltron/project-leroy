@@ -41,7 +41,6 @@ def parse(filename):
       "species": data[5].replace("-", " "),
       "classification_score": data[6].replace(".png", "")
     }
-  print('path'.format(path))
   return {
     "filename": filename.replace('/var/www/html', ''),
     "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S') if len(data) == 7 else datetime.strptime("{} {}".format(path[5], data[1]), '%Y-%m-%d %H-%M-%S'),
@@ -84,14 +83,11 @@ def find_best_photo(records):
   return best_index
 
 def find_full_image(full_images, visitation_id):
-  index = -1
   for i in range(len(full_images)):
+    print("is {} in {} ?".format(visitation_id, full_images[i]))
     if visitation_id in full_images[i]:
-      index == i
-  if index != -1:
-    return full_images[i]
-  else:
-    return ""
+      return full_images[i]
+  return ""
 
 def datetime_parser(dct):
     for k, v in dct.items():
