@@ -97,6 +97,7 @@ def main():
                       shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
               if "full" in filename:
                 new_dir = get_new_dir(dirpath)
+                print('new full image dir {}'.format(new_dir))
                 new_path = "{}/{}".format(new_dir, filename)
                 if os.exists(new_dir):
                   print('move {} -> {}'.format(filepath, new_path))
