@@ -51,8 +51,14 @@ def parse(filename):
     "classification_score": data[4].replace(".png", "")
   }
 
-def only_boxed_or_full(name):  
-    if ("boxed" in name) or ("full" in name): 
+def only_boxed(name):  
+    if ("boxed" in name): 
+        return True
+    else: 
+        return False
+
+def only_full(name):  
+    if ("full" in name): 
         return True
     else: 
         return False
@@ -76,6 +82,16 @@ def find_best_photo(records):
         best = total_score
         best_index = index
   return best_index
+
+def find_full_image(list, visitation_id):
+  index = -1
+  for i in range(len(list)):
+    if visitation_id in list[i]:
+      index == i
+  if index != -1:
+    return list[i]
+  else:
+    return ""
 
 def datetime_parser(dct):
     for k, v in dct.items():
@@ -111,7 +127,8 @@ def main():
         filepaths.append(os.path.join(dirpath, filename))
 
     # filter to just boxed names
-    filtered = filter(only_boxed_or_full, filepaths)
+    full_images = filter(only_full, filepaths)
+    filtered = filter(only_boxed, filepaths)
     parsed = map(parse, filtered)
 
     if args.date:
@@ -130,7 +147,8 @@ def main():
         "species": find_species(records),
         "duration": (records[-1]["datetime"] - records[0]["datetime"]).total_seconds(),
         "records": records,
-        "best_photo": records[best_photo_index]["filename"]
+        "best_photo": records[best_photo_index]["filename"],
+        "full_image": find_full_image(full_images, k)
       }
       #if len(sorted_records) > 0 and int(sorted_records[-1]['classification_score']) > 25:
       visitations.append(visitation)
