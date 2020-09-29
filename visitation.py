@@ -144,7 +144,7 @@ def main():
         "duration": (records[-1]["datetime"] - records[0]["datetime"]).total_seconds(),
         "records": records,
         "best_photo": records[best_photo_index]["filename"],
-        "full_image": find_full_image(full_images, k)
+        "full_image": find_full_image(full_images, k).replace("/var/www/html", "")
       }
       #if len(sorted_records) > 0 and int(sorted_records[-1]['classification_score']) > 25:
       visitations.append(visitation)

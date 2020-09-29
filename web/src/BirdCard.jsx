@@ -96,7 +96,7 @@ export default function BirdCard({visit}) {
                 <Paper>
                     <Container>
                         <Grid container spacing={3}>
-                            
+                          <Grid item><img className={classes.image} src={visit.full_image} alt={visit.records[0].species}/></Grid> 
                             {
                                 visit.records.map((record, index) => { 
                                 return <Grid item><img className={classes.image} key={index} src={path + record.filename} alt={record.species}/></Grid>    
