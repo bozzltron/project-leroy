@@ -71,8 +71,8 @@ def main():
     for (dirpath, dirnames, filenames) in os.walk(args.dir):
           for filename in filenames:
             try:
+              filepath = "{}/{}".format(dirpath,filename)
               if "boxed" in filename:
-                filepath = "{}/{}".format(dirpath,filename)
                 print("attempting to classify {}".format(filepath))
                 img = Image.open(filepath)
                 for result in engine.classify_with_image(img, top_k=3):
@@ -89,7 +89,6 @@ def main():
                     newname = filename.replace(".png", "_{}_{}.png".format(label.replace(" ", "-"), percent))
                     newpath = "{}/{}".format(new_dir, newname)
                     print('move {} -> {}'.format(filepath, newpath))
-                    fullpath = filepath.replace("boxed", "full")
                     print('dryrun', args.dryrun)
                     if args.dryrun == False:
                       if not os.path.exists(new_dir):
@@ -100,7 +99,7 @@ def main():
                 print('new full image dir {}'.format(new_dir))
                 new_path = "{}/{}".format(new_dir, filename)
                 if os.path.exists(new_dir):
-                  print('full image move move {} -> {}'.format(filepath, new_path))
+                  print('full image move move {} -> {}'.format(os.path.abspath(filepath), os.path.abspath(new_path)))
                   if args.dryrun == False:
                     shutil.move(os.path.abspath(filepath), os.path.abspath(new_path))
                 else:
