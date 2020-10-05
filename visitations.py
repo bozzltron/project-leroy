@@ -49,7 +49,7 @@ class Visitations:
 
             label = '{}% {}'.format(percent, object_label)
             
-            if object_label == 'bird' and percent > 40:
+            if object_label == 'bird' and percent > 50:
                 bird_detected = True
                 
                 if self.visitation_id == None:
