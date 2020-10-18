@@ -131,7 +131,7 @@ def main():
 
                 cv2_im = frame
                 resized_frame = frame.copy()
-                resized_frame = imutils.resize(frame, width=400)
+                resized_frame = imutils.resize(frame, width=500)
                 cv2_im_rgb = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
                 pil_im = Image.fromarray(resized_frame)
 
