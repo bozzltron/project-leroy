@@ -76,17 +76,17 @@ class Visitations:
             label = '{}% {}'.format(percent, object_label)
 
             # postpone drawing so we don't get lines in the photos
-            box = {
-                "p1": (x0, y0),
-                "p2": (x1, y1),
-                "label": label,
-                "label_p": (x0, y0+30)
-            }
-            boxes_to_draw.append(box)
+            # box = {
+            #     "p1": (x0, y0),
+            #     "p2": (x1, y1),
+            #     "label": label,
+            #     "label_p": (x0, y0+30)
+            # }
+            # boxes_to_draw.append(box)
 
-        for box in boxes_to_draw:
-            if "bird" in box["label"]:
-                frame = cv2.rectangle(frame, box["p1"], box["p2"], (255, 32, 21), 3)
+        #for box in boxes_to_draw:
+            #if "bird" in box["label"]:
+                #frame = cv2.rectangle(frame, box["p1"], box["p2"], (255, 32, 21), 3)
                 #frame = cv2.putText(frame, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 1.0, (169, 68, 66), 3)
 
         if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
