@@ -28,17 +28,22 @@ createStyles({
   },
   modal: {
       overflowY: 'scroll',
-      height: "80%",
       margin: "20px 20px 20px 20px",
       padding: "20px",
       [theme.breakpoints.down('xs')]: {
         margin: "10px 10px 10px 10px",
+      },
+      [theme.breakpoints.up('sm')]: {
+        width: '600px',
+        margin: "10px auto 10px auto"
       }
   },
   image: {
+      width: "100%",
+      boxSizing: "border-box",
+      marginTop: '10px',
       [theme.breakpoints.down('xs')]: {
-        width: "100%",
-        boxSizing: "border-box"
+        
       }
   }
 })
@@ -99,7 +104,8 @@ export default function BirdCard({visit}) {
                           <Grid item><img className={classes.image} src={visit.full_image} alt={visit.records[0].species}/></Grid> 
                             {
                                 visit.records.map((record, index) => { 
-                                return <Grid item><img className={classes.image} key={index} src={path + record.filename} alt={record.species}/></Grid>    
+                                  //return <Grid key={index} item><img className={classes.image} key={index} src={path + record.filename} alt={record.species}/></Grid> 
+                                  return <img key={index} className={classes.image} key={index} src={path + record.filename} alt={record.species}/>   
                                 })
                             }
                             
