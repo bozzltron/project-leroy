@@ -7,6 +7,7 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Container from '@material-ui/core/Container';
 import BirdCard from './BirdCard';
+import Slideshow from './Slideshow';
 
 const useStyles = makeStyles((theme) =>
   createStyles({
@@ -36,20 +37,23 @@ export default function MediaCard() {
   const [error, setError] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const path = window.location.href.includes("10.0.4.79") ? "" : "http://10.0.4.79";
-  
+  const urlSearchParams = new URLSearchParams(window.location.search);
+  const mode = urlSearchParams.get('mode');
+
   // Note: the empty deps array [] means
   // this useEffect will run once
   // similar to componentDidMount()
-  useEffect(() => {
+
+  let getBirds = () => {
     fetch(`${path}/visitations.json`)
       .then(res => res.json())
       .then(
         (items) => {
           setIsLoaded(true);
-          if(items.length > 0) {
+          if (items.length > 0) {
             setItems(items);
           }
-        },  
+        },
         // Note: it's important to handle errors here
         // instead of a catch() block so that we don't swallow
         // exceptions from actual bugs in components.
@@ -58,10 +62,15 @@ export default function MediaCard() {
           setError(error);
         }
       )
+  }
+
+  useEffect(() => {
+    getBirds();
+    setInterval(getBirds, 60000);
   }, [])
 
   return (
-    <Grid container direction="row" spacing={1}>
+    mode === 'slideshow' ? <Slideshow items={items} /> : <Grid container direction="row" spacing={1}>
       <Grid item xs={12}>
         <AppBar position="fixed">
           <Toolbar>
@@ -75,8 +84,8 @@ export default function MediaCard() {
         <Container className={classes.container}>
           <Grid container spacing={3}>
             {
-              items.map((visit, index) => { 
-                return <BirdCard key={index} visit={visit}/> 
+              items.map((visit, index) => {
+                return <BirdCard key={index} visit={visit} />
               })
             }
           </Grid>

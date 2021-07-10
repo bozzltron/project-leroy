@@ -63,7 +63,7 @@ export default function BirdCard({visit}) {
     };
   
     return (    
-        <Grid container item xs={12} sm={6} md={4} spacing={1}>
+      <Grid container item xs={12} sm={6} md={4} spacing={1}>
             <Card className={classes.card}>
             <CardActionArea>
                 <CardMedia
