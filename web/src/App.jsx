@@ -8,6 +8,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Container from '@material-ui/core/Container';
 import BirdCard from './BirdCard';
 import Slideshow from './Slideshow';
+import './App.css';
 
 const useStyles = makeStyles((theme) =>
   createStyles({
