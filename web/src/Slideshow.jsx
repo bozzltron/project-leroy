@@ -8,7 +8,7 @@ function Slideshow({items}){
     return (
         <Carousel autoPlay={true} indicators={false}>
             {
-                items.map( (item, i) => <Paper style={{backgroundColor:"#111"}} key={i} item={item}>
+                items.map( (item, i) => <Paper style={{backgroundColor:"#111", height:"100%"}} key={i} item={item}>
                     <img style={{display: "block", margin:"auto"}} src={path + item.best_photo} alt={item.species} />
                 </Paper> )
             }
