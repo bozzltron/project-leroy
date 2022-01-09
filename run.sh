@@ -3,7 +3,7 @@ git pull origin master
 sudo cp -a web/build/. /var/www/html/
 
 #pip3 install -r requirements.txt
-make set_resolution
+#make set_resolution
 sleep 1
 ./leroy.py
 #python3 two_models.py
