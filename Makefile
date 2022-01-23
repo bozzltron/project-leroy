@@ -22,7 +22,7 @@ change_docker_env: start_machine
 	eval $(docker-machine env default)
 
 run_on_mac:
-	docker run -it --privileged --device /dev/video0 -v `pwd`:/usr/app/src -v /dev/bus/usb:/dev/bus/usb -v `pwd`/dev_storage:/usr/src/app/storage -p 5005:5005 -t $(IMAGE):latest
+	docker run -it --privileged --device /dev/video0 -v `pwd`:/usr/app/src -v /dev/bus/usb:/dev/bus/usb -v `pwd`/dev_storage:/usr/src/app/storage -p 5005:5005 -t jjanzic/docker-python3-opencv:contrib-opencv-4.1.0 python3 leroy.py
 
 restore_docker_env:
 	docker-machine stop
@@ -71,10 +71,10 @@ generate_daily_report:
 	docker run -t -e DATE=${DATE} -v /var/www/html:/var/www/html -v `pwd`:/usr/src/app/ $(IMAGE):latest visitation.py --dir=/var/www/html/classified --date=${DATE}
 
 sync_from_pi:
-	rsync --remove-source-files --exclude 'detected/*' --exclude 'results.log' -avzhe "ssh -p22" pi@10.0.4.79:/var/www/html/classified/ `pwd`/storage/classifed
+	rsync --remove-source-files --exclude 'detected/*' --exclude 'results.log' -avzhe "ssh -p22" pi@10.0.0.23:/var/www/html/classified/ `pwd`/storage/classifed
 
 sync_to_pi:
-	rsync --remove-source-files -avzhe "ssh -p22" `pwd`/storage/detected/ pi@10.0.4.79:/home/pi/Projects/project-leroy/storage/detected
+	rsync --remove-source-files -avzhe "ssh -p22" `pwd`/storage/detected/ pi@10.0.0.23:/home/pi/Projects/project-leroy/storage/detected
 
 mp4_to_gif:
 	docker run -t -e INPUT=${INPUT} -e OUTPUT=${OUTPUT} -v `pwd`/storage/:/usr/src/app/ --entrypoint="ffmpeg" $(IMAGE):latest  \
