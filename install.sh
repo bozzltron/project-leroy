@@ -4,7 +4,14 @@ echo "setup python virtual env"
 python3 -m venv .
 
 echo "install dependencies"
-pip3 install https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp37-cp37m-linux_armv7l.whl
+#pip3 install https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp37-cp37m-linux_armv7l.whl
+# This repo is needed for almost all packages below
+echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | sudo tee /etc/apt/sources.list.d/coral-edgetpu.list
+echo "deb https://packages.cloud.google.com/apt coral-cloud-stable main" | sudo tee /etc/apt/sources.list.d/coral-cloud.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install python3-tflite-runtime
+
 sudo apt-get install libatlas-base-dev python3-opencvsudo libjasper-dev libqtgui4 libqt4-test
 pip3 install image imutils psutil
 pip3 install opencv-contrib-python==4.1.0.25

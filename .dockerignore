@@ -1,1 +1,8 @@
 storage/*
+web
+all_models
+bin
+__pycache__
+lib
+include
+share

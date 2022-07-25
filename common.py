@@ -15,7 +15,7 @@
 """Common utilities."""
 import numpy as np
 from PIL import Image
-import tflite_runtime.interpreter as tflite
+from pycoral.utils.edgetpu import make_intrepreter
 import platform
 
 EDGETPU_SHARED_LIB = {
@@ -24,14 +24,6 @@ EDGETPU_SHARED_LIB = {
   'Windows': 'edgetpu.dll'
 }[platform.system()]
 
-def make_interpreter(model_file):
-    model_file, *device = model_file.split('@')
-    return tflite.Interpreter(
-      model_path=model_file,
-      experimental_delegates=[
-          tflite.load_delegate(EDGETPU_SHARED_LIB,
-                               {'device': device[0]} if device else {})
-      ])
 
 def set_input(interpreter, image, resample=Image.NEAREST):
     """Copies data to input tensor."""
