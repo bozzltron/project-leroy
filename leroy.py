@@ -12,13 +12,12 @@ import logging
 import psutil
 import uuid
 import imutils
-import tflite_runtime.interpreter as tflite
 from PIL import Image
-from edgetpu.utils import dataset_utils
 from random import randint
 from imutils.video import FPS
 from imutils.video import VideoStream
 from visitations import Visitations
+from pycoral.utils.edgetpu import make_interpreter
 
 print("cv version" + cv2.__version__)
 
@@ -85,7 +84,7 @@ def main():
                             level=logging.DEBUG)
 
         print('Loading {} with {} labels.'.format(args.model, args.labels))
-        interpreter = common.make_interpreter(args.model)
+        interpreter = make_interpreter(args.model)
         interpreter.allocate_tensors()
         labels = load_labels(args.labels)
 

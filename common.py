@@ -15,7 +15,6 @@
 """Common utilities."""
 import numpy as np
 from PIL import Image
-from pycoral.utils.edgetpu import make_intrepreter
 import platform
 
 EDGETPU_SHARED_LIB = {

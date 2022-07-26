@@ -10,7 +10,7 @@ push:
 	docker push $(IMAGE):latest
 
 run:
-	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`/storage:/usr/src/app/storage -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
+	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`:/usr/src/app/ -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
 
 run_experiment:
 	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`/storage:/usr/src/app/storage -v /dev/bus/usb:/dev/bus/usb -t jjanzic/docker-python3-opencv:contrib-opencv-4.0.1 python3 leroy.py	
@@ -22,7 +22,7 @@ change_docker_env: start_machine
 	eval $(docker-machine env default)
 
 run_on_mac:
-	docker run -it --privileged --device /dev/video0 -v `pwd`:/usr/app/src -v /dev/bus/usb:/dev/bus/usb -v `pwd`/dev_storage:/usr/src/app/storage -p 5005:5005 -t jjanzic/docker-python3-opencv:contrib-opencv-4.1.0 python3 leroy.py
+	docker run -it --privileged --device /dev/video0 -v `pwd`:/usr/app/src -v /dev/bus/usb:/dev/bus/usb -v `pwd`/all_models:/usr/src/app/all_models -v `pwd`/dev_storage:/usr/src/app/storage -p 5005:5005 -t $(IMAGE):latest
 
 restore_docker_env:
 	docker-machine stop
