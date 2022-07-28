@@ -18,6 +18,7 @@ from imutils.video import FPS
 from imutils.video import VideoStream
 from visitations import Visitations
 from pycoral.utils.edgetpu import make_interpreter
+from pycoral.utils.dataset import read_label_file
 
 print("cv version" + cv2.__version__)
 
@@ -86,7 +87,7 @@ def main():
         print('Loading {} with {} labels.'.format(args.model, args.labels))
         interpreter = make_interpreter(args.model)
         interpreter.allocate_tensors()
-        labels = load_labels(args.labels)
+        labels = read_label_file(args.labels)
 
         
         #vs = VideoStream(src=args.camera_idx, resolution=(2048, 1536)).start()

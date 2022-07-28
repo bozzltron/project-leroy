@@ -3,17 +3,11 @@ IMAGE=michaelbosworth/project-leroy
 build:
 	docker build . -t $(IMAGE):latest
 
-build_alpine:
-	docker build . -f alpine.Dockerfile -t $(IMAGE):alpine
-
 push:
 	docker push $(IMAGE):latest
 
 run:
 	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`:/usr/src/app/ -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
-
-run_experiment:
-	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`/storage:/usr/src/app/storage -v /dev/bus/usb:/dev/bus/usb -t jjanzic/docker-python3-opencv:contrib-opencv-4.0.1 python3 leroy.py	
 
 start_machine:
 	docker-machine start
