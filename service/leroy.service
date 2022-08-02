@@ -4,8 +4,8 @@ After=multi-user.target
 
 [Service]
 Type=idle
-WorkingDirectory=/home/pi/Projects/project-leroy
-ExecStart=/home/pi/Projects/project-leroy/run.sh
+WorkingDirectory=/home/mb/Projects/project-leroy
+ExecStart=/home/mb/Projects/project-leroy/run.sh
 Restart=on-abort
 User=pi
 Environment=DISPLAY=:0
