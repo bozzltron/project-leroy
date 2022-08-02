@@ -24,8 +24,10 @@ python3 classify_image.py \
 """
 
 import argparse
-from edgetpu.classification.engine import ClassificationEngine
-from edgetpu.utils import dataset_utils
+from pycoral.utils.dataset import read_label_file
+from pycoral.utils.edgetpu import make_interpreter
+from pycoral.adapters import common
+from pycoral.adapters.classify import get_classes
 from PIL import Image
 import os
 import shutil
@@ -51,18 +53,35 @@ def main():
       '--dir', help='File path of the dir to be recognized.', required=False)
   parser.add_argument(
       '--dryrun', help='Whether to actually move files or not.', required=False, default=False)
+  parser.add_argument('--top_k', type=int, default=3,
+                        help='number of classes with highest score to display')
+  parser.add_argument('--threshold', type=float, default=0.1,
+                        help='class score threshold') 
   args = parser.parse_args()
 
-
+  interpreter = make_interpreter(args.model)
+  interpreter.allocate_tensors()
   # Prepare labels.
-  labels = dataset_utils.read_label_file(args.label)
+  labels = read_label_file(args.label)
   # Initialize engine.
-  engine = ClassificationEngine(args.model)
   
+  input_tensor_shape = interpreter.get_input_details()[0]['shape']
+  if (input_tensor_shape.size != 4 or input_tensor_shape[0] != 1):
+    raise RuntimeError('Invalid input tensor shape! Expected: [1, height, width, channel]')
+
+  output_tensors = len(interpreter.get_output_details())
+  if output_tensors != 1:
+    raise ValueError(
+            ('Classification model should have 1 output tensor only!'
+             'This model has {}.'.format(output_tensors)))
+
   # Run inference.
   if args.image:
     img = Image.open(args.image)
-    for result in engine.classify_with_image(img, top_k=3):
+    common.set_resized_input(interpreter, image.size, lambda size: image.resize(size, Image.NEAREST))
+    interpreter.invoke()
+    results = get_classes(interpreter, args.top_k, args.threshold)
+    for result in results:
       print('---------------------------')
       print(labels[result[0]])
       print('Score : ', result[1])
@@ -75,7 +94,10 @@ def main():
               if "boxed" in filename:
                 print("attempting to classify {}".format(filepath))
                 img = Image.open(filepath)
-                for result in engine.classify_with_image(img, top_k=3):
+                common.set_resized_input(interpreter, img.size, lambda size: img.resize(size, Image.NEAREST))
+                interpreter.invoke()
+                results = get_classes(interpreter, args.top_k, args.threshold)
+                for result in results:
                   label = labels[result[0]]
                   percent = int(100 * result[1])
                   if label != "background":
@@ -104,8 +126,8 @@ def main():
                     shutil.move(os.path.abspath(filepath), os.path.abspath(new_path))
                 else:
                   print('full image new directory doesnt exist')
-            except:
-                print("failed to classify ")
+            except Exception as e:
+                print("failed to classify {}".format(e))
 
 if __name__ == '__main__':
   main()

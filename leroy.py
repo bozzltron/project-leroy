@@ -92,43 +92,48 @@ def main():
         
         #vs = VideoStream(src=args.camera_idx, resolution=(2048, 1536)).start()
         #cap = vs.stream
+        print('Capturing video stream on device {}...'.format(args.camera_idx))
         cap = cv2.VideoCapture(args.camera_idx)
         #cap = cv2.VideoCapture('videotestsrc ! video/x-raw,framerate=20/1 ! videoscale ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
-        time.sleep(2.0)
+        #time.sleep(2.0)
 
         # 5 MP
-        #cap.set(3, 2048)
-        #cap.set(4, 1536)
+        cap.set(3, 2048)
+        cap.set(4, 1536)
+        # 10 MP
+        #cap.set(3, 3872)
+        #cap.set(4, 2592)
+        
         # 4:3 resolutions
         # 640×480, 800×600, 960×720, 1024×768, 1280×960, 1400×1050,
         # 1440×1080 , 1600×1200, 1856×1392, 1920×1440, 2048×1536 
         # 2304×1728, 2560x1920, 2732×2048, 3200×2400, (3280, 2464)
-        cap.set(3, 3200)
-        cap.set(4, 2400)
+        #cap.set(3, 3200)
+        #cap.set(4, 2400)
         
         out = None
-        fps = FPS().start()
+        #fps = FPS().start()
         is_stopped = False
         current_fps = 4.0
-
+        print('Loading visitation code')
         visitations = Visitations()
 
         while cap.isOpened():
             try:
-                
                 ret, frame = cap.read()
-                if not ret:
-                    break
+                #if not ret:
+                #    print('nothing there')
+                #    continue
 
-                if fps._numFrames < 500:
-                    fps.update()
-                else:
-                    fps.stop()
-                    current_fps = fps.fps()
-                    logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-                    logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-                    fps = FPS().start()
-
+                #if fps._numFrames < 500:
+                #    fps.update()
+                #else:
+                #    fps.stop()
+                #    current_fps = fps.fps()
+                #    logging.info("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+                #    logging.info("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+                #    fps = FPS().start()
+                
                 cv2_im = frame
                 resized_frame = frame.copy()
                 resized_frame = imutils.resize(frame, width=500)

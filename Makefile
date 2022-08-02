@@ -7,6 +7,10 @@ push:
 	docker push $(IMAGE):latest
 
 run:
+	docker stop leroy || true
+	docker run -t --privileged --name leroy --device /dev/video0 --device /dev/gpiomem -v `pwd`:/usr/src/app/ -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
+
+run_continuous:
 	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`:/usr/src/app/ -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
 
 start_machine:
@@ -21,6 +25,12 @@ run_on_mac:
 restore_docker_env:
 	docker-machine stop
 	eval $(docker-machine env -u)
+
+service_install:
+	sudo cp service/leroy.service /lib/systemd/system/leroy.service
+	sudo chmod 644 /lib/systemd/system/leroy.service
+	sudo systemctl daemon-reload
+	sudo systemctl enable leroy.service
 
 service_recent_logs:
 	sudo journalctl -u leroy.service -b
