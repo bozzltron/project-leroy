@@ -3,7 +3,7 @@ import Carousel from 'react-material-ui-carousel'
 import { Paper, Button } from '@material-ui/core'
 
 function Slideshow({items}){
-    const path = window.location.href.includes("10.0.0.23") ? "" : "http://10.0.0.23";
+    const path = window.location.href.includes("192.168.86.53") ? "" : "http://192.168.86.53";
 
     return (
         <Carousel autoPlay={true} indicators={false} style={{height: "100%"}}>
