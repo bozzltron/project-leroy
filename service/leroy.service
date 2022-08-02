@@ -7,7 +7,7 @@ Type=idle
 WorkingDirectory=/home/mb/Projects/project-leroy
 ExecStart=/home/mb/Projects/project-leroy/run.sh
 Restart=on-abort
-User=pi
+User=mb
 Environment=DISPLAY=:0
 
 [Install]
