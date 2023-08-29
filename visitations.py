@@ -12,6 +12,16 @@ logging.basicConfig(filename='storage/results.log',
                     format='%(asctime)s-%(message)s',
                     level=logging.DEBUG)
 
+def add_padding_to_bbox(bbox, image_width, image_height, padding):
+    x1, y1, x2, y2 = bbox
+    
+    # Calculate the new coordinates with padding
+    new_x1 = max(0, x1 - padding)
+    new_y1 = max(0, y1 - padding)
+    new_x2 = min(image_width - 1, x2 + padding)
+    new_y2 = min(image_height - 1, y2 + padding)
+    
+    return (new_x1, new_y1, new_x2, new_y2)
 class Visitations:
     boxes = []
     success = False
@@ -62,7 +72,8 @@ class Visitations:
                         logging.info('full height {}, full width {}'.format(height, width))
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         frame_without_boxes = frame.copy()
-                        capture(frame_without_boxes[int(y0):int(y1),int(x0):int(x1)], self.visitation_id, percent, 'boxed')
+                        padded_x0, padded_y0, padded_x1, padded_y1 = add_padding_to_bbox([x0, y0, x1, y1], width, height, 50)
+                        capture(frame_without_boxes[int(padded_y0):int(padded_y1),int(padded_x0):int(padded_x1)], self.visitation_id, percent, 'boxed')
                         logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
