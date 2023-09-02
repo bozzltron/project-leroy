@@ -144,10 +144,13 @@ def main():
         "duration": (records[-1]["datetime"] - records[0]["datetime"]).total_seconds(),
         "records": records,
         "best_photo": records[best_photo_index]["filename"],
-        "full_image": find_full_image(full_images, k).replace("/var/www/html", "")
+        "full_image": find_full_image(full_images, k).replace("/var/www/html", ""),
+        "datetime": records[0]["datetime"].strftime("%Y-%m-%d %H:%M:%S"),
       }
       #if len(sorted_records) > 0 and int(sorted_records[-1]['classification_score']) > 25:
       visitations.append(visitation)
+      visitations = sorted(visitations, key=lambda x: x['datetime'], reverse=True)
+
       #else:
       #  print("bad visitation: {}".format(visitation))
 
