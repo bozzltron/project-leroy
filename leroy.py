@@ -7,10 +7,7 @@ import os
 import sys
 import numpy as np
 import re
-import time
 import logging
-import psutil
-import uuid
 import imutils
 from PIL import Image
 from random import randint
@@ -137,7 +134,6 @@ def main():
                 cv2_im = frame
                 resized_frame = frame.copy()
                 resized_frame = imutils.resize(frame, width=500)
-                cv2_im_rgb = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
                 pil_im = Image.fromarray(resized_frame)
 
                 common.set_input(interpreter, pil_im)

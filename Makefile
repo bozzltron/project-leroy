@@ -1,15 +1,20 @@
 IMAGE=michaelbosworth/project-leroy
 
 build:
-	docker build . -t $(IMAGE):latest
+	docker build --platform linux/amd64 . -t $(IMAGE)
 
-push:
-	docker push $(IMAGE):latest
+push: build
+	docker push michaelbosworth/project-leroy:latest
 
-run:
-	docker stop leroy || true
-	docker run -t --privileged --name leroy --device /dev/video0 --device /dev/gpiomem -v `pwd`:/usr/src/app/ -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
+down:
+	docker compose down
 
+run: down
+	xhost +
+	docker compose up
+# 	docker run -t --privileged --name leroy --device /dev/video0 --device /dev/gpiomem -v `pwd`:/usr/src/app/ -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
+# docker stop leroy || true
+	
 run_continuous:
 	docker run -t --privileged --device /dev/video0  --restart unless-stopped --device /dev/gpiomem -v `pwd`:/usr/src/app/ -v /dev/bus/usb:/dev/bus/usb -t $(IMAGE):latest
 
