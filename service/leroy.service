@@ -4,10 +4,10 @@ After=multi-user.target
 
 [Service]
 Type=idle
-WorkingDirectory=/home/mb/Projects/project-leroy
-ExecStart=/home/mb/Projects/project-leroy/run.sh
+WorkingDirectory=/home/leroy/Projects/project-leroy
+ExecStart=/home/leroy/Projects/project-leroy/run.sh
 Restart=on-abort
-User=mb
+User=leroy
 Environment=DISPLAY=:0
 
 [Install]
