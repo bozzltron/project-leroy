@@ -10,7 +10,8 @@ import imutils
 from visitations import Visitations
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.utils.dataset import read_label_file
-from pycamera import Camera
+import picamera
+from picamera.array import PiRGBArray
 
 print("cv version" + cv2.__version__)
 
@@ -29,13 +30,13 @@ def load_labels(path):
 
 class BBox(collections.namedtuple('BBox', ['xmin', 'ymin', 'xmax', 'ymax'])):
     """Bounding box.
-    Represents a rectangle which sides are either vertical or horizontal, parallel
-    to the x or y axis.
+    Represents a rectangle whose sides are either vertical or horizontal, parallel
+    to the x or y-axis.
     """
     __slots__ = ()
 
 def get_output(interpreter, score_threshold, top_k, image_scale=1.0):
-    """Returns list of detected objects."""
+    """Returns a list of detected objects."""
     boxes = common.output_tensor(interpreter, 0)
     class_ids = common.output_tensor(interpreter, 1)
     scores = common.output_tensor(interpreter, 2)
@@ -65,7 +66,6 @@ def main():
                             default=os.path.join(default_model_dir, default_labels))
         parser.add_argument('--top_k', type=int, default=3,
                             help='number of categories with the highest score to display')
-        parser.add_argument('--camera_idx', type=int, help='Index of which video source to use. ', default=0)
         parser.add_argument('--threshold', type=float, default=0.1,
                             help='classifier score threshold')
         args = parser.parse_args()
@@ -80,17 +80,17 @@ def main():
         interpreter.allocate_tensors()
         labels = read_label_file(args.labels)
 
-        print('Capturing video stream on device {}...'.format(args.camera_idx))
-        with Camera(device_index=args.camera_idx, resolution=(2048, 1536)) as camera:
+        with picamera.PiCamera() as camera:
+            camera.resolution = (2048, 1536)
+            camera.framerate = 30
+            raw_capture = PiRGBArray(camera, size=(2048, 1536))
+
             visitations = Visitations()
 
-            while camera.isOpened():
+            for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
                 try:
-                    ret, frame = camera.read()
-
-                    cv2_im = frame
-                    resized_frame = frame.copy()
-                    resized_frame = imutils.resize(frame, width=500)
+                    cv2_im = frame.array
+                    resized_frame = imutils.resize(cv2_im, width=500)
                     pil_im = Image.fromarray(resized_frame)
 
                     common.set_input(interpreter, pil_im)
@@ -112,6 +112,9 @@ def main():
                         os._exit(0)
                 except:
                     logging.exception('Failed while looping.')
+
+                raw_capture.truncate(0)
+
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
