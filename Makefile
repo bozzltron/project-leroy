@@ -1,7 +1,7 @@
 IMAGE=michaelbosworth/project-leroy
 
 build:
-	docker build --platform linux/amd64 . -t $(IMAGE)
+	docker build --platform linux/arm . -t $(IMAGE)
 
 push: build
 	docker push michaelbosworth/project-leroy:latest
