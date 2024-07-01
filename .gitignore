@@ -9,4 +9,5 @@ visitations.json
 all_models
 web/dist
 node_modules
+web/node_modules
 pyvenv.cfg

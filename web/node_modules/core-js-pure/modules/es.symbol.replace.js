@@ -1,5 +1,6 @@
-var defineWellKnownSymbol = require('../internals/define-well-known-symbol');
+'use strict';
+var defineWellKnownSymbol = require('../internals/well-known-symbol-define');
 
 // `Symbol.replace` well-known symbol
-// https://tc39.github.io/ecma262/#sec-symbol.replace
+// https://tc39.es/ecma262/#sec-symbol.replace
 defineWellKnownSymbol('replace');

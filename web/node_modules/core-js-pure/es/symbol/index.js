@@ -1,3 +1,4 @@
+'use strict';
 require('../../modules/es.array.concat');
 require('../../modules/es.object.to-string');
 require('../../modules/es.symbol');
@@ -15,8 +16,9 @@ require('../../modules/es.symbol.split');
 require('../../modules/es.symbol.to-primitive');
 require('../../modules/es.symbol.to-string-tag');
 require('../../modules/es.symbol.unscopables');
-require('../../modules/es.math.to-string-tag');
 require('../../modules/es.json.to-string-tag');
+require('../../modules/es.math.to-string-tag');
+require('../../modules/es.reflect.to-string-tag');
 var path = require('../../internals/path');
 
 module.exports = path.Symbol;
