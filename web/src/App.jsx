@@ -37,7 +37,7 @@ export default function MediaCard() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const path = window.location.href.includes("192.168.86.53") ? "" : "http://192.168.86.53";
+  const path = window.location.href.includes("192.168.86.47") ? "" : "http://192.168.86.47";
   const urlSearchParams = new URLSearchParams(window.location.search);
   const mode = urlSearchParams.get('mode');
 
