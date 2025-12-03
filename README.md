@@ -46,19 +46,70 @@ This will:
 
 ## Usage
 
-### Run Detection Service
+### Service Management
 
-The service runs automatically via systemd:
+The detection service runs as a systemd service. After installation, the service is **enabled** but **not started** automatically.
+
+#### Start the Service
 
 ```bash
+# Start the service
 sudo systemctl start leroy.service
+
+# Check service status
 sudo systemctl status leroy.service
+
+# View live logs
+sudo journalctl -u leroy.service -f
+
+# View recent logs (last boot)
+sudo journalctl -u leroy.service -b
 ```
 
-Or run manually:
+#### Enable Auto-Start on Boot
+
+The service is automatically enabled during installation. To verify or manually enable:
 
 ```bash
+# Enable service to start on boot
+sudo systemctl enable leroy.service
+
+# Verify it's enabled
+sudo systemctl is-enabled leroy.service
+```
+
+#### Stop/Restart the Service
+
+```bash
+# Stop the service
+sudo systemctl stop leroy.service
+
+# Restart the service
+sudo systemctl restart leroy.service
+
+# Disable auto-start on boot (if needed)
+sudo systemctl disable leroy.service
+```
+
+#### Service Behavior
+
+- **Auto-updates**: The service automatically pulls the latest code from git when it starts (via `run.sh`)
+- **Auto-restart**: The service is configured to restart automatically if it crashes (`Restart=on-abort`)
+- **Logs**: All output is logged to systemd journal and `storage/results.log`
+
+#### Manual Run (Testing)
+
+For testing or debugging, you can run the detection script manually:
+
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Run detection script
 python3 leroy.py
+
+# Or with custom model/labels
+python3 leroy.py --model all_models/yolov5s.hef --labels all_models/coco_labels.txt
 ```
 
 ### Configuration
@@ -117,6 +168,52 @@ python3 retrain_model.py \
   --new_species_dir storage/active_learning/labeled/painted-bunting \
   --new_species_name painted-bunting \
   --new_class_id 965
+```
+
+## Troubleshooting
+
+### Service Won't Start
+
+1. **Check service status**:
+   ```bash
+   sudo systemctl status leroy.service
+   ```
+
+2. **Check logs for errors**:
+   ```bash
+   sudo journalctl -u leroy.service -n 50
+   ```
+
+3. **Common issues**:
+   - **Camera not found**: Ensure HQ Camera is connected and accessible
+   - **Hailo SDK not found**: Verify AI Kit is properly installed
+   - **Models missing**: Run `./download_models.sh` to download required models
+   - **Virtual environment missing**: Re-run `./install-pi5.sh`
+
+### Service Keeps Restarting
+
+Check logs to identify the crash cause:
+```bash
+sudo journalctl -u leroy.service -f
+```
+
+Common causes:
+- Camera initialization failure
+- Hailo model loading error
+- Missing dependencies
+
+### View Detection Photos
+
+Photos are stored in:
+- **Detected (raw)**: `storage/detected/{date}/{visitation_id}/`
+- **Classified**: `/var/www/html/classified/{date}/{visitation_id}/`
+- **Web interface**: Visit `http://your-pi-ip/` (if web interface is built)
+
+### Check Classification Status
+
+Classification runs automatically via cron job (hourly). Check cron logs:
+```bash
+grep CRON /var/log/syslog
 ```
 
 ## Testing
