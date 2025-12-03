@@ -72,16 +72,8 @@ sudo apt-get install -y \
     git \
     curl \
     wget \
-    libatlas-base-dev \
-    libjasper-dev \
-    libqtgui4 \
-    libqt4-test \
     libhdf5-dev \
     libhdf5-serial-dev \
-    libhdf5-103 \
-    libqtgui4 \
-    libqtwebkit4 \
-    libqt4-test \
     python3-pyqt5 \
     libavcodec-dev \
     libavformat-dev \
@@ -93,11 +85,17 @@ sudo apt-get install -y \
     libpng-dev \
     libtiff-dev \
     libgtk-3-dev \
-    libcanberra-gtk-module \
     libcanberra-gtk3-module \
     python3-opencv \
     nginx \
     postfix
+
+# Note: Removed obsolete packages that are no longer available:
+# - libatlas-base-dev (replaced by OpenBLAS, not needed for OpenCV)
+# - libjasper-dev (JPEG2000 support, optional)
+# - libqtgui4, libqt4-test, libqtwebkit4 (Qt4 packages, obsolete)
+# - libhdf5-103 (replaced by newer libhdf5 packages)
+# - libcanberra-gtk-module (replaced by libcanberra-gtk3-module)
 
 # Install Raspberry Pi AI Kit dependencies
 echo "Installing Raspberry Pi AI Kit dependencies..."
