@@ -2,7 +2,8 @@
 # Project Leroy - Model Download Script
 # Downloads HEF models directly from Hailo Model Zoo (no conversion needed)
 
-set -e
+# Don't exit on error - we want to try alternatives
+set +e
 
 echo "=========================================="
 echo "Project Leroy - Model Download Script"
@@ -14,13 +15,32 @@ mkdir -p "$MODELS_DIR"
 cd "$MODELS_DIR"
 
 # Hailo Model Zoo GitHub repository (v2.x branch for Hailo-8L)
+# Try multiple possible paths as the structure may vary
 HAILO_MODEL_ZOO_BASE="https://github.com/hailo-ai/hailo_model_zoo/raw/v2.15"
 
-# Model paths in Hailo Model Zoo
+# Model paths in Hailo Model Zoo - try multiple possible locations
 # Using YOLOv5s for detection (better than SSD MobileNet v2)
 # Using MobileNet v2 for classification (trained on 964 iNaturalist bird species)
-DETECTION_MODEL_PATH="hailo_models/yolov5s/yolov5s.hef"
-CLASSIFICATION_MODEL_PATH="hailo_models/mobilenet_v2/mobilenet_v2.hef"
+DETECTION_MODEL_PATHS=(
+    "hailo_models/yolov5s/yolov5s.hef"
+    "hailo_models/yolov5s/hef/yolov5s.hef"
+    "models/yolov5s/yolov5s.hef"
+    "yolov5s/yolov5s.hef"
+)
+
+ALTERNATIVE_DETECTION_PATHS=(
+    "hailo_models/ssd_mobilenet_v2/ssd_mobilenet_v2.hef"
+    "hailo_models/ssd_mobilenet_v2/hef/ssd_mobilenet_v2.hef"
+    "models/ssd_mobilenet_v2/ssd_mobilenet_v2.hef"
+    "ssd_mobilenet_v2/ssd_mobilenet_v2.hef"
+)
+
+CLASSIFICATION_MODEL_PATHS=(
+    "hailo_models/mobilenet_v2/mobilenet_v2.hef"
+    "hailo_models/mobilenet_v2/hef/mobilenet_v2.hef"
+    "models/mobilenet_v2/mobilenet_v2.hef"
+    "mobilenet_v2/mobilenet_v2.hef"
+)
 
 # Label file URLs (still need these)
 COCO_LABELS_URL="https://dl.google.com/coral/canned_models/coco_labels.txt"
@@ -30,43 +50,100 @@ echo "Downloading HEF models from Hailo Model Zoo (v2.15 for Hailo-8L)..."
 echo ""
 
 # Download detection model (YOLOv5s)
-if [ ! -f "yolov5s.hef" ]; then
+DETECTION_DOWNLOADED=0
+if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
     echo "Downloading detection model (YOLOv5s)..."
-    wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${DETECTION_MODEL_PATH}" -O "yolov5s.hef" || {
-        echo "WARNING: Failed to download YOLOv5s, trying alternative..."
-        # Alternative: Try SSD MobileNet v2 if YOLOv5s not available
-        ALTERNATIVE_PATH="hailo_models/ssd_mobilenet_v2/ssd_mobilenet_v2.hef"
-        wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${ALTERNATIVE_PATH}" -O "ssd_mobilenet_v2_coco.hef" || {
-            echo "ERROR: Failed to download detection model from Hailo Model Zoo"
-            echo "You may need to download manually from:"
-            echo "https://github.com/hailo-ai/hailo_model_zoo/tree/v2.15/hailo_models"
-            exit 1
-        }
-        echo "✓ Detection model downloaded (SSD MobileNet v2 fallback)"
-    }
-    if [ -f "yolov5s.hef" ]; then
-        echo "✓ Detection model downloaded (YOLOv5s)"
+    
+    # Try each possible path for YOLOv5s
+    for path in "${DETECTION_MODEL_PATHS[@]}"; do
+        echo "  Trying: $path"
+        if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "yolov5s.hef" 2>/dev/null; then
+            if [ -s "yolov5s.hef" ]; then
+                echo "✓ Detection model downloaded (YOLOv5s) from: $path"
+                DETECTION_DOWNLOADED=1
+                break
+            else
+                rm -f "yolov5s.hef"
+            fi
+        fi
+    done
+    
+    # If YOLOv5s failed, try SSD MobileNet v2 alternatives
+    if [ $DETECTION_DOWNLOADED -eq 0 ]; then
+        echo "WARNING: Failed to download YOLOv5s, trying SSD MobileNet v2..."
+        for path in "${ALTERNATIVE_DETECTION_PATHS[@]}"; do
+            echo "  Trying: $path"
+            if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "ssd_mobilenet_v2_coco.hef" 2>/dev/null; then
+                if [ -s "ssd_mobilenet_v2_coco.hef" ]; then
+                    echo "✓ Detection model downloaded (SSD MobileNet v2 fallback) from: $path"
+                    DETECTION_DOWNLOADED=1
+                    break
+                else
+                    rm -f "ssd_mobilenet_v2_coco.hef"
+                fi
+            fi
+        done
     fi
-else
+    
+    if [ $DETECTION_DOWNLOADED -eq 0 ]; then
+        echo ""
+        echo "ERROR: Failed to download detection model from Hailo Model Zoo"
+        echo ""
+        echo "The models may not be available at the expected paths, or the repository structure has changed."
+        echo ""
+        echo "Manual download options:"
+        echo "1. Visit Hailo Model Zoo: https://github.com/hailo-ai/hailo_model_zoo"
+        echo "2. Check the v2.15 branch: https://github.com/hailo-ai/hailo_model_zoo/tree/v2.15"
+        echo "3. Look for HEF files in the repository"
+        echo "4. Download and place in all_models/ directory:"
+        echo "   - Detection: yolov5s.hef or ssd_mobilenet_v2_coco.hef"
+        echo "   - Classification: mobilenet_v2.hef (or convert from TFLite)"
+        echo ""
+        echo "Alternatively, you can convert TFLite models using convert_models.sh"
+        echo "after installing the Hailo Dataflow Compiler."
+        echo ""
+        # Don't exit - continue with label files
+    fi
+elif [ -f "yolov5s.hef" ] || [ -f "ssd_mobilenet_v2_coco.hef" ]; then
     echo "✓ Detection model already exists"
+    DETECTION_DOWNLOADED=1
 fi
 
 # Download classification model (MobileNet v2 - trained on 964 bird species)
+CLASSIFICATION_DOWNLOADED=0
 if [ ! -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
     echo "Downloading classification model (MobileNet v2)..."
-    wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${CLASSIFICATION_MODEL_PATH}" -O "mobilenet_v2_1.0_224_inat_bird.hef" || {
+    
+    # Try each possible path
+    for path in "${CLASSIFICATION_MODEL_PATHS[@]}"; do
+        echo "  Trying: $path"
+        if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null; then
+            if [ -s "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
+                echo "✓ Classification model downloaded (MobileNet v2) from: $path"
+                CLASSIFICATION_DOWNLOADED=1
+                break
+            else
+                rm -f "mobilenet_v2_1.0_224_inat_bird.hef"
+            fi
+        fi
+    done
+    
+    if [ $CLASSIFICATION_DOWNLOADED -eq 0 ]; then
+        echo ""
         echo "WARNING: Failed to download MobileNet v2 from Hailo Model Zoo"
-        echo "You may need to download manually from:"
-        echo "https://github.com/hailo-ai/hailo_model_zoo/tree/v2.15/hailo_models"
+        echo ""
+        echo "Options:"
+        echo "1. Download manually from: https://github.com/hailo-ai/hailo_model_zoo/tree/v2.15"
+        echo "2. Convert TFLite model using convert_models.sh (requires Hailo Dataflow Compiler)"
+        echo "3. Use the original TFLite model if Hailo SDK supports it directly"
         echo ""
         echo "Note: MobileNet v2 from Hailo Model Zoo may need to be fine-tuned on bird dataset"
         echo "Alternatively, use the iNaturalist bird-specific model if available"
-    }
-    if [ -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
-        echo "✓ Classification model downloaded (MobileNet v2)"
+        echo ""
     fi
-else
+elif [ -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
     echo "✓ Classification model already exists"
+    CLASSIFICATION_DOWNLOADED=1
 fi
 
 echo ""
@@ -80,7 +157,7 @@ if [ ! -f "coco_labels.txt" ]; then
         echo "WARNING: Failed to download COCO labels, trying alternative..."
         wget -q --show-progress "https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/data/mscoco_label_map.pbtxt" -O "coco_labels.txt" || {
             echo "ERROR: Failed to download COCO labels from all sources"
-            exit 1
+            # Don't exit - continue anyway
         }
     }
     echo "✓ COCO labels downloaded"
@@ -93,7 +170,7 @@ if [ ! -f "inat_bird_labels.txt" ]; then
     echo "Downloading iNaturalist bird labels..."
     wget -q --show-progress "$INAT_BIRD_LABELS_URL" -O "inat_bird_labels.txt" || {
         echo "ERROR: Failed to download iNaturalist bird labels"
-        exit 1
+        # Don't exit - continue anyway
     }
     echo "✓ iNaturalist bird labels downloaded"
 else
@@ -102,7 +179,7 @@ fi
 
 echo ""
 echo "=========================================="
-echo "Model Download Complete!"
+echo "Model Download Summary"
 echo "=========================================="
 echo ""
 
@@ -112,14 +189,27 @@ if [ -f "yolov5s.hef" ]; then
     echo "  ✓ yolov5s.hef (Detection - YOLOv5s)"
 elif [ -f "ssd_mobilenet_v2_coco.hef" ]; then
     echo "  ✓ ssd_mobilenet_v2_coco.hef (Detection - SSD MobileNet v2)"
+else
+    echo "  ✗ Detection model NOT downloaded"
 fi
 
 if [ -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
     echo "  ✓ mobilenet_v2_1.0_224_inat_bird.hef (Classification - MobileNet v2)"
+else
+    echo "  ✗ Classification model NOT downloaded"
 fi
 
-echo "  ✓ coco_labels.txt (COCO object labels)"
-echo "  ✓ inat_bird_labels.txt (Bird species labels)"
+if [ -f "coco_labels.txt" ]; then
+    echo "  ✓ coco_labels.txt (COCO object labels)"
+else
+    echo "  ✗ COCO labels NOT downloaded"
+fi
+
+if [ -f "inat_bird_labels.txt" ]; then
+    echo "  ✓ inat_bird_labels.txt (Bird species labels)"
+else
+    echo "  ✗ iNaturalist bird labels NOT downloaded"
+fi
 echo ""
 
 echo "=========================================="
