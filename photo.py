@@ -4,14 +4,13 @@ import os
 import time 
 import logging 
 import threading
-from picamera import PiCamera
 
 #Initialize logging files
 logging.basicConfig(filename='storage/results.log',
                     format='%(asctime)s-%(message)s',
                     level=logging.DEBUG)
 
-def clarity(self, image):
+def clarity(image):
     # compute the Laplacian of the image and then return the focus
     # measure, which is simply the variance of the Laplacian
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

@@ -1,7 +1,15 @@
 __pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
 bin
 lib
 share
+venv/
+env/
+ENV/
+.venv
 storage
 dev_storage
 *.log
@@ -11,3 +19,35 @@ web/dist
 node_modules
 web/node_modules
 pyvenv.cfg
+
+# Environment variables
+.env
+.env.local
+
+# Model files (large, download separately)
+*.hef
+*.tflite
+
+# Active learning collected images
+storage/active_learning/
+
+# Bluesky posting history
+storage/bluesky_post_history.json
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.bak
+*.cache

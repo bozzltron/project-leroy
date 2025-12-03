@@ -1,0 +1,19 @@
+services:
+  leroy-pi5:
+    build:
+      context: .
+      dockerfile: Dockerfile.pi5
+    container_name: project-leroy-pi5
+    privileged: false
+    volumes:
+      - ./storage:/app/storage
+      - ./all_models:/app/all_models
+      - ./service:/app/service
+      - ./web:/app/web
+    working_dir: /app
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    environment:
+      - PYTHONUNBUFFERED=1
+

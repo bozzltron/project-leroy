@@ -1,133 +1,215 @@
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-r"""A demo using `ClassificationEngine` to classify an image.
-
-You can run this example with the following command, which uses a
-MobileNet model trained with the iNaturalist birds dataset, so it's
-great at identifying different types of birds.
-
-python3 classify_image.py \
---model models/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite \
---label models/inat_bird_labels.txt \
---image images/parrot.jpg
+#!/usr/bin/env python3
 """
-
+Project Leroy - Bird Classification System
+Raspberry Pi 5 + AI Kit (Hailo) Implementation
+"""
 import argparse
-from pycoral.utils.dataset import read_label_file
-from pycoral.utils.edgetpu import make_interpreter
-from pycoral.adapters import common
-from pycoral.adapters.classify import get_classes
-from PIL import Image
 import os
 import shutil
-import string
+import logging
+from PIL import Image
+from hailo_inference import HailoInference
+from active_learning import ActiveLearningCollector
+
+# Initialize logging
+logging.basicConfig(
+    filename='storage/results.log',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
+
+
+def load_labels(path):
+    """Load label file and return as dictionary."""
+    import re
+    p = re.compile(r'\s*(\d+)(.+)')
+    labels = {}
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f.readlines():
+                match = p.match(line)
+                if match:
+                    num, text = match.groups()
+                    labels[int(num)] = text.strip()
+    except Exception as e:
+        logger.error(f"Failed to load labels from {path}: {e}")
+        raise
+    return labels
+
 
 def get_new_dir(dirpath):
-  new_dir = ""
-  path_sections = dirpath.split("/")
-  if len(path_sections) == 4:
-    date = path_sections[2]
-    visitation_id = path_sections[3]
-    new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
-  return new_dir
+    """Get new directory path for classified images."""
+    new_dir = ""
+    path_sections = dirpath.split("/")
+    if len(path_sections) == 4:
+        date = path_sections[2]
+        visitation_id = path_sections[3]
+        new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
+    return new_dir
+
 
 def main():
-  parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--model', help='File path of Tflite model.', default=os.path.join('all_models','mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite'))
-  parser.add_argument('--label', help='File path of label file.', default=os.path.join('all_models','inat_bird_labels.txt'))
-  parser.add_argument(
-      '--image', help='File path of the image to be recognized.', required=False)
-  parser.add_argument(
-      '--dir', help='File path of the dir to be recognized.', required=False)
-  parser.add_argument(
-      '--dryrun', help='Whether to actually move files or not.', required=False, default=False)
-  parser.add_argument('--top_k', type=int, default=3,
-                        help='number of classes with highest score to display')
-  parser.add_argument('--threshold', type=float, default=0.1,
-                        help='class score threshold') 
-  args = parser.parse_args()
+    """Main classification function."""
+    parser = argparse.ArgumentParser(
+        description='Project Leroy - Bird Classification with Hailo AI Kit'
+    )
+    parser.add_argument(
+        '--model',
+        help='HEF model path',
+        default=os.path.join('all_models', 'mobilenet_v2_1.0_224_inat_bird.hef')
+    )
+    parser.add_argument(
+        '--label',
+        help='Label file path',
+        default=os.path.join('all_models', 'inat_bird_labels.txt')
+    )
+    parser.add_argument(
+        '--image',
+        help='File path of the image to be recognized',
+        required=False
+    )
+    parser.add_argument(
+        '--dir',
+        help='File path of the dir to be recognized',
+        required=False
+    )
+    parser.add_argument(
+        '--dryrun',
+        help='Whether to actually move files or not',
+        action='store_true',
+        default=False
+    )
+    parser.add_argument(
+        '--top_k',
+        type=int,
+        default=3,
+        help='Number of classes with highest score to display'
+    )
+    parser.add_argument(
+        '--threshold',
+        type=float,
+        default=0.1,
+        help='Class score threshold'
+    )
+    args = parser.parse_args()
 
-  interpreter = make_interpreter(args.model)
-  interpreter.allocate_tensors()
-  # Prepare labels.
-  labels = read_label_file(args.label)
-  # Initialize engine.
-  
-  input_tensor_shape = interpreter.get_input_details()[0]['shape']
-  if (input_tensor_shape.size != 4 or input_tensor_shape[0] != 1):
-    raise RuntimeError('Invalid input tensor shape! Expected: [1, height, width, channel]')
+    logger.info(f"Starting classification")
+    logger.info(f"Model: {args.model}, Labels: {args.label}")
 
-  output_tensors = len(interpreter.get_output_details())
-  if output_tensors != 1:
-    raise ValueError(
-            ('Classification model should have 1 output tensor only!'
-             'This model has {}.'.format(output_tensors)))
+    # Initialize Hailo inference
+    logger.info("Initializing Hailo AI Kit...")
+    hailo = HailoInference()
+    hailo.initialize()
+    hailo.load_classification_model(args.model)
 
-  # Run inference.
-  if args.image:
-    img = Image.open(args.image)
-    common.set_resized_input(interpreter, image.size, lambda size: image.resize(size, Image.NEAREST))
-    interpreter.invoke()
-    results = get_classes(interpreter, args.top_k, args.threshold)
-    for result in results:
-      print('---------------------------')
-      print(labels[result[0]])
-      print('Score : ', result[1])
-  if args.dir:
-    f = []
-    for (dirpath, dirnames, filenames) in os.walk(args.dir):
-          for filename in filenames:
-            try:
-              filepath = "{}/{}".format(dirpath,filename)
-              if "boxed" in filename:
-                print("attempting to classify {}".format(filepath))
-                img = Image.open(filepath)
-                common.set_resized_input(interpreter, img.size, lambda size: img.resize(size, Image.NEAREST))
-                interpreter.invoke()
-                results = get_classes(interpreter, args.top_k, args.threshold)
-                for result in results:
-                  label = labels[result[0]]
-                  percent = int(100 * result[1])
-                  if label != "background":
-                    print('dirpath', dirpath)
-                    path_sections = dirpath.split("/")
-                    new_dir = "/var/www/html/classified/"
-                    if len(path_sections) == 4:
-                      date = path_sections[2]
-                      visitation_id = path_sections[3]
-                      new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
-                    newname = filename.replace(".png", "_{}_{}.png".format(label.replace(" ", "-"), percent))
-                    newpath = "{}/{}".format(new_dir, newname)
-                    print('move {} -> {}'.format(filepath, newpath))
-                    print('dryrun', args.dryrun)
-                    if args.dryrun == False:
-                      if not os.path.exists(new_dir):
-                        os.makedirs(new_dir)
-                      shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
-              if "full" in filename:
-                new_dir = get_new_dir(dirpath)
-                print('new full image dir {}'.format(new_dir))
-                new_path = "{}/{}".format(new_dir, filename)
-                if os.path.exists(new_dir):
-                  print('full image move {} -> {}'.format(os.path.abspath(filepath), os.path.abspath(new_path)))
-                  if args.dryrun == False:
-                    shutil.move(os.path.abspath(filepath), os.path.abspath(new_path))
-                else:
-                  print('full image new directory doesnt exist')
-            except Exception as e:
-                print("failed to classify {}".format(e))
+    # Load labels
+    labels = load_labels(args.label)
+    logger.info(f"Loaded {len(labels)} labels")
+    
+    # Initialize active learning collector
+    active_learning = ActiveLearningCollector()
+
+    # Process single image
+    if args.image:
+        try:
+            img = Image.open(args.image)
+            results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
+            
+            print('---------------------------')
+            for class_id, score in results:
+                label = labels.get(class_id, f"Class {class_id}")
+                print(f"{label}: {score:.4f}")
+        except Exception as e:
+            logger.error(f"Failed to classify image {args.image}: {e}")
+            print(f"Error: {e}")
+
+    # Process directory
+    if args.dir:
+        if not os.path.isdir(args.dir):
+            logger.error(f"Directory does not exist: {args.dir}")
+            return
+
+        processed_count = 0
+        error_count = 0
+
+        for dirpath, dirnames, filenames in os.walk(args.dir):
+            for filename in filenames:
+                try:
+                    filepath = os.path.join(dirpath, filename)
+
+                    if "boxed" in filename:
+                        logger.info(f"Classifying {filepath}")
+                        img = Image.open(filepath)
+                        results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
+
+                        if results:
+                            # Get top result
+                            class_id, score = results[0]
+                            label = labels.get(class_id, "unknown")
+                            percent = int(100 * score)
+                            
+                            # Collect for active learning if confidence is low
+                            if score < 0.5:  # Low confidence - unknown bird
+                                active_learning.collect_unknown_bird(
+                                    img, 1.0, results, labels, 
+                                    os.path.basename(os.path.dirname(filepath))
+                                )
+                            elif 0.5 <= score < 0.8:  # Medium confidence - worth reviewing
+                                active_learning.collect_low_confidence(
+                                    img, 1.0, results, labels,
+                                    os.path.basename(os.path.dirname(filepath))
+                                )
+
+                            if label != "background":
+                                # Determine new directory
+                                path_sections = dirpath.split("/")
+                                new_dir = "/var/www/html/classified/"
+                                if len(path_sections) == 4:
+                                    date = path_sections[2]
+                                    visitation_id = path_sections[3]
+                                    new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
+
+                                # Create new filename with species and score
+                                newname = filename.replace(
+                                    ".png",
+                                    "_{}_{}.png".format(label.replace(" ", "-"), percent)
+                                )
+                                newpath = os.path.join(new_dir, newname)
+
+                                logger.info(f"Moving {filepath} -> {newpath}")
+
+                                if not args.dryrun:
+                                    os.makedirs(new_dir, exist_ok=True)
+                                    shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
+                                else:
+                                    logger.info(f"[DRYRUN] Would move {filepath} -> {newpath}")
+
+                                processed_count += 1
+
+                    elif "full" in filename:
+                        new_dir = get_new_dir(dirpath)
+                        if new_dir:
+                            new_path = os.path.join(new_dir, filename)
+                            logger.info(f"Moving full image {filepath} -> {new_path}")
+
+                            if not args.dryrun:
+                                if os.path.exists(new_dir):
+                                    shutil.move(os.path.abspath(filepath), os.path.abspath(new_path))
+                                else:
+                                    logger.warning(f"Target directory does not exist: {new_dir}")
+                            else:
+                                logger.info(f"[DRYRUN] Would move {filepath} -> {new_path}")
+
+                except Exception as e:
+                    error_count += 1
+                    logger.error(f"Failed to classify {filepath}: {e}")
+
+        logger.info(f"Classification complete: {processed_count} processed, {error_count} errors")
+
+    hailo.cleanup()
+    logger.info("Classification finished")
+
 
 if __name__ == '__main__':
-  main()
+    main()

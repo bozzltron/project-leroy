@@ -42,6 +42,7 @@ class Visitations:
         bird_detected = False
         boxes_to_draw = []
         object_label = ""
+        percent = 0  # Initialize percent
         for obj in objs:
             if hasattr(obj, 'bbox'):
                 # handle tflite result
@@ -68,7 +69,7 @@ class Visitations:
                     logging.info("visitation {} started".format(self.visitation_id))
                     
                 if time.time() - self.started_tracking < self.vistation_max_seconds:
-                    if self.photo_per_visitation_count <= self.photo_per_visitation_max:
+                    if self.photo_per_visitation_count < self.photo_per_visitation_max:
                         logging.info('full height {}, full width {}'.format(height, width))
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         frame_without_boxes = frame.copy()
@@ -100,7 +101,7 @@ class Visitations:
                 #frame = cv2.rectangle(frame, box["p1"], box["p2"], (255, 32, 21), 3)
                 #frame = cv2.putText(frame, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 1.0, (169, 68, 66), 3)
 
-        if self.full_photo_per_visitation_count <= self.full_photo_per_visitation_max:
+        if self.full_photo_per_visitation_count < self.full_photo_per_visitation_max:
             if self.visitation_id:
                 capture(frame, self.visitation_id, percent, 'full')
                 logging.info("saved full image {} of {}".format(self.full_photo_per_visitation_count, self.full_photo_per_visitation_max))

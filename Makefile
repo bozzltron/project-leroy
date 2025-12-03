@@ -101,3 +101,34 @@ set_resolution:
 
 tail:
 	tail -f storage/results.log
+
+# Docker commands for Pi 5 testing
+docker-pi5-build:
+	docker build -f Dockerfile.pi5 -t project-leroy-pi5 .
+
+docker-pi5-run:
+	docker-compose -f docker-compose.pi5.yml up -d --build
+
+docker-pi5-shell:
+	docker-compose -f docker-compose.pi5.yml exec leroy-pi5 bash
+
+docker-pi5-test-install:
+	docker-compose -f docker-compose.pi5.yml exec leroy-pi5 bash -c "cd /app && bash install-pi5.sh"
+
+docker-pi5-down:
+	docker-compose -f docker-compose.pi5.yml down
+
+docker-pi5-logs:
+	docker-compose -f docker-compose.pi5.yml logs -f
+
+docker-pi5-test:
+	@echo "Running all tests in Docker..."
+	docker-compose -f docker-compose.pi5.yml run --rm leroy-pi5 bash -c "cd /app && source venv/bin/activate && python3 -m unittest discover tests -v"
+
+docker-pi5-test-file:
+	@echo "Running test: $(TEST)"
+	docker-compose -f docker-compose.pi5.yml run --rm leroy-pi5 bash -c "cd /app && source venv/bin/activate && python3 -m unittest $(TEST) -v"
+
+docker-pi5-test-quick:
+	@echo "Quick test: Running visitation processing tests..."
+	docker-compose -f docker-compose.pi5.yml run --rm leroy-pi5 bash -c "cd /app && source venv/bin/activate && python3 -m unittest tests.test_visitation_processing -v"

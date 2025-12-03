@@ -1,0 +1,76 @@
+# Dockerfile for Raspberry Pi 5 + AI Kit development/testing
+# Note: This simulates the Pi 5 environment but cannot run actual Hailo inference
+# Use this for testing installation scripts and code structure
+
+FROM python:3.11-slim-bookworm
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies for OpenCV and other libraries
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
+    libxvidcore-dev \
+    libx264-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    nginx \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user
+RUN useradd -m -s /bin/bash leroy && \
+    usermod -aG sudo leroy
+
+# Set working directory
+WORKDIR /app
+
+# Create Python virtual environment
+RUN python3 -m venv venv
+
+# Upgrade pip
+RUN venv/bin/pip install --upgrade pip setuptools wheel
+
+# Install Python dependencies
+RUN venv/bin/pip install \
+    numpy \
+    pillow \
+    opencv-contrib-python \
+    psutil \
+    imutils
+
+# Note: Hailo SDK cannot be installed in Docker without actual hardware
+# This is for testing installation scripts and code structure only
+
+# Copy application code
+COPY --chown=leroy:leroy . /app
+
+# Create storage directories
+RUN mkdir -p storage/detected storage/classified storage/results all_models && \
+    chown -R leroy:leroy /app
+
+# Switch to app user
+USER leroy
+
+# Activate virtual environment in shell
+SHELL ["/bin/bash", "-c", "source venv/bin/activate && exec /bin/bash -c"]
+
+# Default command
+CMD ["/bin/bash"]
+

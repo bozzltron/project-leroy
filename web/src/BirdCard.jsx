@@ -86,9 +86,6 @@ export default function BirdCard({visit}) {
                 <Button size="small" color="primary" onClick={handleOpen}>
                 More Photos
                 </Button>
-                <Button size="small" color="primary">
-                Tweet
-                </Button>
             </CardActions>
             </Card>
             <Modal
