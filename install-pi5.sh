@@ -24,9 +24,41 @@ echo "Updating system packages..."
 sudo apt-get update
 sudo apt-get upgrade -y
 
-# Install Python 3.11+ and virtual environment
-echo "Installing Python 3.11+ and virtual environment..."
-sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
+# Detect Python 3 version
+echo "Detecting Python 3 version..."
+PYTHON3_VERSION=$(python3 --version 2>&1 | awk '{print $2}' | cut -d. -f1,2)
+PYTHON3_MAJOR=$(echo $PYTHON3_VERSION | cut -d. -f1)
+PYTHON3_MINOR=$(echo $PYTHON3_VERSION | cut -d. -f2)
+
+echo "Found Python $PYTHON3_VERSION"
+
+# Check if Python 3.9 or higher
+if [ "$PYTHON3_MAJOR" -lt 3 ] || ([ "$PYTHON3_MAJOR" -eq 3 ] && [ "$PYTHON3_MINOR" -lt 9 ]); then
+    echo "ERROR: Python 3.9+ is required, found Python $PYTHON3_VERSION"
+    echo "Attempting to install Python 3.11..."
+    sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
+    if command -v python3.11 &> /dev/null; then
+        PYTHON3_CMD=python3.11
+        PYTHON3_VERSION="3.11"
+        echo "Python 3.11 installed successfully"
+    else
+        echo "ERROR: Could not install Python 3.11"
+        echo "Please install Python 3.9+ manually and run this script again"
+        exit 1
+    fi
+else
+    PYTHON3_CMD=python3
+    echo "Using system Python $PYTHON3_VERSION"
+fi
+
+# Install Python 3 and virtual environment support
+echo "Installing Python $PYTHON3_VERSION and virtual environment..."
+if [ "$PYTHON3_VERSION" = "3.11" ]; then
+    sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
+else
+    # For other versions, install generic python3 packages
+    sudo apt-get install -y python3 python3-venv python3-dev python3-pip
+fi
 
 # Note: HQ Camera configuration
 echo "Note: This installation assumes Raspberry Pi HQ Camera is connected"
@@ -90,7 +122,7 @@ if [ -d "venv" ]; then
     echo "Virtual environment already exists, removing old one..."
     rm -rf venv
 fi
-python3.11 -m venv venv
+$PYTHON3_CMD -m venv venv
 source venv/bin/activate
 
 # Upgrade pip
