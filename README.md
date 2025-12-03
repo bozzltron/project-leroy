@@ -63,7 +63,7 @@ python3 leroy.py
 
 ### Configuration
 
-Default model: `ssd_mobilenet_v2_coco.hef` (HEF format for Hailo)
+Default model: Automatically uses `yolov5s.hef` if available (better accuracy), otherwise falls back to `ssd_mobilenet_v2_coco.hef` (HEF format for Hailo)
 
 You can change the model and labels using flags:
 

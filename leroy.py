@@ -139,7 +139,11 @@ def main():
     
     try:
         default_model_dir = 'all_models'
-        default_model = 'ssd_mobilenet_v2_coco.hef'  # HEF format
+        # Prefer YOLOv5s if available (better accuracy), fallback to SSD MobileNet v2
+        if os.path.exists(os.path.join(default_model_dir, 'yolov5s.hef')):
+            default_model = 'yolov5s.hef'  # YOLOv5s - better accuracy
+        else:
+            default_model = 'ssd_mobilenet_v2_coco.hef'  # SSD MobileNet v2 - fallback
         default_labels = 'coco_labels.txt'
         
         parser = argparse.ArgumentParser(
