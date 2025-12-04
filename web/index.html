@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Leroy - Bird Visitations</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Project Leroy</h1>
+        <div class="header-info">
+            <span id="last-update"></span>
+            <span id="visitation-count"></span>
+            <button id="carousel-btn" class="btn btn-secondary" title="Fullscreen carousel of today's images">
+                Fullscreen
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <div id="loading" class="loading">Loading visitations...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="visitations" class="visitations-grid"></div>
+    </main>
+
+    <!-- Photo Modal -->
+    <div id="photo-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Carousel -->
+    <div id="carousel" class="carousel" style="display: none;">
+        <div class="carousel-container">
+            <button class="carousel-close" id="carousel-close" title="Close (ESC)">&times;</button>
+            <button class="carousel-nav carousel-prev" id="carousel-prev" title="Previous (←)">‹</button>
+            <button class="carousel-nav carousel-next" id="carousel-next" title="Next (→)">›</button>
+            
+            <div class="carousel-image-container">
+                <img id="carousel-image" src="" alt="Bird photo">
+                <div class="carousel-info">
+                    <div class="carousel-species" id="carousel-species"></div>
+                    <div class="carousel-meta" id="carousel-meta"></div>
+                </div>
+            </div>
+            
+            <div class="carousel-controls">
+                <div class="carousel-counter" id="carousel-counter"></div>
+                <button class="carousel-toggle" id="carousel-autoplay" title="Toggle autoplay">
+                    ⏸️ Pause
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

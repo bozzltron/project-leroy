@@ -1,68 +1,65 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Project Leroy Web Interface
 
-## Available Scripts
+Lightweight vanilla JavaScript web app for displaying bird visitations in real-time.
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- ✅ **Multi-species support** - Displays all species in each visitation
+- ✅ **Scientific names** - Shows both common and scientific names
+- ✅ **Real-time updates** - Auto-refreshes every 60 seconds
+- ✅ **Photo gallery** - Modal view with all photos
+- ✅ **Responsive design** - Works on mobile and desktop
+- ✅ **Zero dependencies** - No npm, no build step, just HTML/CSS/JS
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Structure
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+```
+web/
+├── index.html      # Main page
+├── styles.css      # All styles
+├── app.js          # All JavaScript
+└── README.md       # This file
+```
 
-### `npm test`
+## Deployment
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### On Raspberry Pi (Production)
 
-### `npm run build`
+**Nginx runs directly on the host** (not in Docker) for optimal performance. The `install-pi5.sh` script automatically:
+- Installs nginx
+- Copies web files to `/var/www/html/`
+- Starts and enables nginx service
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+**Manual deployment** (if needed):
+```bash
+sudo cp index.html styles.css app.js /var/www/html/
+```
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+### Local Development (Docker)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+For local development/testing, use Docker to preview:
+```bash
+make web-preview
+# Or: docker-compose -f docker-compose.nginx.yml up
+```
 
-### `npm run eject`
+**Note**: Docker is only for local development. On Raspberry Pi, nginx runs directly on the host.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Usage
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The app automatically:
+1. Fetches `/visitations.json` on load
+2. Displays visitations in a responsive grid
+3. Auto-refreshes every 60 seconds
+4. Shows multi-species information
+5. Opens photo gallery modal on click
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Customization
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- **Refresh interval**: Change `refreshInterval` in `app.js` (default: 60000ms)
+- **Styling**: Edit `styles.css`
+- **Layout**: Modify HTML structure in `index.html`
 
-## Learn More
+## iNaturalist Integration (Future)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+See `INATURALIST_INTEGRATION.md` for planned integration.

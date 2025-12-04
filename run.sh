@@ -24,20 +24,32 @@ else
     # Continue anyway - service should still work with existing code
 fi
 
-# Deploy web interface
-if [ -d "web/build" ]; then
+# Deploy web interface (lightweight vanilla JS version)
+if [ -f "web/index.html" ]; then
     echo "Deploying web interface..."
-    sudo cp -a web/build/. /var/www/html/
+    sudo cp web/index.html web/styles.css web/app.js /var/www/html/
+    echo "Web interface deployed (lightweight vanilla JS version)"
 else
-    echo "Warning: web/build directory not found, skipping web deployment"
+    echo "Warning: web/index.html not found, skipping web deployment"
 fi
 
 # Small delay to ensure everything is ready
 sleep 1
 
+# Launch browser (if enabled and not already open) - runs in background
+# Load config to check if auto-launch is enabled
+if [ -f "leroy.env" ]; then
+    source leroy.env
+fi
+LEROY_AUTO_LAUNCH_BROWSER="${LEROY_AUTO_LAUNCH_BROWSER:-true}"
+
+if [ "$LEROY_AUTO_LAUNCH_BROWSER" = "true" ] && [ -f "launch_browser.sh" ]; then
+    echo "Launching browser for web interface..."
+    bash launch_browser.sh &
+elif [ "$LEROY_AUTO_LAUNCH_BROWSER" != "true" ]; then
+    echo "Browser auto-launch is disabled (LEROY_AUTO_LAUNCH_BROWSER=false)"
+fi
+
 # Run detection service
 echo "Starting detection service..."
 python3 leroy.py
-#python3 two_models.py
-#docker run --privileged --device /dev/video0 -v `pwd`/storage:/usr/src/app/storage -p 5005:5005 -v /dev/bus/usb:/dev/bus/usb michaelbosworth/project-leroy:latest two_models.py
-#docker run michaelbosworth/project-leroy:latest two_models.py

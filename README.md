@@ -25,24 +25,29 @@ cd project-leroy
 
 This will:
 - Set up Python virtual environment
-- Install system dependencies (Hailo SDK, rpicam-apps)
+- Install system dependencies (Hailo SDK, rpicam-apps, nginx)
 - Install Python packages
 - Configure systemd service
 - Set up cron jobs
+- Configure and start nginx
+- Create storage directories
 - Download HEF models (optional)
+
+**Note**: All directories are created automatically when needed. See `DIRECTORY_MANAGEMENT.md` for details.
 
 ### 3. Download Models
 
-**Download HEF Models from Hailo Model Zoo**
+Download pre-compiled HEF models from Hailo Model Zoo:
+
 ```bash
-# Download pre-compiled HEF models (no conversion needed)
 ./download_models.sh
 ```
 
-**Note**: 
-- Models are downloaded directly from Hailo Model Zoo in HEF format
-- YOLOv5s (detection) and EfficientNet-B0 (classification) are preferred
-- Falls back to SSD MobileNet v2 and MobileNet v2 if preferred models unavailable
+**Model Priority**:
+- **Detection**: YOLOv5s (preferred) or SSD MobileNet v2 (fallback)
+- **Classification**: MobileNet v2 (trained on 964 iNaturalist bird species)
+
+Models are downloaded directly in HEF format - no conversion needed.
 
 ## Usage
 
@@ -68,13 +73,9 @@ sudo journalctl -u leroy.service -b
 
 #### Enable Auto-Start on Boot
 
-The service is automatically enabled during installation. To verify or manually enable:
+The service is automatically enabled during installation. To verify:
 
 ```bash
-# Enable service to start on boot
-sudo systemctl enable leroy.service
-
-# Verify it's enabled
 sudo systemctl is-enabled leroy.service
 ```
 
@@ -93,13 +94,30 @@ sudo systemctl disable leroy.service
 
 #### Service Behavior
 
-- **Auto-updates**: The service automatically pulls the latest code from git when it starts (via `run.sh`)
-- **Auto-restart**: The service is configured to restart automatically if it crashes (`Restart=on-abort`)
-- **Logs**: All output is logged to systemd journal and `storage/results.log`
+- **Auto-updates**: Pulls latest code from git when it starts (via `run.sh`)
+- **Auto-restart**: Restarts automatically if it crashes (`Restart=on-abort`)
+- **Auto-launch browser**: Launches browser with web app (if enabled, no duplicate windows)
+- **Custom port**: Web interface runs on port **8080** (configurable)
+- **Logs**: Output logged to systemd journal and `storage/results.log`
+
+#### Configuration
+
+Create or edit `leroy.env` to customize settings:
+
+```bash
+# Web Server Configuration
+LEROY_WEB_PORT=8080          # Custom port (default: 8080)
+LEROY_WEB_HOST=localhost     # Host (default: localhost)
+
+# Browser Auto-Launch
+LEROY_AUTO_LAUNCH_BROWSER=true  # Enable/disable (default: true)
+```
+
+**Security Note**: Using port 8080 instead of 80/443 reduces exposure to automated scanners while remaining accessible on local network.
 
 #### Manual Run (Testing)
 
-For testing or debugging, you can run the detection script manually:
+For testing or debugging:
 
 ```bash
 # Activate virtual environment
@@ -112,15 +130,7 @@ python3 leroy.py
 python3 leroy.py --model all_models/yolov5s.hef --labels all_models/coco_labels.txt
 ```
 
-### Configuration
-
-Default model: Automatically uses `yolov5s.hef` if available (better accuracy), otherwise falls back to `ssd_mobilenet_v2_coco.hef` (HEF format for Hailo)
-
-You can change the model and labels using flags:
-
-```bash
-python3 leroy.py --model all_models/your_model.hef --labels all_models/your_labels.txt
-```
+**Default Model**: Automatically uses `yolov5s.hef` if available, otherwise falls back to `ssd_mobilenet_v2_coco.hef`.
 
 ## Architecture
 
@@ -128,11 +138,25 @@ python3 leroy.py --model all_models/your_model.hef --labels all_models/your_labe
 - **Photos**: 12MP (4056x3040) captured when birds are detected
 - **Classification**: Runs periodically via cron job
 
-See `architecture.mdc` for detailed system architecture.
+See `.cursor/rules/architecture.mdc` for detailed system architecture.
+
+## Web Interface
+
+The web interface is a lightweight vanilla JavaScript app (no build step required).
+
+**On Raspberry Pi**: Nginx runs directly on the host (installed by `install-pi5.sh`). Access at `http://your-pi-ip:8080`.
+
+**Local Development**: Use Docker for preview:
+```bash
+make web-preview
+# Or: docker-compose -f docker-compose.nginx.yml up
+```
+
+See `web/README.md` for web interface details.
 
 ## Testing
 
-Run tests using Docker (includes all dependencies like cv2):
+Run tests using Docker (includes all dependencies):
 
 ```bash
 # Option 1: Use test runner script (recommended)
@@ -140,35 +164,52 @@ Run tests using Docker (includes all dependencies like cv2):
 ./run_tests.sh tests.test_visitation_processing  # Run specific test
 
 # Option 2: Use Makefile
-make docker-pi5-build            # Build Docker image
 make docker-pi5-test              # Run all tests
 make docker-pi5-test-file TEST=tests.test_visitation_processing  # Run specific test
-
-# Option 3: Direct Docker command
-docker-compose -f docker-compose.pi5.yml run --rm leroy-pi5 bash -c \
-    "cd /app && source venv/bin/activate && python3 -m unittest discover tests -v"
 ```
 
-## Active Learning: Adding New Bird Species
+**Note**: Tests focus on business logic. Hardware-dependent code (camera, Hailo) is not tested.
+
+## Active Learning
 
 The system can learn to identify new bird species not in the base model (964 iNaturalist species).
 
 **Workflow**:
 1. **Automatic Collection**: System collects low-confidence bird classifications
-2. **Human Labeling**: Review and label unknown bird photos
+2. **Human Labeling**: Review and label unknown bird photos in `storage/active_learning/`
 3. **Retraining**: Fine-tune model on new species data
 4. **Deployment**: Update model and labels
 
-**See `NEW_SPECIES_WALKTHROUGH.md` for detailed walkthrough.**
-
 **Quick Start**:
 ```bash
-# After collecting unknown bird photos and labeling them:
+# After collecting and labeling unknown bird photos:
 python3 retrain_model.py \
   --new_species_dir storage/active_learning/labeled/painted-bunting \
   --new_species_name painted-bunting \
   --new_class_id 965
 ```
+
+## Social Media (Optional)
+
+### Bluesky Posting
+
+The system can optionally post to Bluesky with daily summaries.
+
+**Setup**:
+```bash
+# Set environment variables in leroy.env
+export BLUESKY_ENABLED=true
+export BLUESKY_HANDLE=@your-handle.bsky.social
+export BLUESKY_APP_PASSWORD=your-app-password
+```
+
+**Posting Rules**:
+- **One post per day** - Single daily summary
+- **Evening posting** - 7:00 PM - 9:00 PM
+- **5 best photos** - Varying species, high clarity
+- Only posts if authenticated, otherwise silently ignores
+
+See `.cursor/rules/social-media-posting.mdc` for complete posting rules.
 
 ## Troubleshooting
 
@@ -207,7 +248,7 @@ Common causes:
 Photos are stored in:
 - **Detected (raw)**: `storage/detected/{date}/{visitation_id}/`
 - **Classified**: `/var/www/html/classified/{date}/{visitation_id}/`
-- **Web interface**: Visit `http://your-pi-ip/` (if web interface is built)
+- **Web interface**: Visit `http://your-pi-ip:8080/`
 
 ### Check Classification Status
 
@@ -216,36 +257,10 @@ Classification runs automatically via cron job (hourly). Check cron logs:
 grep CRON /var/log/syslog
 ```
 
-## Testing
+## Additional Resources
 
-Run tests (optional, minimal test suite):
-
-```bash
-pytest tests/
-```
-
-**Note**: Tests focus on business logic. Hardware-dependent code (camera, Hailo) is not tested.
-
-## Social Media (Optional)
-
-### Bluesky Posting
-
-The system can optionally post to Bluesky with daily summaries and special visitations.
-
-**Setup**:
-```bash
-# Set environment variables
-export BLUESKY_ENABLED=true
-export BLUESKY_HANDLE=@your-handle.bsky.social
-export BLUESKY_APP_PASSWORD=your-app-password
-
-# Or add to service/leroy.env
-```
-
-**Posting Rules**:
-- **One post per day** - Single daily summary
-- **Evening posting** - 7:00 PM - 9:00 PM (captures full day's activity)
-- **5 best photos** - Varying species, high clarity
-- Only posts if authenticated, otherwise silently ignores
-
-**See**: `.cursor/rules/social-media-posting.mdc` for complete posting rules
+- **Architecture**: `.cursor/rules/architecture.mdc` - Detailed system architecture
+- **Directory Management**: `DIRECTORY_MANAGEMENT.md` - Automatic directory creation
+- **Web Interface**: `web/README.md` - Web app details
+- **iNaturalist Integration**: `INATURALIST_INTEGRATION.md` - Planned integration
+- **Code Review**: `CODE_REVIEW_ANALYSIS.md` - Code consolidation analysis

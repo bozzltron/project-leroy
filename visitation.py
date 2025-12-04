@@ -11,60 +11,130 @@ from collections import defaultdict
 from datetime import datetime
 from operator import itemgetter
 from itertools import groupby
+from utils import clarity_from_path
 
 # Scientific names are extracted from classification labels or looked up dynamically
 # No static file required - will try to get from labels file format or return "Unknown"
 def classification_scores(bird):
   return bird["classification_score"]
 
+# Use shared clarity function from utils
 def clarity(image_path):
-	# compute the Laplacian of the image and then return the focus
-	# measure, which is simply the variance of the Laplacian
-  image = cv2.imread(image_path)
-  gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-  return 0 if image is None else cv2.Laplacian(gray, cv2.CV_64F).var()
+    """Backward compatibility wrapper for clarity_from_path."""
+    return clarity_from_path(image_path)
 
 def parse(filename):
+  """
+  Parse filename to extract metadata.
+  Handles multiple formats:
+  - boxed_{time}_{score}_{species}_{class}.png
+  - boxed_12mp_{time}_{score}_{species}_{class}.png
+  - full_{time}_{score}.png
+  - full_12mp_{time}_{score}.png
+  
+  Path format: /var/www/html/classified/{date}/{visitation_id}/filename
+  """
   path = filename.split('/')
-  data = filename.split('_')
-  if len(data) == 6:
+  basename = os.path.basename(filename)
+  
+  # Extract date and visitation_id from path
+  # Path: /var/www/html/classified/{date}/{visitation_id}/filename
+  date_from_path = path[-2] if len(path) >= 2 else datetime.now().strftime('%Y-%m-%d')
+  visitation_id_from_path = path[-1].split('/')[0] if len(path) >= 1 else ""
+  
+  # Split basename by underscore
+  parts = basename.replace('.png', '').split('_')
+  
+  if not parts:
     return {
       "filename": filename.replace('/var/www/html', ''),
-      "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
-      "detection_score": data[3],
-      "visitation_id": "",
-      "species": data[4].replace("-", " "),
-      "classification_score": data[5].replace(".png", "")
+      "datetime": datetime.now(),
+      "detection_score": "0",
+      "visitation_id": visitation_id_from_path,
+      "species": "",
+      "classification_score": "0"
     }
-  if len(data) == 7:  
+  
+  # Determine photo type
+  photo_type = parts[0]  # "boxed" or "full"
+  is_12mp = len(parts) > 1 and parts[1] == "12mp"
+  
+  # Skip photo_type and optional "12mp"
+  data_start = 2 if is_12mp else 1
+  data = parts[data_start:]
+  
+  # For boxed images after classification: {time}_{score}_{species}_{class}
+  # For full images: {time}_{score}
+  if photo_type == "boxed" and len(data) >= 4:
+    # Format: {time}_{score}_{species}_{class}
+    time_str = data[0]  # HH-MM-SS
+    detection_score = data[1]
+    species = data[2].replace("-", " ")
+    classification_score = data[3]
+    
     return {
       "filename": filename.replace('/var/www/html', ''),
-      "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S'),
-      "detection_score": data[3],
-      "visitation_id": data[4],
-      "species": data[5].replace("-", " "),
-      "classification_score": data[6].replace(".png", "")
+      "datetime": datetime.strptime("{} {}".format(date_from_path, time_str), '%Y-%m-%d %H-%M-%S'),
+      "detection_score": detection_score,
+      "visitation_id": visitation_id_from_path,
+      "species": species,
+      "classification_score": classification_score
     }
+  
+  elif photo_type == "full" and len(data) >= 2:
+    # Format: {time}_{score}
+    time_str = data[0]  # HH-MM-SS
+    detection_score = data[1]
+    
+    return {
+      "filename": filename.replace('/var/www/html', ''),
+      "datetime": datetime.strptime("{} {}".format(date_from_path, time_str), '%Y-%m-%d %H-%M-%S'),
+      "detection_score": detection_score,
+      "visitation_id": visitation_id_from_path,
+      "species": "",
+      "classification_score": "0"
+    }
+  
+  # Fallback
   return {
     "filename": filename.replace('/var/www/html', ''),
-    "datetime": datetime.strptime("{} {}".format(data[1], data[2]), '%Y-%m-%d %H-%M-%S') if len(data) == 7 else datetime.strptime("{} {}".format(path[5], data[1]), '%Y-%m-%d %H-%M-%S'),
-    "detection_score": data[2],
-    "visitation_id": path[6],
-    "species": data[3].replace("-", " "),
-    "classification_score": data[4].replace(".png", "")
+    "datetime": datetime.now(),
+    "detection_score": "0",
+    "visitation_id": visitation_id_from_path,
+    "species": "",
+    "classification_score": "0"
   }
 
 def only_boxed(name):  
-    if ("boxed" in name): 
+    """Filter for boxed images, preferring 12MP versions."""
+    if "boxed" in name: 
         return True
     else: 
         return False
 
 def only_full(name):  
-    if ("full" in name): 
+    """Filter for full images, preferring 12MP versions."""
+    if "full" in name: 
         return True
     else: 
         return False
+
+def prefer_12mp(filenames):
+    """
+    Given a list of filenames, prefer 12MP versions over standard versions.
+    Returns filtered list with 12MP versions preferred.
+    """
+    if not filenames:
+        return filenames
+    
+    # Separate into 12MP and standard
+    high_res = [f for f in filenames if "_12mp" in f]
+    standard = [f for f in filenames if "_12mp" not in f]
+    
+    # Prefer 12MP, but keep standard as fallback
+    if high_res:
+        return high_res
+    return standard
 
 def initialize_visitation():
   return {
@@ -87,11 +157,26 @@ def find_best_photo(records):
   return best_index
 
 def find_full_image(full_images, visitation_id):
-  for i in range(len(full_images)):
-    print("is {} in {} ?".format(visitation_id, full_images[i]))
-    if visitation_id in full_images[i]:
-      return full_images[i]
-  return ""
+  """
+  Find full image for a visitation.
+  Prefers 12MP versions and matches by directory path (visitation_id in path).
+  """
+  if not full_images:
+    return ""
+  
+  # Filter images that belong to this visitation (visitation_id in path)
+  matching = [f for f in full_images if visitation_id in f]
+  
+  if not matching:
+    return ""
+  
+  # Prefer 12MP versions
+  high_res = [f for f in matching if "_12mp" in f]
+  if high_res:
+    return high_res[0]
+  
+  # Fallback to standard resolution
+  return matching[0]
 
 def datetime_parser(dct):
     for k, v in dct.items():
@@ -263,15 +348,72 @@ def main():
     for filename in filenames:
         filepaths.append(os.path.join(dirpath, filename))
 
-    # filter to just boxed names
-    full_images = list(filter(only_full, filepaths))
-    filtered = filter(only_boxed, filepaths)
-    parsed = map(parse, filtered)
+    # Try to load from JSON metadata first (new format), fall back to filename parsing (old format)
+    from photo_metadata import PhotoMetadata
+    
+    boxed_records = []
+    full_images = []
+    
+    # Process images - check for new UUID format first
+    for filepath in filepaths:
+        if not filepath.endswith('.png'):
+            continue
+        
+        # Check if this is UUID format (new system)
+        basename = os.path.basename(filepath)
+        is_uuid_format = len(basename.replace('.png', '').replace('_full', '').split('-')) == 5
+        
+        if is_uuid_format:
+            # New format: Load from JSON metadata
+            metadata = PhotoMetadata.find_metadata_for_image(filepath)
+            if metadata:
+                if metadata.get("photo_type") == "boxed":
+                    # Create record from metadata
+                    record = {
+                        "filename": filepath.replace('/var/www/html', ''),
+                        "datetime": datetime.fromisoformat(metadata["datetime"]),
+                        "detection_score": str(int(metadata["detection"]["score"] * 100)),
+                        "visitation_id": metadata["visitation_id"],
+                        "species": "",
+                        "classification_score": "0"
+                    }
+                    
+                    # Add classification data if available
+                    if "classifications" in metadata and metadata["classifications"]:
+                        top_class = metadata["classifications"][0]
+                        record["species"] = top_class.get("species", "").replace("-", " ")
+                        record["classification_score"] = str(int(top_class.get("score", 0) * 100))
+                    
+                    boxed_records.append(record)
+                elif metadata.get("photo_type") == "full":
+                    full_images.append(filepath)
+            continue
+        
+        # Old format: Use filename parsing
+        if "boxed" in basename:
+            boxed_records.append(parse(filepath))
+        elif "full" in basename:
+            full_images.append(filepath)
+    
+    # Prefer higher-res versions for old format
+    if not boxed_records:
+        # Fall back to old format parsing
+        full_images_old = list(filter(only_full, filepaths))
+        full_images_old = prefer_12mp(full_images_old)
+        full_images.extend(full_images_old)
+        
+        boxed_images_old = list(filter(only_boxed, filepaths))
+        boxed_images_old = prefer_12mp(boxed_images_old)
+        boxed_records = [parse(f) for f in boxed_images_old]
+    
+    parsed = boxed_records
 
+    # Filter by date if specified
     if args.date:
         date = datetime.strptime(args.date, '%Y-%m-%d')
-        parsed = filter(lambda x : x["datetime"].date() == date.date(), parsed)
+        parsed = [b for b in parsed if b["datetime"].date() == date.date()]
 
+    # Sort by datetime
     birds = sorted(parsed, key=itemgetter('datetime'))
     
     # Try to find labels file to extract scientific names if available
@@ -287,7 +429,8 @@ def main():
         labels_file_path = path
         break
     
-    for k,v in groupby(birds,key=lambda x:x['visitation_id']):
+    # Group by visitation_id
+    for k,v in groupby(birds, key=lambda x:x['visitation_id']):
       records = list(v)
       best_photo_index = find_best_photo(records) 
       save_visitation = True

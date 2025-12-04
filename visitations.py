@@ -5,7 +5,6 @@ import time
 import os
 from photo import capture
 from random import randint
-from imutils.video import VideoStream
 
 #Initialize logging files
 logging.basicConfig(filename='storage/results.log',
@@ -29,8 +28,6 @@ class Visitations:
     photo_per_visitation_max = 10
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
-    recording = False
-    out = None
     last_tracked = None
     started_tracking = None
     visitation_id = None
@@ -74,7 +71,18 @@ class Visitations:
                         logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         frame_without_boxes = frame.copy()
                         padded_x0, padded_y0, padded_x1, padded_y1 = add_padding_to_bbox([x0, y0, x1, y1], width, height, 50)
-                        capture(frame_without_boxes[int(padded_y0):int(padded_y1),int(padded_x0):int(padded_x1)], self.visitation_id, percent, 'boxed')
+                        # Get frame resolution
+                        height, width = frame_without_boxes.shape[:2]
+                        resolution = (width, height)
+                        bbox = (padded_x0, padded_y0, padded_x1, padded_y1)
+                        capture(
+                            frame_without_boxes[int(padded_y0):int(padded_y1),int(padded_x0):int(padded_x1)], 
+                            self.visitation_id, 
+                            obj.score,  # Pass as float 0-1, not percent
+                            'boxed',
+                            resolution=resolution,
+                            detection_bbox=bbox
+                        )
                         logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
@@ -103,32 +111,29 @@ class Visitations:
 
         if self.full_photo_per_visitation_count < self.full_photo_per_visitation_max:
             if self.visitation_id:
-                capture(frame, self.visitation_id, percent, 'full')
+                # Get frame resolution
+                height, width = frame.shape[:2]
+                resolution = (width, height)
+                capture(
+                    frame, 
+                    self.visitation_id, 
+                    percent / 100.0,  # Convert percent to float 0-1
+                    'full',
+                    resolution=resolution
+                )
                 logging.info("saved full image {} of {}".format(self.full_photo_per_visitation_count, self.full_photo_per_visitation_max))
                 self.full_photo_per_visitation_count = self.full_photo_per_visitation_count + 1
-
-        # if recording == True and disk_has_space():
-        #     if out == None:
-        #         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        #         out = cv2.VideoWriter("storage/video/{}.mp4".format(self.visitation_id), fourcc, 4.0, (2048,1536))
-        #         #out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=5000',cv2.CAP_GSTREAMER,0, 20, (2048,1536), True)
-        #     out.write(frame)      
 
     def add(self, obj, frame):
         visitation = Visitation()
         visitation.start()
-        recording = True          
         return visitation.id
 
     def reset(self):
         logging.info("visitation id {} over".format(self.visitation_id))
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
-        self.visitation_id = None
-        recording = False
-        if self.out is not None:
-            self.out.release()
-            self.out = None   
+        self.visitation_id = None   
 
 class Visitation:
     start_time = None

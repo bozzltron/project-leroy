@@ -10,6 +10,7 @@ import logging
 from PIL import Image
 from hailo_inference import HailoInference
 from active_learning import ActiveLearningCollector
+from utils import load_labels
 
 # Initialize logging
 logging.basicConfig(
@@ -18,24 +19,6 @@ logging.basicConfig(
     level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
-
-
-def load_labels(path):
-    """Load label file and return as dictionary."""
-    import re
-    p = re.compile(r'\s*(\d+)(.+)')
-    labels = {}
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            for line in f.readlines():
-                match = p.match(line)
-                if match:
-                    num, text = match.groups()
-                    labels[int(num)] = text.strip()
-    except Exception as e:
-        logger.error(f"Failed to load labels from {path}: {e}")
-        raise
-    return labels
 
 
 def get_new_dir(dirpath):
@@ -133,12 +116,84 @@ def main():
         processed_count = 0
         error_count = 0
 
+        # Track processed files to avoid duplicates
+        processed_boxed = set()
+        processed_full = set()
+        
         for dirpath, dirnames, filenames in os.walk(args.dir):
             for filename in filenames:
                 try:
                     filepath = os.path.join(dirpath, filename)
 
-                    if "boxed" in filename:
+                    if "boxed" in filename and filename.endswith('.png'):
+                        # Skip JSON metadata files
+                        if filename.endswith('.json'):
+                            continue
+                        
+                        # Check if this is a UUID-based filename (new format)
+                        # UUID format: {uuid}.png or {uuid}_full.png
+                        is_uuid_format = len(filename.replace('.png', '').replace('_full', '').split('-')) == 5
+                        
+                        if is_uuid_format:
+                            # New format: Load metadata, update with classification, save both
+                            from photo_metadata import PhotoMetadata
+                            
+                            metadata = PhotoMetadata.find_metadata_for_image(filepath)
+                            if not metadata:
+                                logger.warning(f"No metadata found for {filepath}, skipping")
+                                continue
+                            
+                            logger.info(f"Classifying {filepath} (UUID format)")
+                            img = Image.open(filepath)
+                            results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
+                            
+                            if results:
+                                class_id, score = results[0]
+                                label = labels.get(class_id, "unknown")
+                                
+                                # Update metadata with classification
+                                if "classifications" not in metadata:
+                                    metadata["classifications"] = []
+                                
+                                metadata["classifications"].append({
+                                    "species": label.replace(" ", "-"),
+                                    "scientific_name": "Unknown",  # TODO: Extract from labels
+                                    "score": float(score),
+                                    "confidence": "high" if score >= 0.8 else "medium" if score >= 0.5 else "low"
+                                })
+                                
+                                # Determine new directory
+                                path_sections = dirpath.split("/")
+                                new_dir = "/var/www/html/classified/"
+                                if len(path_sections) == 4:
+                                    date = path_sections[2]
+                                    visitation_id = path_sections[3]
+                                    new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
+                                
+                                # Move image and metadata
+                                new_image_path = os.path.join(new_dir, filename)
+                                metadata_path = PhotoMetadata.get_metadata_filename(metadata["photo_id"], metadata["photo_type"])
+                                new_metadata_path = os.path.join(new_dir, metadata_path)
+                                
+                                if not args.dryrun:
+                                    os.makedirs(new_dir, exist_ok=True)
+                                    shutil.move(os.path.abspath(filepath), os.path.abspath(new_image_path))
+                                    PhotoMetadata.save_metadata(metadata, new_metadata_path)
+                                    logger.info(f"Moved {filepath} -> {new_image_path} (with metadata)")
+                                else:
+                                    logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")
+                                
+                                processed_count += 1
+                            continue
+                        
+                        # Old format: Legacy filename parsing
+                        # Skip if we've already processed a higher-res version
+                        base_name = filename.replace("_12mp", "").replace("boxed", "").replace(".png", "")
+                        if base_name in processed_boxed and "_12mp" not in filename:
+                            logger.debug(f"Skipping {filename} (higher-res version already processed)")
+                            continue
+                        
+                        processed_boxed.add(base_name)
                         logger.info(f"Classifying {filepath}")
                         img = Image.open(filepath)
                         results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
@@ -187,7 +242,43 @@ def main():
 
                                 processed_count += 1
 
-                    elif "full" in filename:
+                    elif "full" in filename and filename.endswith('.png'):
+                        # Skip JSON metadata files
+                        if filename.endswith('.json'):
+                            continue
+                        
+                        # Check if this is a UUID-based filename (new format)
+                        is_uuid_format = len(filename.replace('.png', '').replace('_full', '').split('-')) == 5
+                        
+                        if is_uuid_format:
+                            # New format: Just move image and metadata
+                            from photo_metadata import PhotoMetadata
+                            
+                            metadata = PhotoMetadata.find_metadata_for_image(filepath)
+                            if metadata:
+                                new_dir = get_new_dir(dirpath)
+                                if new_dir:
+                                    new_image_path = os.path.join(new_dir, filename)
+                                    metadata_path = PhotoMetadata.get_metadata_filename(metadata["photo_id"], "full")
+                                    new_metadata_path = os.path.join(new_dir, metadata_path)
+                                    
+                                    if not args.dryrun:
+                                        os.makedirs(new_dir, exist_ok=True)
+                                        shutil.move(os.path.abspath(filepath), os.path.abspath(new_image_path))
+                                        PhotoMetadata.save_metadata(metadata, new_metadata_path)
+                                        logger.info(f"Moved {filepath} -> {new_image_path} (with metadata)")
+                                    else:
+                                        logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")
+                            continue
+                        
+                        # Old format: Legacy handling
+                        base_name = filename.replace("_12mp", "").replace("full", "").replace(".png", "")
+                        if base_name in processed_full and "_12mp" not in filename:
+                            logger.debug(f"Skipping {filename} (higher-res version already processed)")
+                            continue
+                        
+                        processed_full.add(base_name)
+                        
                         new_dir = get_new_dir(dirpath)
                         if new_dir:
                             new_path = os.path.join(new_dir, filename)

@@ -88,7 +88,8 @@ sudo apt-get install -y \
     libcanberra-gtk3-module \
     python3-opencv \
     nginx \
-    postfix
+    postfix \
+    chromium-browser
 
 # Note: Removed obsolete packages that are no longer available:
 # - libatlas-base-dev (replaced by OpenBLAS, not needed for OpenCV)
@@ -175,13 +176,123 @@ echo "Creating storage directories..."
 mkdir -p storage/detected
 mkdir -p storage/classified
 mkdir -p storage/results
+mkdir -p storage/active_learning
 mkdir -p all_models
+
+# Note: Subdirectories are created automatically:
+# - storage/detected/{date}/{visitation_id}/ - Created by photo.py when saving
+# - /var/www/html/classified/{date}/{visitation_id}/ - Created by classify.py when moving files
+# - storage/active_learning/* - Created by active_learning.py on init
+
+# Create environment configuration file if it doesn't exist
+if [ ! -f "leroy.env" ]; then
+    echo "Creating leroy.env configuration file..."
+    if [ -f "leroy.env.example" ]; then
+        cp leroy.env.example leroy.env
+        echo "✓ Created leroy.env from example (customize as needed)"
+    else
+        # Create default config
+        cat > leroy.env <<EOF
+# Project Leroy - Environment Configuration
+LEROY_WEB_PORT=8080
+LEROY_WEB_HOST=localhost
+LEROY_AUTO_LAUNCH_BROWSER=true
+EOF
+        echo "✓ Created default leroy.env"
+    fi
+else
+    echo "leroy.env already exists, skipping creation"
+fi
 
 # Create web directory structure
 echo "Setting up web directory structure..."
 sudo mkdir -p /var/www/html/classified
 sudo chown -R $USER:www-data /var/www/html/classified
 sudo chmod -R 775 /var/www/html/classified
+
+# Setup nginx configuration for custom port
+echo "Setting up nginx..."
+LEROY_WEB_PORT="${LEROY_WEB_PORT:-8080}"
+
+# Create nginx configuration for Project Leroy
+NGINX_CONF="/etc/nginx/sites-available/leroy"
+if [ ! -f "$NGINX_CONF" ]; then
+    echo "Creating nginx configuration for port ${LEROY_WEB_PORT}..."
+    sudo tee "$NGINX_CONF" > /dev/null <<EOF
+# Project Leroy - Nginx Configuration
+# Custom port (${LEROY_WEB_PORT}) for security
+
+server {
+    listen ${LEROY_WEB_PORT};
+    server_name localhost;
+    root /var/www/html;
+    index index.html;
+
+    # Enable gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+    # Serve static files
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # Serve classified images
+    location /classified/ {
+        alias /var/www/html/classified/;
+        autoindex off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Serve visitations.json
+    location /visitations.json {
+        add_header Cache-Control "no-cache, must-revalidate";
+        expires 0;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
+EOF
+    
+    # Enable the site
+    sudo ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/leroy
+    
+    # Remove default site if it exists (optional, to avoid conflicts)
+    if [ -f /etc/nginx/sites-enabled/default ]; then
+        echo "Disabling default nginx site..."
+        sudo rm /etc/nginx/sites-enabled/default
+    fi
+    
+    # Test nginx configuration
+    if sudo nginx -t; then
+        echo "✓ Nginx configuration is valid"
+    else
+        echo "Warning: Nginx configuration test failed"
+    fi
+else
+    echo "Nginx configuration already exists"
+fi
+
+# Start nginx
+if systemctl is-active --quiet nginx; then
+    echo "Nginx is already running"
+    sudo systemctl reload nginx
+else
+    echo "Starting nginx on port ${LEROY_WEB_PORT}..."
+    sudo systemctl enable nginx
+    sudo systemctl start nginx
+    if systemctl is-active --quiet nginx; then
+        echo "✓ Nginx started successfully on port ${LEROY_WEB_PORT}"
+    else
+        echo "Warning: Nginx failed to start. Check: sudo systemctl status nginx"
+    fi
+fi
 
 # Check if git repository exists
 echo "Checking git repository..."
@@ -258,16 +369,15 @@ else
     echo "Cron job already exists"
 fi
 
-# Build web interface
+# Deploy web interface (lightweight vanilla JS - no build needed)
 if [ -d "web" ]; then
-    echo "Building web interface..."
-    cd web
-    if [ -f "package.json" ]; then
-        npm install
-        npm run build
-        sudo cp -a build/. /var/www/html/
+    echo "Deploying web interface..."
+    if [ -f "web/index.html" ]; then
+        sudo cp web/index.html web/styles.css web/app.js /var/www/html/
+        echo "Web interface deployed (lightweight vanilla JS version)"
+    else
+        echo "Warning: web/index.html not found"
     fi
-    cd ..
 fi
 
 # Verify installation

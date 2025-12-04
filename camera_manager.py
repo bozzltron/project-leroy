@@ -1,6 +1,6 @@
 """
 Camera Manager for Project Leroy
-Handles dual-resolution strategy: 5MP for detection, 12MP for photos
+Handles dual-resolution strategy: configurable detection and photo resolutions
 """
 import cv2
 import logging
@@ -8,6 +8,7 @@ import time
 import threading
 from typing import Optional, Tuple, Callable
 import numpy as np
+from config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +16,9 @@ logger = logging.getLogger(__name__)
 class CameraManager:
     """
     Manages camera with dual-resolution strategy:
-    - Detection: 1.2MP (1280x960) for fast capture, resized to 500px for inference
-    - Photos: 12MP (4056x3040) for high-quality captures when bird detected
+    - Detection: Configurable resolution for fast capture, resized to 500px for inference
+    - Photos: Configurable high-resolution for quality captures when bird detected
     """
-    
-    # Resolution presets
-    # Detection: Smaller resolution for fast capture, will be resized to 500px anyway
-    # Using 1280x960 (1.2MP) - much smaller than 5MP, still good quality for detection
-    DETECTION_RESOLUTION = (1280, 960)  # 1.2MP - fast capture, resized to 500px for inference
-    PHOTO_RESOLUTION = (4056, 3040)     # 12MP - high quality photos
     
     def __init__(self, camera_idx: int = 0, max_reconnect_attempts: int = 5):
         """
@@ -33,10 +28,13 @@ class CameraManager:
             camera_idx: Camera device index
             max_reconnect_attempts: Maximum reconnection attempts
         """
+        config = get_config()
         self.camera_idx = camera_idx
         self.max_reconnect_attempts = max_reconnect_attempts
         self.cap = None
-        self.current_resolution = self.DETECTION_RESOLUTION
+        self.detection_resolution = config['detection_resolution']
+        self.photo_resolution = config['photo_resolution']
+        self.current_resolution = self.detection_resolution
         self.consecutive_failures = 0
         self._lock = threading.Lock()
         self._photo_capture_pending = False
@@ -44,7 +42,7 @@ class CameraManager:
         
     def initialize(self) -> bool:
         """Initialize camera at detection resolution."""
-        return self._open_camera(self.DETECTION_RESOLUTION)
+        return self._open_camera(self.detection_resolution)
     
     def _open_camera(self, resolution: Tuple[int, int]) -> bool:
         """Open camera at specified resolution."""
@@ -84,7 +82,7 @@ class CameraManager:
     
     def get_detection_frame(self) -> Tuple[bool, Optional[np.ndarray]]:
         """
-        Get frame at detection resolution (5MP).
+        Get frame at detection resolution.
         
         Returns:
             (success, frame) tuple
@@ -111,7 +109,7 @@ class CameraManager:
     
     def capture_high_res_photo(self, callback: Callable[[cv2.Mat], None]) -> bool:
         """
-        Capture a high-resolution (12MP) photo.
+        Capture a high-resolution photo.
         Uses threading to avoid blocking detection loop.
         
         Args:
@@ -140,12 +138,12 @@ class CameraManager:
     def _capture_high_res_thread(self):
         """Background thread to capture high-resolution photo."""
         try:
-            logger.info("Switching to high-resolution mode for photo capture")
+            logger.info("Switching to photo resolution mode for capture")
             
-            # Switch to high resolution
+            # Switch to photo resolution
             with self._lock:
-                if not self._switch_resolution(self.PHOTO_RESOLUTION):
-                    logger.error("Failed to switch to high-resolution mode")
+                if not self._switch_resolution(self.photo_resolution):
+                    logger.error("Failed to switch to photo resolution mode")
                     self._photo_capture_pending = False
                     return
                 
@@ -153,26 +151,26 @@ class CameraManager:
                 ret, frame = self.cap.read()
                 
                 if ret:
-                    logger.info(f"Captured high-res frame: {frame.shape[1]}x{frame.shape[0]}")
+                    logger.info(f"Captured photo frame: {frame.shape[1]}x{frame.shape[0]}")
                     # Call callback with high-res frame
                     if self._photo_callback:
                         self._photo_callback(frame)
                 else:
-                    logger.error("Failed to capture high-res frame")
+                    logger.error("Failed to capture photo frame")
                 
                 # Switch back to detection resolution
                 logger.info("Switching back to detection resolution")
-                self._switch_resolution(self.DETECTION_RESOLUTION)
+                self._switch_resolution(self.detection_resolution)
             
             self._photo_capture_pending = False
             
         except Exception as e:
-            logger.exception(f"Error in high-res capture thread: {e}")
+            logger.exception(f"Error in photo capture thread: {e}")
             self._photo_capture_pending = False
             # Try to switch back to detection resolution
             try:
                 with self._lock:
-                    self._switch_resolution(self.DETECTION_RESOLUTION)
+                    self._switch_resolution(self.detection_resolution)
             except:
                 pass
     
@@ -253,6 +251,14 @@ class CameraManager:
         return self.current_resolution
     
     def is_photo_capture_pending(self) -> bool:
-        """Check if high-res photo capture is in progress."""
+        """Check if photo capture is in progress."""
         return self._photo_capture_pending
+    
+    def get_detection_resolution(self) -> Tuple[int, int]:
+        """Get detection resolution."""
+        return self.detection_resolution
+    
+    def get_photo_resolution(self) -> Tuple[int, int]:
+        """Get photo resolution."""
+        return self.photo_resolution
 

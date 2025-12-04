@@ -4,8 +4,8 @@ Project Leroy - Bird Detection System
 Raspberry Pi 5 + AI Kit (Hailo) Implementation
 
 Dual-Resolution Strategy:
-- Detection: 5MP (2048x1536) for fast processing
-- Photos: 12MP (4056x3040) for high-quality captures when bird detected
+- Detection: Configurable resolution for fast processing
+- Photos: Configurable high-resolution for quality captures when bird detected
 """
 import argparse
 import collections
@@ -23,6 +23,7 @@ from visitations import Visitations
 from hailo_inference import HailoInference
 from camera_manager import CameraManager
 from active_learning import ActiveLearningCollector
+from utils import load_labels
 
 print("OpenCV version: " + cv2.__version__)
 
@@ -35,23 +36,6 @@ logging.basicConfig(
     level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
-
-
-def load_labels(path):
-    """Load label file and return as dictionary."""
-    p = re.compile(r'\s*(\d+)(.+)')
-    labels = {}
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            for line in f.readlines():
-                match = p.match(line)
-                if match:
-                    num, text = match.groups()
-                    labels[int(num)] = text.strip()
-    except Exception as e:
-        logger.error(f"Failed to load labels from {path}: {e}")
-        raise
-    return labels
 
 
 class BBox(collections.namedtuple('BBox', ['xmin', 'ymin', 'xmax', 'ymax'])):
@@ -187,7 +171,13 @@ def main():
 
         logger.info(f"Starting Project Leroy detection system")
         logger.info(f"Model: {args.model}, Labels: {args.labels}")
-        logger.info("Dual-resolution strategy: 1.2MP detection (resized to 500px), 12MP photos")
+        
+        # Get resolution info from camera manager
+        from config import get_config
+        config = get_config()
+        det_res = config['detection_resolution']
+        photo_res = config['photo_resolution']
+        logger.info(f"Dual-resolution strategy: {det_res[0]}x{det_res[1]} detection (resized to {args.detection_width}px), {photo_res[0]}x{photo_res[1]} photos")
 
         # Initialize Hailo inference
         logger.info("Initializing Hailo AI Kit...")
@@ -199,11 +189,15 @@ def main():
         labels = load_labels(args.labels)
         logger.info(f"Loaded {len(labels)} labels")
 
-        # Initialize camera manager (starts at 5MP for detection)
+        # Initialize camera manager
         logger.info(f"Initializing camera (index {args.camera_idx})...")
         camera = CameraManager(camera_idx=args.camera_idx)
         if not camera.initialize():
             raise RuntimeError(f"Failed to initialize camera {args.camera_idx}")
+        
+        det_res = camera.get_detection_resolution()
+        photo_res = camera.get_photo_resolution()
+        logger.info(f"Camera initialized: Detection={det_res[0]}x{det_res[1]}, Photo={photo_res[0]}x{photo_res[1]}")
 
         # Initialize visitation tracking
         logger.info("Initializing visitation tracking...")
@@ -213,14 +207,14 @@ def main():
         logger.info("Initializing active learning collector...")
         active_learning = ActiveLearningCollector()
 
-        logger.info("Starting detection loop at 1.2MP (resized to 500px for inference, 12MP photos when bird detected)...")
+        logger.info(f"Starting detection loop at {det_res[0]}x{det_res[1]} (resized to {args.detection_width}px for inference, {photo_res[0]}x{photo_res[1]} photos when bird detected)...")
         frame_count = 0
         last_photo_time = 0
         photo_cooldown = 0.5  # Minimum seconds between high-res captures
 
         while True:
             try:
-                # Get detection frame (5MP)
+                # Get detection frame
                 ret, frame = camera.get_detection_frame()
                 if not ret:
                     time.sleep(0.1)  # Brief pause before retry
@@ -294,17 +288,19 @@ def main():
                                 
                                 height_hr, width_hr = high_res_frame.shape[:2]
                                 height_det, width_det = current_frame.shape[:2]
+                                resolution = (width_hr, height_hr)
                                 
                                 if visitations.visitation_id:
                                     # Save high-res full photo
-                                    max_score = max([obj.score for obj in current_objs]) * 100 if current_objs else 0
+                                    max_score = max([obj.score for obj in current_objs]) if current_objs else 0
                                     capture(
                                         high_res_frame,
                                         visitations.visitation_id,
-                                        int(max_score),
-                                        'full_12mp'
+                                        max_score,  # Keep as float 0-1
+                                        'full',
+                                        resolution=resolution
                                     )
-                                    logger.info(f"Captured 12MP full photo for visitation {visitations.visitation_id}")
+                                    logger.info(f"Captured full photo ({width_hr}x{height_hr}) for visitation {visitations.visitation_id}")
                                     
                                     # Save high-res boxed photos for each bird detection
                                     for obj in current_objs:
@@ -329,16 +325,20 @@ def main():
                                                 padded_x0:padded_x1
                                             ]
                                             
+                                            bbox = (padded_x0, padded_y0, padded_x1, padded_y1)
+                                            
                                             capture(
                                                 boxed_hr,
                                                 visitations.visitation_id,
-                                                int(obj.score * 100),
-                                                'boxed_12mp'
+                                                obj.score,  # Keep as float 0-1
+                                                'boxed',
+                                                resolution=resolution,
+                                                detection_bbox=bbox
                                             )
-                                            logger.info(f"Captured 12MP boxed photo for visitation {visitations.visitation_id}")
+                                            logger.info(f"Captured boxed photo ({width_hr}x{height_hr}) for visitation {visitations.visitation_id}")
                                             
                             except Exception as e:
-                                logger.exception(f"Error handling high-res photo: {e}")
+                                logger.exception(f"Error handling photo capture: {e}")
                         
                         camera.capture_high_res_photo(handle_high_res_photo)
                         last_photo_time = current_time
