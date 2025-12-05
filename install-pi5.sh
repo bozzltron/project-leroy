@@ -113,7 +113,7 @@ echo "=========================================="
 
 # Remove any incorrect repository entries first
 if [ -f "/etc/apt/sources.list.d/hailo.list" ]; then
-    echo "Removing incorrect Hailo repository configuration..."
+    echo "Removing existing Hailo repository configuration..."
     sudo rm -f /etc/apt/sources.list.d/hailo.list
     echo "Repository file removed"
 fi
@@ -139,29 +139,80 @@ if [ "$HAILO_INSTALLED" = false ]; then
     echo "  - Python bindings (hailo-platform-python3)"
     echo ""
     
+    # Configure Hailo repository
+    echo "Configuring Hailo repository..."
+    
+    # Detect OS version (bookworm, bullseye, etc.)
+    OS_VERSION=$(lsb_release -cs 2>/dev/null || echo "bookworm")
+    echo "Detected OS version: $OS_VERSION"
+    
+    # Try the official Hailo repository URL
+    HAILO_REPO_URL="https://hailo.ai/debian"
+    echo "Adding Hailo repository: $HAILO_REPO_URL"
+    
+    # Add repository
+    echo "deb $HAILO_REPO_URL $OS_VERSION main" | sudo tee /etc/apt/sources.list.d/hailo.list > /dev/null
+    
+    # Try to add GPG key (may not be required, but try common locations)
+    echo "Adding GPG key..."
+    if curl -fsSL "$HAILO_REPO_URL/gpg" 2>/dev/null | sudo apt-key add - 2>/dev/null; then
+        echo "✓ GPG key added"
+    elif curl -fsSL "$HAILO_REPO_URL/hailo.gpg" 2>/dev/null | sudo apt-key add - 2>/dev/null; then
+        echo "✓ GPG key added (alternate location)"
+    else
+        echo "⚠ Could not add GPG key automatically"
+        echo "  You may need to add it manually or the repository may use signed-by"
+        # Try using signed-by method (more modern)
+        sudo rm -f /etc/apt/sources.list.d/hailo.list
+        echo "deb [signed-by=/usr/share/keyrings/hailo-archive-keyring.gpg] $HAILO_REPO_URL $OS_VERSION main" | sudo tee /etc/apt/sources.list.d/hailo.list > /dev/null
+        # Try to download and install keyring
+        if curl -fsSL "$HAILO_REPO_URL/gpg" -o /tmp/hailo.gpg 2>/dev/null; then
+            sudo gpg --dearmor < /tmp/hailo.gpg | sudo tee /usr/share/keyrings/hailo-archive-keyring.gpg > /dev/null
+            rm -f /tmp/hailo.gpg
+            echo "✓ GPG keyring installed"
+        fi
+    fi
+    
+    # Update package list
+    echo "Updating package list..."
+    if sudo apt-get update 2>&1 | grep -q "hailo"; then
+        echo "✓ Hailo repository found in package list"
+    else
+        echo "⚠ Hailo repository may not be accessible"
+        echo "  This could be due to:"
+        echo "  - Network connectivity issues"
+        echo "  - Incorrect repository URL"
+        echo "  - Repository requires authentication"
+    fi
+    
     # Try to install hailo-all (includes everything)
-    # Note: This requires the official Raspberry Pi repository to be configured
-    # The official guide should set this up, but we'll try anyway
-    if sudo apt-get install -y hailo-all 2>/dev/null; then
-        echo "✓ Hailo AI Kit installed successfully via apt"
+    echo ""
+    echo "Installing hailo-all package..."
+    if sudo apt-get install -y hailo-all; then
+        echo "✓ Hailo AI Kit installed successfully"
         HAILO_INSTALLED=true
     else
-        echo "⚠ Failed to install via apt (repository may not be configured)"
+        echo "⚠ Failed to install hailo-all"
         echo ""
-        echo "The AI Kit repository needs to be configured first."
-        echo "Please follow the official Raspberry Pi AI Kit installation guide:"
-        echo "https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
-        echo ""
-        echo "The guide will:"
-        echo "  1. Configure the correct repository"
-        echo "  2. Install hailo-all package"
-        echo "  3. Set up PCIe configuration"
-        echo ""
-        read -p "Continue with rest of installation? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Installation cancelled. Please install AI Kit first."
-            exit 1
+        echo "Trying alternative: installing individual packages..."
+        if sudo apt-get install -y hailo-platform-python3 2>/dev/null; then
+            echo "✓ hailo-platform-python3 installed"
+            HAILO_INSTALLED=true
+        else
+            echo "⚠ Could not install Hailo packages"
+            echo ""
+            echo "Please check:"
+            echo "  1. Network connectivity"
+            echo "  2. Repository URL: $HAILO_REPO_URL"
+            echo "  3. Official Raspberry Pi AI Kit guide:"
+            echo "     https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+            echo ""
+            read -p "Continue with rest of installation? (y/N) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Installation cancelled. Please install AI Kit first."
+                exit 1
+            fi
         fi
     fi
 fi
