@@ -19,10 +19,18 @@ if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
     fi
 fi
 
-# Update system
-echo "Updating system packages..."
+# Update system and firmware (required for AI Kit)
+echo "Updating system packages and firmware..."
 sudo apt-get update
-sudo apt-get upgrade -y
+sudo apt-get full-upgrade -y
+
+# Update EEPROM firmware (required for AI Kit PCIe support)
+echo "Updating Raspberry Pi EEPROM firmware..."
+if command -v rpi-eeprom-update &> /dev/null; then
+    sudo rpi-eeprom-update -a || echo "Note: EEPROM update may require reboot"
+else
+    echo "Note: rpi-eeprom-update not available (may need to install rpi-eeprom-update)"
+fi
 
 # Detect Python 3 version
 echo "Detecting Python 3 version..."
@@ -98,20 +106,121 @@ sudo apt-get install -y \
 # - libhdf5-103 (replaced by newer libhdf5 packages)
 # - libcanberra-gtk-module (replaced by libcanberra-gtk3-module)
 
-# Install Raspberry Pi AI Kit dependencies
-echo "Installing Raspberry Pi AI Kit dependencies..."
-echo "Note: Follow official Raspberry Pi AI Kit installation guide first:"
-echo "https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+# Install Raspberry Pi AI Kit
+echo "=========================================="
+echo "Raspberry Pi AI Kit Installation"
+echo "=========================================="
 
-# Check if AI Kit is installed
-if [ ! -d "/opt/hailo" ] && [ ! -f "/usr/lib/libhailort.so" ]; then
-    echo "Warning: Hailo AI Kit drivers not detected."
-    echo "Please install the AI Kit following the official guide:"
-    echo "https://www.raspberrypi.com/documentation/accessories/ai-kit.html#installing-the-ai-kit"
-    read -p "Continue with installation anyway? (y/N) " -n 1 -r
+# Remove any incorrect repository entries first
+if [ -f "/etc/apt/sources.list.d/hailo.list" ]; then
+    echo "Removing incorrect Hailo repository configuration..."
+    sudo rm -f /etc/apt/sources.list.d/hailo.list
+    echo "Repository file removed"
+fi
+
+# Check if Hailo SDK is already installed
+HAILO_INSTALLED=false
+if python3 -c "from hailo_platform import Device" 2>/dev/null; then
+    echo "✓ Hailo SDK Python package is already installed"
+    HAILO_INSTALLED=true
+elif command -v hailortcli &> /dev/null; then
+    echo "✓ Hailo tools detected (hailortcli found)"
+    HAILO_INSTALLED=true
+elif [ -f "/opt/hailo/bin/hailortcli" ] || [ -f "/usr/lib/libhailort.so" ]; then
+    echo "✓ Hailo drivers detected"
+    HAILO_INSTALLED=true
+fi
+
+if [ "$HAILO_INSTALLED" = false ]; then
+    echo "Installing Raspberry Pi AI Kit..."
+    echo ""
+    echo "This will install:"
+    echo "  - Hailo AI Kit drivers and SDK"
+    echo "  - Python bindings (hailo-platform-python3)"
+    echo ""
+    
+    # Try to install hailo-all (includes everything)
+    # Note: This requires the official Raspberry Pi repository to be configured
+    # The official guide should set this up, but we'll try anyway
+    if sudo apt-get install -y hailo-all 2>/dev/null; then
+        echo "✓ Hailo AI Kit installed successfully via apt"
+        HAILO_INSTALLED=true
+    else
+        echo "⚠ Failed to install via apt (repository may not be configured)"
+        echo ""
+        echo "The AI Kit repository needs to be configured first."
+        echo "Please follow the official Raspberry Pi AI Kit installation guide:"
+        echo "https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+        echo ""
+        echo "The guide will:"
+        echo "  1. Configure the correct repository"
+        echo "  2. Install hailo-all package"
+        echo "  3. Set up PCIe configuration"
+        echo ""
+        read -p "Continue with rest of installation? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Installation cancelled. Please install AI Kit first."
+            exit 1
+        fi
+    fi
+fi
+
+# Enable PCIe Gen 3.0 for optimal performance (if not already enabled)
+echo ""
+echo "Configuring PCIe for AI Kit..."
+if command -v raspi-config &> /dev/null; then
+    # Check current PCIe speed setting
+    PCIE_SPEED=$(raspi-config nonint get_pcie_speed 2>/dev/null || echo "unknown")
+    if [ "$PCIE_SPEED" != "1" ]; then
+        echo "Enabling PCIe Gen 3.0 for optimal AI Kit performance..."
+        echo "WARNING: This requires a reboot to take effect."
+        sudo raspi-config nonint do_pcie_speed 1
+        PCIE_REBOOT_NEEDED=true
+    else
+        echo "✓ PCIe Gen 3.0 is already enabled"
+        PCIE_REBOOT_NEEDED=false
+    fi
+else
+    echo "Note: raspi-config not available, cannot configure PCIe"
+    PCIE_REBOOT_NEEDED=false
+fi
+
+# Verify AI Kit installation
+echo ""
+echo "Verifying AI Kit installation..."
+if command -v hailortcli &> /dev/null; then
+    echo "Running hailortcli fw-control identify..."
+    if sudo hailortcli fw-control identify 2>/dev/null; then
+        echo "✓ AI Kit hardware detected and working"
+    else
+        echo "⚠ AI Kit hardware not detected (may need reboot or hardware check)"
+        PCIE_REBOOT_NEEDED=true
+    fi
+else
+    echo "⚠ hailortcli not found (AI Kit may not be fully installed)"
+fi
+
+# Warn about reboot if needed
+if [ "$PCIE_REBOOT_NEEDED" = true ]; then
+    echo ""
+    echo "=========================================="
+    echo "REBOOT REQUIRED"
+    echo "=========================================="
+    echo "A reboot is required for PCIe changes to take effect."
+    echo "After reboot, you can:"
+    echo "  1. Verify AI Kit: sudo hailortcli fw-control identify"
+    echo "  2. Continue with: ./install-pi5.sh (will skip already-installed parts)"
+    echo ""
+    read -p "Reboot now? (y/N) " -n 1 -r
     echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "Rebooting in 5 seconds..."
+        sleep 5
+        sudo reboot
+        exit 0
+    else
+        echo "Please reboot manually before using the AI Kit"
     fi
 fi
 
