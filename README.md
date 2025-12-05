@@ -114,6 +114,12 @@ LEROY_WEB_HOST=localhost     # Host (default: localhost)
 
 # Browser Auto-Launch
 LEROY_AUTO_LAUNCH_BROWSER=true  # Enable/disable (default: true)
+
+# Camera Resolution Configuration
+LEROY_DETECTION_WIDTH=1280   # Detection resolution width (default: 1280)
+LEROY_DETECTION_HEIGHT=960   # Detection resolution height (default: 960)
+LEROY_PHOTO_WIDTH=4056       # Photo resolution width (default: 4056)
+LEROY_PHOTO_HEIGHT=3040      # Photo resolution height (default: 3040)
 ```
 
 **Security Note**: Using port 8080 instead of 80/443 reduces exposure to automated scanners while remaining accessible on local network.
