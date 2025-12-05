@@ -6,14 +6,7 @@ import os
 import logging
 from typing import Tuple, Optional
 
-# Use a safe logger that won't fail if logging isn't initialized yet
-try:
-    logger = logging.getLogger(__name__)
-except:
-    import sys
-    class DummyLogger:
-        def warning(self, msg): print(f"WARNING: {msg}", file=sys.stderr)
-    logger = DummyLogger()
+logger = logging.getLogger(__name__)
 
 
 def load_config():
@@ -38,7 +31,12 @@ def load_config():
                         if key not in os.environ:
                             os.environ[key] = value
         except Exception as e:
-            logger.warning(f"Failed to load leroy.env: {e}")
+            # Use print if logger not initialized yet
+            try:
+                logger.warning(f"Failed to load leroy.env: {e}")
+            except:
+                import sys
+                print(f"WARNING: Failed to load leroy.env: {e}", file=sys.stderr)
     
     # Camera resolution configuration
     # Detection resolution (for fast capture, will be resized for inference)
