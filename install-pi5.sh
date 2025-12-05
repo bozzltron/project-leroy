@@ -157,12 +157,21 @@ if [ "$HAILO_INSTALLED" = false ]; then
     echo "Configuring Hailo repository..."
     
     # Detect OS version (bookworm, bullseye, etc.)
-    OS_VERSION=$(lsb_release -cs 2>/dev/null || echo "bookworm")
-    echo "Detected OS version: $OS_VERSION"
+    DETECTED_VERSION=$(lsb_release -cs 2>/dev/null || echo "bookworm")
+    echo "Detected OS version: $DETECTED_VERSION"
+    
+    # Hailo repository typically supports bookworm (Raspberry Pi OS based on Debian 12)
+    # For newer versions (trixie, etc.), use bookworm as fallback
+    if [ "$DETECTED_VERSION" = "trixie" ] || [ "$DETECTED_VERSION" = "sid" ]; then
+        echo "Note: Hailo repository may not support $DETECTED_VERSION, using 'bookworm' instead"
+        OS_VERSION="bookworm"
+    else
+        OS_VERSION="$DETECTED_VERSION"
+    fi
     
     # Try the official Hailo repository URL
     HAILO_REPO_URL="https://hailo.ai/debian"
-    echo "Adding Hailo repository: $HAILO_REPO_URL"
+    echo "Adding Hailo repository: $HAILO_REPO_URL (using $OS_VERSION)"
     
     # Add repository
     echo "deb $HAILO_REPO_URL $OS_VERSION main" | sudo tee /etc/apt/sources.list.d/hailo.list > /dev/null
