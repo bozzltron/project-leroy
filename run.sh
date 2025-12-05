@@ -17,7 +17,7 @@ fi
 
 # Update code from git repository
 echo "Updating code from git repository..."
-if git pull origin master; then
+if git pull origin main; then
     echo "Code updated successfully"
 else
     echo "Warning: git pull failed (repository may not be initialized or network issue)"
