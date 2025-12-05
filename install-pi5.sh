@@ -234,21 +234,61 @@ fi
 # Enable PCIe Gen 3.0 for optimal performance (if not already enabled)
 echo ""
 echo "Configuring PCIe for AI Kit..."
-if command -v raspi-config &> /dev/null; then
-    # Check current PCIe speed setting
-    PCIE_SPEED=$(raspi-config nonint get_pcie_speed 2>/dev/null || echo "unknown")
-    if [ "$PCIE_SPEED" != "1" ]; then
-        echo "Enabling PCIe Gen 3.0 for optimal AI Kit performance..."
-        echo "WARNING: This requires a reboot to take effect."
-        sudo raspi-config nonint do_pcie_speed 1
+PCIE_REBOOT_NEEDED=false
+
+# Check if PCIe Gen 3.0 is already enabled in config.txt
+if [ -f "/boot/firmware/config.txt" ]; then
+    CONFIG_FILE="/boot/firmware/config.txt"
+elif [ -f "/boot/config.txt" ]; then
+    CONFIG_FILE="/boot/config.txt"
+else
+    CONFIG_FILE=""
+fi
+
+if [ -n "$CONFIG_FILE" ]; then
+    # Check if dtparam=pcie_gen3 is already set
+    if grep -q "^dtparam=pcie_gen3=1" "$CONFIG_FILE" 2>/dev/null; then
+        echo "✓ PCIe Gen 3.0 is already enabled in $CONFIG_FILE"
+    elif grep -q "^dtparam=pcie_gen3=0" "$CONFIG_FILE" 2>/dev/null; then
+        echo "PCIe Gen 3.0 is disabled, enabling..."
+        sudo sed -i 's/^dtparam=pcie_gen3=0/dtparam=pcie_gen3=1/' "$CONFIG_FILE"
+        echo "✓ PCIe Gen 3.0 enabled in $CONFIG_FILE"
         PCIE_REBOOT_NEEDED=true
-    else
-        echo "✓ PCIe Gen 3.0 is already enabled"
-        PCIE_REBOOT_NEEDED=false
+    elif ! grep -q "dtparam=pcie_gen3" "$CONFIG_FILE" 2>/dev/null; then
+        echo "Adding PCIe Gen 3.0 configuration..."
+        echo "dtparam=pcie_gen3=1" | sudo tee -a "$CONFIG_FILE" > /dev/null
+        echo "✓ PCIe Gen 3.0 enabled in $CONFIG_FILE"
+        PCIE_REBOOT_NEEDED=true
+    fi
+    
+    # Also check for dtoverlay (alternative method)
+    if ! grep -q "dtoverlay=pcie-gen3" "$CONFIG_FILE" 2>/dev/null && ! grep -q "dtparam=pcie_gen3" "$CONFIG_FILE" 2>/dev/null; then
+        # If neither method is present, add dtparam (preferred)
+        if [ "$PCIE_REBOOT_NEEDED" = false ]; then
+            echo "dtparam=pcie_gen3=1" | sudo tee -a "$CONFIG_FILE" > /dev/null
+            echo "✓ PCIe Gen 3.0 enabled in $CONFIG_FILE"
+            PCIE_REBOOT_NEEDED=true
+        fi
     fi
 else
-    echo "Note: raspi-config not available, cannot configure PCIe"
-    PCIE_REBOOT_NEEDED=false
+    echo "⚠ Could not find config.txt file"
+    echo "  PCIe configuration may need to be done manually"
+fi
+
+# Try raspi-config as fallback (if available and supports it)
+if [ "$PCIE_REBOOT_NEEDED" = false ] && command -v raspi-config &> /dev/null; then
+    # Check if raspi-config supports PCIe speed option
+    if raspi-config nonint get_pcie_speed &>/dev/null; then
+        PCIE_SPEED=$(raspi-config nonint get_pcie_speed 2>/dev/null || echo "unknown")
+        if [ "$PCIE_SPEED" != "1" ]; then
+            if raspi-config nonint do_pcie_speed 1 &>/dev/null; then
+                echo "✓ PCIe Gen 3.0 enabled via raspi-config"
+                PCIE_REBOOT_NEEDED=true
+            fi
+        else
+            echo "✓ PCIe Gen 3.0 is already enabled (via raspi-config)"
+        fi
+    fi
 fi
 
 # Verify AI Kit installation
