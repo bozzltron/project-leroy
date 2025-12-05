@@ -142,31 +142,44 @@ echo "Installing optional Bluesky posting support..."
 pip install atproto || echo "Note: Bluesky posting not available (install atproto manually if needed)"
 
 # Install Hailo Python SDK
-echo "Installing Hailo Python SDK..."
-# Try to add Hailo repository if not already added
-if [ ! -f "/etc/apt/sources.list.d/hailo.list" ]; then
-    echo "Adding Hailo repository..."
-    echo "deb https://packages.hailo.ai/debian bookworm main" | sudo tee /etc/apt/sources.list.d/hailo.list > /dev/null
-    curl -s https://packages.hailo.ai/debian/hailo.gpg | sudo apt-key add - 2>/dev/null || {
-        echo "Warning: Failed to add Hailo GPG key"
-        echo "You may need to add it manually following official guide"
-    }
-    sudo apt-get update
+echo "=========================================="
+echo "Hailo SDK Installation"
+echo "=========================================="
+echo "IMPORTANT: The Hailo SDK must be installed following the official Raspberry Pi guide:"
+echo "https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+echo ""
+echo "The AI Kit installation includes:"
+echo "  1. Hardware drivers"
+echo "  2. Hailo SDK packages"
+echo "  3. Repository configuration"
+echo ""
+
+# Remove any incorrect repository entries
+if [ -f "/etc/apt/sources.list.d/hailo.list" ]; then
+    echo "Removing existing Hailo repository configuration..."
+    sudo rm -f /etc/apt/sources.list.d/hailo.list
+    echo "Repository file removed"
 fi
 
-# Try to install Hailo SDK
-if sudo apt-get install -y hailo-platform-python3 hailo-dataflow-compiler 2>/dev/null; then
-    echo "Hailo SDK installed successfully"
+# Check if Hailo SDK is already installed
+if python3 -c "from hailo_platform import Device" 2>/dev/null; then
+    echo "✓ Hailo SDK is already installed"
+elif [ -f "/opt/hailo/bin/hailortcli" ] || [ -f "/usr/lib/libhailort.so" ]; then
+    echo "✓ Hailo drivers detected, but Python SDK may need to be installed"
+    echo "  Try: sudo apt-get install -y hailo-platform-python3"
 else
-    echo "Warning: Hailo SDK installation failed via apt"
-    echo "This may be normal if:"
-    echo "  1. Official repositories are not yet available"
-    echo "  2. AI Kit drivers need to be installed first"
-    echo "Please install Hailo SDK manually following official guide:"
+    echo "⚠ Hailo SDK not detected"
+    echo ""
+    echo "Please install the AI Kit following the official guide:"
     echo "https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
-    read -p "Continue with installation? (y/N) " -n 1 -r
+    echo ""
+    echo "After installing the AI Kit, verify with:"
+    echo "  python3 -c 'from hailo_platform import Device; print(\"Hailo SDK installed\")'"
+    echo ""
+    read -p "Continue with rest of installation? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled. Please install AI Kit first."
         exit 1
     fi
 fi
