@@ -96,8 +96,22 @@ sudo apt-get install -y \
     libcanberra-gtk3-module \
     python3-opencv \
     nginx \
-    postfix \
-    chromium-browser
+    postfix
+
+# Install Chromium browser (package name varies by OS version)
+echo "Installing Chromium browser..."
+if sudo apt-get install -y chromium-browser 2>/dev/null; then
+    echo "✓ chromium-browser installed"
+elif sudo apt-get install -y chromium 2>/dev/null; then
+    echo "✓ chromium installed (creating symlink for compatibility)"
+    # Create symlink if chromium is installed but script expects chromium-browser
+    if [ ! -f /usr/bin/chromium-browser ] && [ -f /usr/bin/chromium ]; then
+        sudo ln -s /usr/bin/chromium /usr/bin/chromium-browser
+    fi
+else
+    echo "⚠ Could not install Chromium browser"
+    echo "  You may need to install it manually or use a different browser"
+fi
 
 # Note: Removed obsolete packages that are no longer available:
 # - libatlas-base-dev (replaced by OpenBLAS, not needed for OpenCV)
