@@ -29,11 +29,23 @@ class HailoInference:
     def __init__(self):
         """Initialize Hailo inference engine."""
         if not HAILO_AVAILABLE:
-            raise RuntimeError(
-                "Hailo SDK not available. "
-                "Please install hailo-platform package following the official guide: "
-                "https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+            error_msg = (
+                "Hailo SDK not available.\n"
+                "\n"
+                "To install the Hailo SDK:\n"
+                "1. Follow the official Raspberry Pi AI Kit installation guide:\n"
+                "   https://www.raspberrypi.com/documentation/accessories/ai-kit.html\n"
+                "\n"
+                "2. Or try installing via apt (if repository is configured):\n"
+                "   sudo apt-get update\n"
+                "   sudo apt-get install -y hailo-platform-python3\n"
+                "\n"
+                "3. Verify installation:\n"
+                "   python3 -c 'from hailo_platform import Device; print(\"Hailo SDK installed\")'\n"
+                "\n"
+                "Note: The Hailo SDK requires the AI Kit hardware and drivers to be installed first."
             )
+            raise RuntimeError(error_msg)
         
         self.device = None
         self.detection_network = None
