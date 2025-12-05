@@ -29,6 +29,9 @@ print("OpenCV version: " + cv2.__version__)
 
 Object = collections.namedtuple('Object', ['id', 'score', 'bbox'])
 
+# Ensure storage directory exists before logging
+os.makedirs('storage', exist_ok=True)
+
 # Initialize logging - log to both file and stderr (for systemd)
 logging.basicConfig(
     level=logging.DEBUG,
