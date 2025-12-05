@@ -6,7 +6,14 @@ import os
 import logging
 from typing import Tuple, Optional
 
-logger = logging.getLogger(__name__)
+# Use a safe logger that won't fail if logging isn't initialized yet
+try:
+    logger = logging.getLogger(__name__)
+except:
+    import sys
+    class DummyLogger:
+        def warning(self, msg): print(f"WARNING: {msg}", file=sys.stderr)
+    logger = DummyLogger()
 
 
 def load_config():

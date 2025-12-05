@@ -29,11 +29,14 @@ print("OpenCV version: " + cv2.__version__)
 
 Object = collections.namedtuple('Object', ['id', 'score', 'bbox'])
 
-# Initialize logging
+# Initialize logging - log to both file and stderr (for systemd)
 logging.basicConfig(
-    filename='storage/results.log',
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
+    handlers=[
+        logging.FileHandler('storage/results.log'),
+        logging.StreamHandler(sys.stderr)  # Also log to stderr for systemd
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -368,6 +371,9 @@ def main():
 
     except Exception as e:
         logger.exception("Fatal error in main program")
+        print(f"FATAL ERROR: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
     finally:
         # Guaranteed cleanup
