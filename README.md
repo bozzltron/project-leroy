@@ -33,7 +33,10 @@ This will:
 - Create storage directories
 - Download HEF models (optional)
 
-**Note**: All directories are created automatically when needed. See `DIRECTORY_MANAGEMENT.md` for details.
+**Note**: All directories are created automatically when needed:
+- `storage/detected/{date}/{visitation_id}/` - Created by `photo.py` when saving photos
+- `/var/www/html/classified/{date}/{visitation_id}/` - Created by `classify.py` when moving files
+- `storage/active_learning/*` - Created by `active_learning.py` on initialization
 
 ### 3. Download Models
 
@@ -134,9 +137,11 @@ python3 leroy.py --model all_models/yolov5s.hef --labels all_models/coco_labels.
 
 ## Architecture
 
-- **Detection**: 1.2MP (1280x960) frames, resized to 500px for inference
-- **Photos**: 12MP (4056x3040) captured when birds are detected
+- **Detection**: Configurable resolution (default: 1280x960), resized to 500px for inference
+- **Photos**: Configurable high-resolution (default: 4056x3040) captured when birds are detected
 - **Classification**: Runs periodically via cron job
+- **Storage**: UUID-based filenames with JSON metadata for full scientific visitation schema support
+- **Camera Resolution**: Configurable via `leroy.env` (LEROY_DETECTION_WIDTH/HEIGHT, LEROY_PHOTO_WIDTH/HEIGHT)
 
 See `.cursor/rules/architecture.mdc` for detailed system architecture.
 
@@ -257,10 +262,11 @@ Classification runs automatically via cron job (hourly). Check cron logs:
 grep CRON /var/log/syslog
 ```
 
+## Future Enhancements
+
+- **iNaturalist Integration**: Planned feature to submit visitations to iNaturalist. Data format is already compatible - one observation per species per visitation.
+
 ## Additional Resources
 
 - **Architecture**: `.cursor/rules/architecture.mdc` - Detailed system architecture
-- **Directory Management**: `DIRECTORY_MANAGEMENT.md` - Automatic directory creation
 - **Web Interface**: `web/README.md` - Web app details
-- **iNaturalist Integration**: `INATURALIST_INTEGRATION.md` - Planned integration
-- **Code Review**: `CODE_REVIEW_ANALYSIS.md` - Code consolidation analysis
