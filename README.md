@@ -321,8 +321,12 @@ This script checks:
    rpicam-still -o test.jpg  # Capture test image
    ```
 
-5. **Test with OpenCV (Python):**
+5. **Test with OpenCV (Python) - What Project Leroy uses:**
    ```bash
+   # Quick test script
+   python3 test_camera_opencv.py
+   
+   # Or manual test
    python3 << 'EOF'
    import cv2
    cap = cv2.VideoCapture(0)
