@@ -33,6 +33,8 @@ class HailoInference:
     
     def __init__(self):
         """Initialize Hailo inference engine."""
+        global HAILO_AVAILABLE, HAILO_IMPORT_ERROR
+        
         if not HAILO_AVAILABLE:
             import sys
             import os
@@ -41,12 +43,11 @@ class HailoInference:
             try:
                 from hailo_platform import Device, InferVStreams, InferModel
                 # Success! Update the global flag
-                global HAILO_AVAILABLE
                 HAILO_AVAILABLE = True
                 logger.info("Hailo SDK successfully imported at runtime")
             except ImportError as e:
                 # Still failing - provide detailed diagnostics
-                import_error = HAILO_IMPORT_ERROR if 'HAILO_IMPORT_ERROR' in globals() and HAILO_IMPORT_ERROR else str(e)
+                import_error = HAILO_IMPORT_ERROR if HAILO_IMPORT_ERROR else str(e)
                 error_msg = (
                     "Hailo SDK not available.\n"
                     f"\n"
