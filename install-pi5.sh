@@ -19,6 +19,74 @@ if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
     fi
 fi
 
+# Enable required interfaces
+echo "=========================================="
+echo "Enabling Required Interfaces"
+echo "=========================================="
+echo ""
+
+# Enable Camera interface (required for HQ Camera)
+echo "Enabling Camera interface..."
+if command -v raspi-config &> /dev/null; then
+    if raspi-config nonint get_camera | grep -q "1"; then
+        echo "Enabling camera interface via raspi-config..."
+        raspi-config nonint do_camera 0
+        echo "✓ Camera interface enabled (reboot may be required)"
+    else
+        echo "✓ Camera interface already enabled"
+    fi
+else
+    # Fallback: enable via config.txt
+    CONFIG_FILE="/boot/firmware/config.txt"
+    if [ ! -f "$CONFIG_FILE" ]; then
+        CONFIG_FILE="/boot/config.txt"
+    fi
+    if [ -f "$CONFIG_FILE" ]; then
+        if ! grep -q "^start_x=1" "$CONFIG_FILE" 2>/dev/null; then
+            echo "Enabling camera interface in $CONFIG_FILE..."
+            if ! grep -q "^start_x" "$CONFIG_FILE" 2>/dev/null; then
+                echo "start_x=1" | sudo tee -a "$CONFIG_FILE" > /dev/null
+            else
+                sudo sed -i 's/^start_x=.*/start_x=1/' "$CONFIG_FILE"
+            fi
+            echo "gpu_mem=128" | sudo tee -a "$CONFIG_FILE" > /dev/null
+            echo "✓ Camera interface enabled in config.txt (reboot required)"
+        else
+            echo "✓ Camera interface already enabled in config.txt"
+        fi
+    fi
+fi
+
+# Enable SSH (required for remote access)
+echo ""
+echo "Enabling SSH..."
+if command -v raspi-config &> /dev/null; then
+    if raspi-config nonint get_ssh | grep -q "1"; then
+        echo "Enabling SSH via raspi-config..."
+        raspi-config nonint do_ssh 0
+        echo "✓ SSH enabled"
+    else
+        echo "✓ SSH already enabled"
+    fi
+else
+    # Fallback: enable via systemd
+    if ! systemctl is-enabled ssh > /dev/null 2>&1; then
+        sudo systemctl enable ssh
+        sudo systemctl start ssh
+        echo "✓ SSH enabled via systemd"
+    else
+        echo "✓ SSH already enabled"
+    fi
+fi
+
+# Summary of enabled interfaces
+echo ""
+echo "Interface Status:"
+echo "  ✓ Camera interface: Enabled (required for HQ Camera)"
+echo "  ✓ SSH: Enabled (required for remote access)"
+echo "  ✓ PCIe: Will be configured below (required for AI Kit)"
+echo ""
+
 # Update system and firmware (required for AI Kit)
 echo "Updating system packages and firmware..."
 sudo apt-get update

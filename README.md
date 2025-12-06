@@ -10,6 +10,30 @@ Leroy is an AI birdwatcher built for Raspberry Pi 5 with AI Kit (Hailo).
 
 ## Installation
 
+### 0. Enable Required Interfaces
+
+Before running the install script, ensure these interfaces are enabled:
+
+**Required Interfaces:**
+- **Camera Interface**: Required for HQ Camera access
+- **SSH**: Required for remote access and service management
+- **PCIe**: Required for AI Kit (automatically configured by install script)
+
+The install script will automatically enable Camera and SSH interfaces. If you prefer to enable them manually:
+
+```bash
+# Using raspi-config (recommended)
+sudo raspi-config
+# Navigate to: Interface Options → Camera → Enable
+# Navigate to: Interface Options → SSH → Enable
+
+# Or enable via command line
+sudo raspi-config nonint do_camera 0
+sudo raspi-config nonint do_ssh 0
+```
+
+**Note**: After enabling Camera interface, a reboot may be required.
+
 ### 1. Clone Repository
 
 ```bash
@@ -24,9 +48,11 @@ cd project-leroy
 ```
 
 This will:
+- Enable required interfaces (Camera, SSH)
 - Set up Python virtual environment
 - Install system dependencies (Hailo SDK, rpicam-apps, nginx)
 - Install Python packages
+- Configure PCIe for AI Kit
 - Configure systemd service
 - Set up cron jobs
 - Configure and start nginx
