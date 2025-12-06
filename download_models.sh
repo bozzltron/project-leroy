@@ -312,12 +312,50 @@ echo "=========================================="
 echo "Next Steps"
 echo "=========================================="
 echo ""
+
+# Check if we have at least one detection model
+if [ $DETECTION_DOWNLOADED -eq 0 ]; then
+    echo "⚠⚠⚠ WARNING: NO DETECTION MODEL DOWNLOADED ⚠⚠⚠"
+    echo ""
+    echo "The service CANNOT run without a detection model!"
+    echo ""
+    echo "You must download a model before starting the service."
+    echo ""
+    echo "Quick fix options:"
+    echo "1. Check Raspberry Pi AI Kit documentation for model downloads:"
+    echo "   https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+    echo ""
+    echo "2. Check Hailo Developer Zone:"
+    echo "   https://hailo.ai/developer-zone/"
+    echo ""
+    echo "3. If you have Hailo Dataflow Compiler, convert TFLite models:"
+    echo "   ./convert_models.sh"
+    echo ""
+    echo "4. Manually download HEF files and place in all_models/ directory"
+    echo ""
+    exit 1
+else
+    echo "✓ Detection model ready!"
+fi
+
+if [ $CLASSIFICATION_DOWNLOADED -eq 0 ]; then
+    echo "⚠ Classification model not downloaded (optional for now)"
+    echo "  You can download it later or convert from TFLite"
+else
+    echo "✓ Classification model ready!"
+fi
+
+echo ""
 echo "Models are ready to use! No conversion needed."
 echo ""
 echo "Default models in code:"
-echo "  - Detection: ssd_mobilenet_v2_coco.hef (or yolov5s.hef if downloaded)"
-echo "  - Classification: mobilenet_v2_1.0_224_inat_bird.hef"
-echo ""
-echo "If you downloaded YOLOv5s, update the model path in leroy.py:"
-echo "  --model all_models/yolov5s.hef"
+if [ -f "yolov5s.hef" ]; then
+    echo "  - Detection: yolov5s.hef (YOLOv5s - better accuracy)"
+elif [ -f "ssd_mobilenet_v2_coco.hef" ]; then
+    echo "  - Detection: ssd_mobilenet_v2_coco.hef (SSD MobileNet v2)"
+fi
+
+if [ -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
+    echo "  - Classification: mobilenet_v2_1.0_224_inat_bird.hef"
+fi
 echo ""
