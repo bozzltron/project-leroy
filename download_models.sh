@@ -57,14 +57,19 @@ if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
     # Try each possible path for YOLOv5s
     for path in "${DETECTION_MODEL_PATHS[@]}"; do
         echo "  Trying: $path"
-        if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "yolov5s.hef" 2>/dev/null; then
-            if [ -s "yolov5s.hef" ]; then
-                echo "✓ Detection model downloaded (YOLOv5s) from: $path"
+        if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "yolov5s.hef.tmp" 2>&1; then
+            if [ -s "yolov5s.hef.tmp" ]; then
+                mv "yolov5s.hef.tmp" "yolov5s.hef"
+                size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                echo "✓ Detection model downloaded (YOLOv5s) from: $path (size: $size bytes)"
                 DETECTION_DOWNLOADED=1
                 break
             else
-                rm -f "yolov5s.hef"
+                rm -f "yolov5s.hef.tmp"
+                echo "  ⚠ Downloaded file is empty, trying next path..."
             fi
+        else
+            rm -f "yolov5s.hef.tmp"
         fi
     done
     
@@ -73,14 +78,19 @@ if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
         echo "WARNING: Failed to download YOLOv5s, trying SSD MobileNet v2..."
         for path in "${ALTERNATIVE_DETECTION_PATHS[@]}"; do
             echo "  Trying: $path"
-            if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "ssd_mobilenet_v2_coco.hef" 2>/dev/null; then
-                if [ -s "ssd_mobilenet_v2_coco.hef" ]; then
-                    echo "✓ Detection model downloaded (SSD MobileNet v2 fallback) from: $path"
+            if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "ssd_mobilenet_v2_coco.hef.tmp" 2>&1; then
+                if [ -s "ssd_mobilenet_v2_coco.hef.tmp" ]; then
+                    mv "ssd_mobilenet_v2_coco.hef.tmp" "ssd_mobilenet_v2_coco.hef"
+                    size=$(stat -f%z "ssd_mobilenet_v2_coco.hef" 2>/dev/null || stat -c%s "ssd_mobilenet_v2_coco.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Detection model downloaded (SSD MobileNet v2 fallback) from: $path (size: $size bytes)"
                     DETECTION_DOWNLOADED=1
                     break
                 else
-                    rm -f "ssd_mobilenet_v2_coco.hef"
+                    rm -f "ssd_mobilenet_v2_coco.hef.tmp"
+                    echo "  ⚠ Downloaded file is empty, trying next path..."
                 fi
+            else
+                rm -f "ssd_mobilenet_v2_coco.hef.tmp"
             fi
         done
     fi
@@ -117,14 +127,19 @@ if [ ! -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
     # Try each possible path
     for path in "${CLASSIFICATION_MODEL_PATHS[@]}"; do
         echo "  Trying: $path"
-        if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null; then
-            if [ -s "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
-                echo "✓ Classification model downloaded (MobileNet v2) from: $path"
+        if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "mobilenet_v2_1.0_224_inat_bird.hef.tmp" 2>&1; then
+            if [ -s "mobilenet_v2_1.0_224_inat_bird.hef.tmp" ]; then
+                mv "mobilenet_v2_1.0_224_inat_bird.hef.tmp" "mobilenet_v2_1.0_224_inat_bird.hef"
+                size=$(stat -f%z "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || stat -c%s "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || echo "unknown")
+                echo "✓ Classification model downloaded (MobileNet v2) from: $path (size: $size bytes)"
                 CLASSIFICATION_DOWNLOADED=1
                 break
             else
-                rm -f "mobilenet_v2_1.0_224_inat_bird.hef"
+                rm -f "mobilenet_v2_1.0_224_inat_bird.hef.tmp"
+                echo "  ⚠ Downloaded file is empty, trying next path..."
             fi
+        else
+            rm -f "mobilenet_v2_1.0_224_inat_bird.hef.tmp"
         fi
     done
     

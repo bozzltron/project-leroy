@@ -719,12 +719,32 @@ echo "=========================================="
 echo "Model Installation"
 echo "=========================================="
 
-# Check if HEF models already exist
+# Check if HEF models already exist and are valid (non-empty)
+VALID_MODELS=0
 if [ "$(ls -A all_models/*.hef 2>/dev/null)" ]; then
-    echo "HEF models found in all_models/"
-    echo "Skipping model download"
-else
-    echo "HEF models not found."
+    # Check each HEF file to ensure it's not empty
+    for hef_file in all_models/*.hef; do
+        if [ -f "$hef_file" ] && [ -s "$hef_file" ]; then
+            VALID_MODELS=$((VALID_MODELS + 1))
+        else
+            echo "⚠ Found empty or invalid HEF file: $hef_file"
+            echo "  Removing empty file..."
+            rm -f "$hef_file"
+        fi
+    done
+    
+    if [ $VALID_MODELS -gt 0 ]; then
+        echo "✓ Found $VALID_MODELS valid HEF model(s) in all_models/"
+        echo "Skipping model download"
+    else
+        echo "⚠ HEF files found but all are empty or invalid"
+        echo "Will re-download models..."
+    fi
+fi
+
+# Download models if none are valid
+if [ $VALID_MODELS -eq 0 ]; then
+    echo "HEF models not found or invalid."
     echo ""
     read -p "Download HEF models from Hailo Model Zoo now? (Y/n) " -n 1 -r
     echo
@@ -732,6 +752,27 @@ else
         if [ -f "download_models.sh" ]; then
             echo "Running download_models.sh..."
             bash download_models.sh
+            
+            # Verify downloads were successful
+            echo ""
+            echo "Verifying downloaded models..."
+            DOWNLOADED_COUNT=0
+            for hef_file in all_models/*.hef; do
+                if [ -f "$hef_file" ] && [ -s "$hef_file" ]; then
+                    size=$(stat -f%z "$hef_file" 2>/dev/null || stat -c%s "$hef_file" 2>/dev/null || echo "0")
+                    echo "  ✓ $(basename "$hef_file"): $size bytes"
+                    DOWNLOADED_COUNT=$((DOWNLOADED_COUNT + 1))
+                fi
+            done
+            
+            if [ $DOWNLOADED_COUNT -eq 0 ]; then
+                echo ""
+                echo "⚠ WARNING: No valid models were downloaded!"
+                echo "Please check the download output above for errors."
+                echo "You can try downloading manually: ./download_models.sh"
+            else
+                echo "✓ Successfully downloaded $DOWNLOADED_COUNT model(s)"
+            fi
         else
             echo "ERROR: download_models.sh not found"
             echo "Please download models manually from Hailo Model Zoo:"
