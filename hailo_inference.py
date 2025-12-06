@@ -11,7 +11,7 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 try:
-    from hailo_platform import Device, InferVStreams, InferModel
+    from hailo_platform import Device, InferVStreams
     HAILO_AVAILABLE = True
     HAILO_IMPORT_ERROR = None
 except ImportError as e:
@@ -41,7 +41,7 @@ class HailoInference:
             
             # Try importing again at runtime (in case environment changed)
             try:
-                from hailo_platform import Device, InferVStreams, InferModel
+                from hailo_platform import Device, InferVStreams
                 # Success! Update the global flag
                 HAILO_AVAILABLE = True
                 logger.info("Hailo SDK successfully imported at runtime")
