@@ -179,10 +179,18 @@ else
     SKIP_REINSTALL=false
 fi
 
-# Step 7: Reinstall hailo-all (if repository is available)
+# Step 7: Reinstall dkms and hailo-all (if repository is available)
 if [ "$SKIP_REINSTALL" != "true" ]; then
     echo ""
-    echo "7. Reinstalling hailo-all..."
+    echo "7. Installing dkms (required for Hailo kernel modules)..."
+    if apt-get install -y dkms; then
+        echo "   ✓ dkms installed"
+    else
+        echo "   ⚠ Failed to install dkms (may cause issues)"
+    fi
+    
+    echo ""
+    echo "8. Reinstalling hailo-all..."
     if apt-get install -y hailo-all; then
         echo "   ✓ hailo-all installed"
     else

@@ -276,7 +276,17 @@ if [ "$HAILO_INSTALLED" = false ]; then
         echo "  - Repository requires authentication"
     fi
     
-    # Try to install hailo-all (includes everything)
+    # Install dkms first (required for Hailo kernel modules)
+    echo ""
+    echo "Installing dkms (required for Hailo kernel modules)..."
+    if sudo apt-get install -y dkms; then
+        echo "✓ dkms installed"
+    else
+        echo "⚠ Failed to install dkms"
+        echo "  This may cause issues with Hailo kernel modules"
+    fi
+    
+    # Install hailo-all (includes everything)
     echo ""
     echo "Installing hailo-all package..."
     if sudo apt-get install -y hailo-all; then
@@ -285,25 +295,17 @@ if [ "$HAILO_INSTALLED" = false ]; then
     else
         echo "⚠ Failed to install hailo-all"
         echo ""
-        echo "Trying alternative: installing individual packages..."
-        if sudo apt-get install -y hailo-platform-python3 2>/dev/null; then
-            echo "✓ hailo-platform-python3 installed"
-            HAILO_INSTALLED=true
-        else
-            echo "⚠ Could not install Hailo packages"
-            echo ""
-            echo "Please check:"
-            echo "  1. Network connectivity"
-            echo "  2. Repository URL: $HAILO_REPO_URL"
-            echo "  3. Official Raspberry Pi AI Kit guide:"
-            echo "     https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
-            echo ""
-            read -p "Continue with rest of installation? (y/N) " -n 1 -r
-            echo
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                echo "Installation cancelled. Please install AI Kit first."
-                exit 1
-            fi
+        echo "Please check:"
+        echo "  1. Network connectivity"
+        echo "  2. Repository URL: $HAILO_REPO_URL"
+        echo "  3. Official Raspberry Pi AI Kit guide:"
+        echo "     https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+        echo ""
+        read -p "Continue with rest of installation? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Installation cancelled. Please install AI Kit first."
+            exit 1
         fi
     fi
 fi
@@ -417,13 +419,20 @@ if [ "$HAILO_INSTALLED" = true ] || command -v hailortcli &> /dev/null; then
     fi
 fi
 
-# Verify AI Kit installation
+# Verify AI Kit installation (per official documentation)
 echo ""
 echo "Verifying AI Kit installation..."
 if command -v hailortcli &> /dev/null; then
-    echo "Running hailortcli fw-control identify..."
-    if sudo hailortcli fw-control identify 2>/dev/null; then
+    echo "Running: sudo hailortcli fw-control identify"
+    IDENTIFY_OUTPUT=$(sudo hailortcli fw-control identify 2>&1 || true)
+    if echo "$IDENTIFY_OUTPUT" | grep -q "Driver version.*is different"; then
+        echo "⚠ Driver version mismatch detected"
+        echo "  This indicates a version conflict between driver and library"
+        echo "  Run: sudo ./fix_hailo_version.sh to resolve"
+        PCIE_REBOOT_NEEDED=true
+    elif [ $? -eq 0 ] && [ -n "$IDENTIFY_OUTPUT" ]; then
         echo "✓ AI Kit hardware detected and working"
+        echo "$IDENTIFY_OUTPUT" | head -5  # Show first few lines of output
     else
         echo "⚠ AI Kit hardware not detected (may need reboot)"
         echo "This is normal if PCIe was just configured - reboot required"
@@ -431,6 +440,7 @@ if command -v hailortcli &> /dev/null; then
     fi
 else
     echo "⚠ hailortcli not found (AI Kit may not be fully installed)"
+    echo "  Verify installation with: sudo apt list --installed | grep hailo"
 fi
 
 # Check and enable HailoRT service (needed for multi-process inference)

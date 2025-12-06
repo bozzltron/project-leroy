@@ -35,9 +35,18 @@ if apt-get update 2>&1 | grep -q "404\|Not Found"; then
     exit 1
 fi
 
+# Install dkms first (required for Hailo kernel modules)
+echo ""
+echo "3. Installing dkms (required for Hailo kernel modules)..."
+if apt-get install -y dkms; then
+    echo "   ✓ dkms installed"
+else
+    echo "   ⚠ Failed to install dkms (may cause issues)"
+fi
+
 # Install hailo-all
 echo ""
-echo "3. Installing hailo-all..."
+echo "4. Installing hailo-all..."
 if apt-get install -y hailo-all; then
     echo "   ✓ hailo-all installed"
 else
@@ -45,16 +54,22 @@ else
     exit 1
 fi
 
-# Verify
+# Verify (per official documentation)
 echo ""
-echo "4. Verifying installation..."
+echo "5. Verifying installation..."
 if command -v hailortcli &> /dev/null; then
-    echo "   Testing: hailortcli fw-control identify"
-    if sudo hailortcli fw-control identify 2>&1 | grep -q "Driver version.*is different"; then
+    echo "   Running: sudo hailortcli fw-control identify"
+    IDENTIFY_OUTPUT=$(sudo hailortcli fw-control identify 2>&1 || true)
+    if echo "$IDENTIFY_OUTPUT" | grep -q "Driver version.*is different"; then
         echo "   ⚠ Version mismatch still present - reboot required"
-    else
+    elif [ -n "$IDENTIFY_OUTPUT" ]; then
         echo "   ✓ Installation verified"
+        echo "$IDENTIFY_OUTPUT" | head -5  # Show first few lines
+    else
+        echo "   ⚠ Could not verify (may need reboot)"
     fi
+else
+    echo "   ⚠ hailortcli not found"
 fi
 
 echo ""
