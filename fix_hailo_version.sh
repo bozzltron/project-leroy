@@ -38,7 +38,7 @@ else
     echo "   ⚠ hailortcli not found - cannot check current status"
 fi
 
-# Step 2: Remove all Hailo packages
+# Step 2: Remove all Hailo packages (thorough cleanup)
 echo ""
 echo "2. Removing all Hailo packages..."
 apt-get remove --purge -y \
@@ -48,26 +48,49 @@ apt-get remove --purge -y \
     hailort-pcie-driver \
     2>/dev/null || true
 
-# Also try removing any other hailo packages
+# Remove any other hailo packages
 apt-get remove --purge -y $(dpkg -l | grep hailo | awk '{print $2}') 2>/dev/null || true
+
+# Clean up package cache
+apt-get autoremove -y 2>/dev/null || true
 
 echo "   ✓ Packages removed"
 
-# Step 3: Remove kernel modules (if any)
+# Step 3: Clean up Hailo directories (per Hailo community recommendations)
 echo ""
-echo "3. Removing Hailo kernel modules..."
+echo "3. Cleaning up Hailo directories..."
+rm -rf /opt/hailo \
+       /usr/local/hailo \
+       /usr/share/hailo \
+       ~/.hailo \
+       /lib/firmware/hailo \
+       /etc/hailo* \
+       2>/dev/null || true
+echo "   ✓ Directories cleaned"
+
+# Step 4: Remove kernel modules and driver (per Hailo community recommendations)
+echo ""
+echo "4. Removing Hailo kernel modules and driver..."
+# Try to unload the module first
+rmmod hailo_pci 2>/dev/null || true
+
+# Remove kernel modules
 find /lib/modules/ -name "hailo*.ko*" -delete 2>/dev/null || true
+rm -rf /lib/modules/$(uname -r)/kernel/drivers/misc/hailo_pci.ko* 2>/dev/null || true
+
+# Update module dependencies
 depmod -a 2>/dev/null || true
+
 echo "   ✓ Kernel modules removed"
 
-# Step 4: Update package list
+# Step 5: Update package list
 echo ""
-echo "4. Updating package list..."
+echo "5. Updating package list..."
 apt-get update
 
-# Step 5: Reinstall hailo-all
+# Step 6: Reinstall hailo-all
 echo ""
-echo "5. Reinstalling hailo-all..."
+echo "6. Reinstalling hailo-all..."
 if apt-get install -y hailo-all; then
     echo "   ✓ hailo-all installed"
 else
@@ -80,9 +103,9 @@ else
     exit 1
 fi
 
-# Step 6: Verify installation
+# Step 7: Verify installation
 echo ""
-echo "6. Verifying installation..."
+echo "7. Verifying installation..."
 sleep 2  # Give system a moment to register new packages
 
 if command -v hailortcli &> /dev/null; then
@@ -103,7 +126,7 @@ else
     echo "   ⚠ hailortcli not found after installation"
 fi
 
-# Step 7: Reboot prompt
+# Step 8: Reboot prompt
 echo ""
 echo "=========================================="
 echo "REBOOT REQUIRED"
