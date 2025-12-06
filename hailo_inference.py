@@ -101,10 +101,64 @@ class HailoInference:
             return
         
         try:
+            # Check if device is accessible first
+            import subprocess
+            try:
+                result = subprocess.run(
+                    ['hailortcli', 'fw-control', 'identify'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode != 0:
+                    logger.warning(f"hailortcli identify failed: {result.stderr}")
+                    logger.warning("Hailo device may not be accessible. Continuing anyway...")
+                else:
+                    logger.info(f"Hailo device identified: {result.stdout.strip()}")
+            except FileNotFoundError:
+                logger.warning("hailortcli not found - cannot verify device before initialization")
+            except Exception as e:
+                logger.warning(f"Could not verify device with hailortcli: {e}")
+            
+            # Try to initialize device
             self.device = Device()
             logger.info("Hailo device initialized successfully")
             self._initialized = True
         except Exception as e:
+            error_code = None
+            error_msg = str(e)
+            
+            # Try to extract error code from HailoRTStatusException
+            if hasattr(e, 'status') or '76' in error_msg:
+                error_code = 76
+                logger.error("HailoRTStatusException: 76 - Device not found or not accessible")
+                logger.error("")
+                logger.error("Troubleshooting steps:")
+                logger.error("1. Verify AI Kit hardware is connected:")
+                logger.error("   sudo hailortcli fw-control identify")
+                logger.error("")
+                logger.error("2. Check if HailoRT service is running:")
+                logger.error("   sudo systemctl status hailort")
+                logger.error("   sudo systemctl start hailort  # if not running")
+                logger.error("")
+                logger.error("3. Verify PCIe connection (for Raspberry Pi AI Kit):")
+                logger.error("   dmesg | grep -i hailo")
+                logger.error("   lspci | grep -i hailo")
+                logger.error("")
+                logger.error("4. Check if device needs to be reset:")
+                logger.error("   sudo hailortcli fw-control reset")
+                logger.error("")
+                logger.error("5. Verify AI Kit installation:")
+                logger.error("   - Check /boot/firmware/config.txt has: dtparam=pcie_gen3=1")
+                logger.error("   - Reboot may be required after PCIe configuration")
+                logger.error("")
+                logger.error("6. Check permissions (user may need to be in video group):")
+                logger.error("   groups")
+                logger.error("   sudo usermod -aG video $USER  # if not in video group")
+                logger.error("")
+                logger.error("For more help, see:")
+                logger.error("https://www.raspberrypi.com/documentation/accessories/ai-kit.html")
+            
             logger.error(f"Failed to initialize Hailo device: {e}")
             raise
     
