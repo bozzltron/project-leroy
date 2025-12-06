@@ -373,11 +373,48 @@ fi
 echo ""
 echo "Ensuring Hailo packages are in sync..."
 if [ "$HAILO_INSTALLED" = true ] || command -v hailortcli &> /dev/null; then
-    echo "Reinstalling hailo-all to ensure driver/library versions match..."
-    sudo apt-get update
-    sudo apt-get install --reinstall -y hailo-all || {
-        echo "⚠ Failed to reinstall hailo-all, but continuing..."
-    }
+    echo "Checking for driver/library version mismatch..."
+    
+    # Check current versions
+    IDENTIFY_OUTPUT=$(sudo hailortcli fw-control identify 2>&1 || true)
+    if echo "$IDENTIFY_OUTPUT" | grep -q "Driver version.*is different from library version"; then
+        echo "⚠ Driver version mismatch detected - fixing..."
+        echo ""
+        echo "Removing all Hailo packages for clean reinstall..."
+        sudo apt-get remove --purge -y hailo-all hailort hailo-platform-python3 2>/dev/null || true
+        
+        echo "Updating package list..."
+        sudo apt-get update
+        
+        echo "Reinstalling hailo-all..."
+        if sudo apt-get install -y hailo-all; then
+            echo "✓ hailo-all reinstalled"
+            echo ""
+            echo "⚠ REBOOT REQUIRED to load new driver"
+            echo "After reboot, verify with: sudo hailortcli fw-control identify"
+            echo ""
+            read -p "Reboot now? (y/N) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo "Rebooting in 5 seconds..."
+                sleep 5
+                sudo reboot
+                exit 0
+            else
+                echo "Please reboot manually before using the service"
+            fi
+        else
+            echo "⚠ Failed to reinstall hailo-all"
+            echo "You may need to manually fix the version mismatch"
+        fi
+    else
+        echo "✓ No version mismatch detected (or device not accessible yet)"
+        echo "Reinstalling hailo-all to ensure everything is up to date..."
+        sudo apt-get update
+        sudo apt-get install --reinstall -y hailo-all || {
+            echo "⚠ Failed to reinstall hailo-all, but continuing..."
+        }
+    fi
 fi
 
 # Verify AI Kit installation

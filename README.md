@@ -267,6 +267,36 @@ See `.cursor/rules/social-media-posting.mdc` for complete posting rules.
    - **Hailo SDK not found**: Verify AI Kit is properly installed
    - **Models missing**: Run `./download_models.sh` to download required models
    - **Virtual environment missing**: Re-run `./install-pi5.sh`
+   - **Driver version mismatch (error 76)**: See "Hailo Driver Version Mismatch" below
+
+### Hailo Driver Version Mismatch (Error 76)
+
+If you see `HAILO_INVALID_DRIVER_VERSION(76)` or "Driver version is different from library version":
+
+**Quick Fix:**
+```bash
+# Remove all Hailo packages
+sudo apt-get remove --purge -y hailo-all hailort hailo-platform-python3
+
+# Update and reinstall
+sudo apt-get update
+sudo apt-get install -y hailo-all
+
+# REBOOT (required!)
+sudo reboot
+
+# After reboot, verify
+sudo hailortcli fw-control identify
+# Should NOT show version mismatch
+```
+
+**Or run the install script again:**
+```bash
+./install-pi5.sh
+# It will detect and fix the version mismatch automatically
+```
+
+**Why this happens:** After system updates, the Hailo driver and library can get out of sync. The driver loads at boot, so a reboot is required after reinstalling.
 
 ### Service Keeps Restarting
 
@@ -279,6 +309,7 @@ Common causes:
 - Camera initialization failure
 - Hailo model loading error
 - Missing dependencies
+- Driver version mismatch (see above)
 
 ### Camera Diagnostics
 
