@@ -273,10 +273,25 @@ See `.cursor/rules/social-media-posting.mdc` for complete posting rules.
 
 If you see `HAILO_INVALID_DRIVER_VERSION(76)` or "Driver version is different from library version":
 
-**Quick Fix:**
+**Recommended Fix (Automated):**
+```bash
+sudo ./fix_hailo_version.sh
+```
+This script will:
+- Detect the version mismatch
+- Remove all Hailo packages completely
+- Remove kernel modules
+- Reinstall hailo-all
+- Prompt for reboot
+
+**Manual Fix:**
 ```bash
 # Remove all Hailo packages
 sudo apt-get remove --purge -y hailo-all hailort hailo-platform-python3
+
+# Remove kernel modules
+sudo find /lib/modules/ -name "hailo*.ko*" -delete
+sudo depmod -a
 
 # Update and reinstall
 sudo apt-get update
@@ -296,7 +311,7 @@ sudo hailortcli fw-control identify
 # It will detect and fix the version mismatch automatically
 ```
 
-**Why this happens:** After system updates, the Hailo driver and library can get out of sync. The driver loads at boot, so a reboot is required after reinstalling.
+**Why this happens:** After system updates, the Hailo driver and library can get out of sync. The driver loads at boot, so a reboot is required after reinstalling. The kernel modules must be removed for a clean reinstall.
 
 ### Service Keeps Restarting
 
