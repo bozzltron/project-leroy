@@ -1,14 +1,24 @@
 [Unit]
-Description=Leroy
-After=multi-user.target
+Description=Project Leroy Bird Detection Service
+After=multi-user.target network.target
 
 [Service]
-Type=idle
+Type=simple
 WorkingDirectory=/home/leroy/Projects/project-leroy
 ExecStart=/home/leroy/Projects/project-leroy/run.sh
-Restart=on-abort
+Restart=on-failure
+RestartSec=10
 User=leroy
+Group=leroy
+
+# Environment variables
 Environment=DISPLAY=:0
+Environment="PATH=/home/leroy/Projects/project-leroy/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=leroy
 
 [Install]
 WantedBy=multi-user.target

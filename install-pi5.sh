@@ -553,6 +553,7 @@ echo "Project directory: $PROJECT_DIR"
 # Install systemd service (with dynamic paths)
 echo "Installing systemd service..."
 # Create service file with current directory
+# Replace the base path (this will also update PATH environment variable)
 sed "s|/home/leroy/Projects/project-leroy|$PROJECT_DIR|g" service/leroy.service > /tmp/leroy.service
 sudo cp /tmp/leroy.service /etc/systemd/system/leroy.service
 sudo chmod 644 /etc/systemd/system/leroy.service
