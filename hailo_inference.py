@@ -95,13 +95,49 @@ class HailoInference:
         self.classification_network = None
         self._initialized = False
     
-    def initialize(self):
-        """Initialize Hailo device."""
+    def initialize(self, device_id: Optional[str] = None):
+        """
+        Initialize Hailo device.
+        
+        Args:
+            device_id: Optional device ID to use. If None, uses default device.
+        """
         if self._initialized:
             return
         
+        # First, check if device is accessible via hailortcli
+        import subprocess
         try:
-            self.device = Device()
+            result = subprocess.run(
+                ['hailortcli', 'fw-control', 'identify'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode != 0:
+                # Check for driver version mismatch
+                if 'Driver version' in result.stderr and 'library version' in result.stderr:
+                    logger.error("Driver/library version mismatch detected.")
+                    logger.error("Run: sudo apt-get install --reinstall hailo-all && sudo reboot")
+                    raise RuntimeError("Driver version mismatch - reinstall hailo-all and reboot")
+                else:
+                    logger.warning(f"hailortcli identify failed: {result.stderr}")
+            else:
+                logger.info(f"Hailo device identified: {result.stdout.strip()}")
+        except FileNotFoundError:
+            logger.warning("hailortcli not found - cannot verify device before initialization")
+        except Exception as e:
+            logger.warning(f"Could not verify device with hailortcli: {e}")
+        
+        try:
+            # Try to initialize device (with or without device_id)
+            if device_id is not None:
+                logger.info(f"Initializing Hailo device with ID: {device_id}")
+                self.device = Device(device_id=device_id)
+            else:
+                logger.info("Initializing Hailo device (default)")
+                self.device = Device()
+            
             logger.info("Hailo device initialized successfully")
             self._initialized = True
         except Exception as e:
@@ -112,14 +148,20 @@ class HailoInference:
             if '76' in error_msg or 'INVALID_DRIVER_VERSION' in error_msg or 'Driver version' in error_msg:
                 logger.error("")
                 logger.error("Driver/library version mismatch detected.")
-                logger.error("Run install script to fix: ./install-pi5.sh")
-                logger.error("Or manually: sudo apt-get install --reinstall hailo-all && sudo reboot")
+                logger.error("This MUST be fixed before the service can run:")
+                logger.error("  1. Run: sudo apt-get update")
+                logger.error("  2. Run: sudo apt-get install --reinstall hailo-all")
+                logger.error("  3. Reboot: sudo reboot")
+                logger.error("  4. Verify: sudo hailortcli fw-control identify")
+                logger.error("")
+                logger.error("The install script should have done this - if it didn't, run it again.")
             else:
                 logger.error("")
                 logger.error("Device not accessible. Check:")
                 logger.error("  1. Hardware connected: sudo hailortcli fw-control identify")
                 logger.error("  2. PCIe configured: grep pcie_gen3 /boot/firmware/config.txt")
-                logger.error("  3. Reboot may be required after installation")
+                logger.error("  3. Try specifying device ID if multiple devices: Device(device_id='...')")
+                logger.error("  4. Reboot may be required after installation")
             
             raise
     
