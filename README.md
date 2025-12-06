@@ -318,13 +318,34 @@ sudo hailortcli fw-control identify
 If you see `404 Not Found` when updating packages, the Hailo repository may be:
 - Temporarily unavailable
 - Not supporting your OS version (trixie/sid)
+- Repository URL has changed
 
-**Workaround:**
-1. Check if packages are already installed: `dpkg -l | grep hailo`
-2. If installed, try rebooting first - sometimes fixes version mismatch
-3. Check official Raspberry Pi AI Kit guide for latest repository info:
+**If packages were removed but repository unavailable:**
+
+1. **Check if packages are in Raspberry Pi's repository:**
+   ```bash
+   apt-cache search hailo
+   ```
+
+2. **Check official Raspberry Pi AI Kit guide** for latest repository info:
    https://www.raspberrypi.com/documentation/accessories/ai-kit.html
-4. The fix script will detect repository issues and provide guidance
+
+3. **Once repository is available, restore packages:**
+   ```bash
+   sudo ./restore_hailo_from_repo.sh
+   ```
+
+4. **Or manually:**
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y hailo-all
+   sudo reboot
+   ```
+
+**Note:** If you're on Debian 13 (trixie), the Hailo repository may not support it yet. You may need to:
+- Wait for Hailo to add support
+- Use a different OS version (bookworm/bullseye)
+- Check Hailo Developer Zone for alternative installation methods
 
 ### Service Keeps Restarting
 

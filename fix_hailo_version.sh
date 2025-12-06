@@ -153,7 +153,26 @@ if apt-get update 2>&1 | grep -q "404\|Not Found"; then
         SKIP_REINSTALL=true
     else
         echo "   ✗ Hailo packages not installed and repository unavailable"
-        echo "   Cannot proceed without repository access"
+        echo ""
+        echo "   Repository is returning 404 - this could mean:"
+        echo "   1. Repository is temporarily down"
+        echo "   2. Repository URL has changed"
+        echo "   3. Your OS version (trixie) is not supported"
+        echo ""
+        echo "   Next steps:"
+        echo "   1. Check official Raspberry Pi AI Kit installation guide:"
+        echo "      https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+        echo ""
+        echo "   2. Try alternative repository URL (if available):"
+        echo "      Check Hailo Developer Zone: https://hailo.ai/developer-zone/"
+        echo ""
+        echo "   3. Wait and retry later (repository may be temporarily down)"
+        echo ""
+        echo "   4. Check if packages are in Raspberry Pi's official repository:"
+        echo "      apt-cache search hailo"
+        echo ""
+        echo "   The cleanup has been completed. Once repository is available,"
+        echo "   you can reinstall with: sudo apt-get install -y hailo-all"
         exit 1
     fi
 else
