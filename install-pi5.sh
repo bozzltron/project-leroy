@@ -344,7 +344,8 @@ if [ -d "venv" ]; then
     echo "Virtual environment already exists, removing old one..."
     rm -rf venv
 fi
-$PYTHON3_CMD -m venv venv
+# Use --system-site-packages to access system-installed packages (like Hailo SDK)
+$PYTHON3_CMD -m venv --system-site-packages venv
 source venv/bin/activate
 
 # Upgrade pip
