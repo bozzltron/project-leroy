@@ -315,6 +315,26 @@ else
     echo "⚠ hailortcli not found (AI Kit may not be fully installed)"
 fi
 
+# Check and enable HailoRT service (needed for multi-process inference)
+echo ""
+echo "Checking HailoRT service..."
+if systemctl list-unit-files | grep -q "hailort.service"; then
+    if ! systemctl is-active --quiet hailort.service; then
+        echo "Starting HailoRT service..."
+        sudo systemctl enable hailort.service
+        sudo systemctl start hailort.service
+        if systemctl is-active --quiet hailort.service; then
+            echo "✓ HailoRT service started"
+        else
+            echo "⚠ HailoRT service failed to start (may not be needed for single-process)"
+        fi
+    else
+        echo "✓ HailoRT service is already running"
+    fi
+else
+    echo "Note: HailoRT service not found (may not be installed or needed)"
+fi
+
 # Warn about reboot if needed
 if [ "$PCIE_REBOOT_NEEDED" = true ]; then
     echo ""

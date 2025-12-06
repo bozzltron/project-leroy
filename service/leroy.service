@@ -1,19 +1,25 @@
 [Unit]
 Description=Project Leroy Bird Detection Service
 After=multi-user.target network.target
+# HailoRT service may be needed for device access
+Wants=hailort.service
 
 [Service]
 Type=simple
 WorkingDirectory=/home/leroy/Projects/project-leroy
+# Use run.sh for setup, then it will exec the venv Python directly
 ExecStart=/home/leroy/Projects/project-leroy/run.sh
 Restart=on-failure
 RestartSec=10
 User=leroy
 Group=leroy
 
-# Environment variables
+# Environment variables - critical for venv and system packages
 Environment=DISPLAY=:0
+Environment="VIRTUAL_ENV=/home/leroy/Projects/project-leroy/venv"
 Environment="PATH=/home/leroy/Projects/project-leroy/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# PYTHONPATH not needed with --system-site-packages, but set it for safety
+# Note: Python version in path will be auto-detected by run.sh
 
 # Logging
 StandardOutput=journal

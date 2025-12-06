@@ -98,8 +98,23 @@ elif [ "$LEROY_AUTO_LAUNCH_BROWSER" != "true" ]; then
 fi
 
 # Run detection service
+# Use explicit path to venv Python - this is the recommended approach for systemd
+VENV_PYTHON="$SCRIPT_DIR/venv/bin/python3"
+if [ ! -f "$VENV_PYTHON" ]; then
+    echo "ERROR: Virtual environment Python not found at $VENV_PYTHON"
+    exit 1
+fi
+
 echo "Starting detection service..."
-echo "Using Python: $(which python3)"
-echo "Python version: $(python3 --version)"
-# Use explicit path to venv Python to ensure we're using the right one
-"$VIRTUAL_ENV/bin/python3" leroy.py
+echo "Using Python: $VENV_PYTHON"
+echo "Python version: $($VENV_PYTHON --version)"
+
+# Verify Hailo SDK one more time with explicit Python path
+if ! "$VENV_PYTHON" -c "from hailo_platform import Device" 2>/dev/null; then
+    echo "ERROR: Hailo SDK not accessible with $VENV_PYTHON"
+    echo "This Python should have access to system packages via --system-site-packages"
+    exit 1
+fi
+
+# Execute Python directly (don't use exec, let systemd manage the process)
+exec "$VENV_PYTHON" leroy.py
