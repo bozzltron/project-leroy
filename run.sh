@@ -52,4 +52,7 @@ fi
 
 # Run detection service
 echo "Starting detection service..."
-python3 leroy.py
+echo "Using Python: $(which python3)"
+echo "Python version: $(python3 --version)"
+# Use explicit path to venv Python to ensure we're using the right one
+"$VIRTUAL_ENV/bin/python3" leroy.py
