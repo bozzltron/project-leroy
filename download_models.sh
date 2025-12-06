@@ -11,7 +11,11 @@ mkdir -p "$MODELS_DIR"
 cd "$MODELS_DIR"
 
 # Hailo Model Zoo provides pre-compiled HEF files
-# Try multiple repository paths and branches
+# Primary source: Hailo S3 bucket (official pre-compiled models)
+HAILO_S3_BASE="https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled"
+HAILO_VERSIONS=("v2.15" "v2.14" "v2.13" "v2.12")
+
+# Fallback: GitHub repository
 HAILO_MODEL_ZOO_BASE="https://github.com/hailo-ai/hailo_model_zoo/raw"
 HAILO_BRANCHES=("v2.15" "main" "master")
 
@@ -42,75 +46,124 @@ DETECTION_DOWNLOADED=0
 if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
     echo "Downloading detection model..."
     
-    # Try each branch and path combination
-    for branch in "${HAILO_BRANCHES[@]}"; do
-        for path in "${DETECTION_MODEL_PATHS[@]}"; do
-            url="${HAILO_MODEL_ZOO_BASE}/${branch}/${path}"
-            if wget -q --show-progress "$url" -O "yolov5s.hef.tmp" 2>&1; then
-                if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
-                    mv "yolov5s.hef.tmp" "yolov5s.hef"
-                    size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
-                    echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
-                    DETECTION_DOWNLOADED=1
-                    break 2
-                fi
-            elif curl -L -f -s "$url" -o "yolov5s.hef.tmp" 2>/dev/null; then
-                if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
-                    mv "yolov5s.hef.tmp" "yolov5s.hef"
-                    size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
-                    echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
-                    DETECTION_DOWNLOADED=1
-                    break 2
-                fi
+    # Method 1: Try Hailo S3 bucket (official pre-compiled models for Hailo-8L)
+    for version in "${HAILO_VERSIONS[@]}"; do
+        url="${HAILO_S3_BASE}/${version}/hailo8l/yolov5s.hef"
+        if wget -q --show-progress "$url" -O "yolov5s.hef.tmp" 2>&1; then
+            if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                mv "yolov5s.hef.tmp" "yolov5s.hef"
+                size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
+                DETECTION_DOWNLOADED=1
+                break
             fi
-            rm -f "yolov5s.hef.tmp"
-        done
+        elif curl -L -f -s "$url" -o "yolov5s.hef.tmp" 2>/dev/null; then
+            if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                mv "yolov5s.hef.tmp" "yolov5s.hef"
+                size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
+                DETECTION_DOWNLOADED=1
+                break
+            fi
+        fi
+        rm -f "yolov5s.hef.tmp"
     done
+    
+    # Method 2: Try GitHub repository (fallback)
+    if [ $DETECTION_DOWNLOADED -eq 0 ]; then
+        for branch in "${HAILO_BRANCHES[@]}"; do
+            for path in "${DETECTION_MODEL_PATHS[@]}"; do
+                url="${HAILO_MODEL_ZOO_BASE}/${branch}/${path}"
+                if wget -q --show-progress "$url" -O "yolov5s.hef.tmp" 2>&1; then
+                    if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                        mv "yolov5s.hef.tmp" "yolov5s.hef"
+                        size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                        echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
+                        DETECTION_DOWNLOADED=1
+                        break 2
+                    fi
+                elif curl -L -f -s "$url" -o "yolov5s.hef.tmp" 2>/dev/null; then
+                    if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                        mv "yolov5s.hef.tmp" "yolov5s.hef"
+                        size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                        echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
+                        DETECTION_DOWNLOADED=1
+                        break 2
+                    fi
+                fi
+                rm -f "yolov5s.hef.tmp"
+            done
+        done
+    fi
     
     # If YOLOv5s failed, try SSD MobileNet v2 alternatives
     if [ $DETECTION_DOWNLOADED -eq 0 ]; then
         echo "Trying SSD MobileNet v2 fallback..."
-        for branch in "${HAILO_BRANCHES[@]}"; do
-            for path in "${ALTERNATIVE_DETECTION_PATHS[@]}"; do
-                url="${HAILO_MODEL_ZOO_BASE}/${branch}/${path}"
-                if wget -q --show-progress "$url" -O "ssd_mobilenet_v2_coco.hef.tmp" 2>&1; then
-                    if [ -s "ssd_mobilenet_v2_coco.hef.tmp" ] && ! head -1 "ssd_mobilenet_v2_coco.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
-                        mv "ssd_mobilenet_v2_coco.hef.tmp" "ssd_mobilenet_v2_coco.hef"
-                        size=$(stat -f%z "ssd_mobilenet_v2_coco.hef" 2>/dev/null || stat -c%s "ssd_mobilenet_v2_coco.hef" 2>/dev/null || echo "unknown")
-                        echo "✓ Detection model downloaded: ssd_mobilenet_v2_coco.hef ($size bytes)"
-                        DETECTION_DOWNLOADED=1
-                        break 2
-                    fi
-                elif curl -L -f -s "$url" -o "ssd_mobilenet_v2_coco.hef.tmp" 2>/dev/null; then
-                    if [ -s "ssd_mobilenet_v2_coco.hef.tmp" ] && ! head -1 "ssd_mobilenet_v2_coco.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
-                        mv "ssd_mobilenet_v2_coco.hef.tmp" "ssd_mobilenet_v2_coco.hef"
-                        size=$(stat -f%z "ssd_mobilenet_v2_coco.hef" 2>/dev/null || stat -c%s "ssd_mobilenet_v2_coco.hef" 2>/dev/null || echo "unknown")
-                        echo "✓ Detection model downloaded: ssd_mobilenet_v2_coco.hef ($size bytes)"
-                        DETECTION_DOWNLOADED=1
-                        break 2
-                    fi
+        
+        # Method 1: Try Hailo S3 bucket
+        for version in "${HAILO_VERSIONS[@]}"; do
+            url="${HAILO_S3_BASE}/${version}/hailo8l/ssd_mobilenet_v2.hef"
+            if wget -q --show-progress "$url" -O "ssd_mobilenet_v2_coco.hef.tmp" 2>&1; then
+                if [ -s "ssd_mobilenet_v2_coco.hef.tmp" ] && ! head -1 "ssd_mobilenet_v2_coco.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                    mv "ssd_mobilenet_v2_coco.hef.tmp" "ssd_mobilenet_v2_coco.hef"
+                    size=$(stat -f%z "ssd_mobilenet_v2_coco.hef" 2>/dev/null || stat -c%s "ssd_mobilenet_v2_coco.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Detection model downloaded: ssd_mobilenet_v2_coco.hef ($size bytes)"
+                    DETECTION_DOWNLOADED=1
+                    break
                 fi
-                rm -f "ssd_mobilenet_v2_coco.hef.tmp"
-            done
+            elif curl -L -f -s "$url" -o "ssd_mobilenet_v2_coco.hef.tmp" 2>/dev/null; then
+                if [ -s "ssd_mobilenet_v2_coco.hef.tmp" ] && ! head -1 "ssd_mobilenet_v2_coco.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                    mv "ssd_mobilenet_v2_coco.hef.tmp" "ssd_mobilenet_v2_coco.hef"
+                    size=$(stat -f%z "ssd_mobilenet_v2_coco.hef" 2>/dev/null || stat -c%s "ssd_mobilenet_v2_coco.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Detection model downloaded: ssd_mobilenet_v2_coco.hef ($size bytes)"
+                    DETECTION_DOWNLOADED=1
+                    break
+                fi
+            fi
+            rm -f "ssd_mobilenet_v2_coco.hef.tmp"
         done
+        
+        # Method 2: Try GitHub repository (fallback)
+        if [ $DETECTION_DOWNLOADED -eq 0 ]; then
+            for branch in "${HAILO_BRANCHES[@]}"; do
+                for path in "${ALTERNATIVE_DETECTION_PATHS[@]}"; do
+                    url="${HAILO_MODEL_ZOO_BASE}/${branch}/${path}"
+                    if wget -q --show-progress "$url" -O "ssd_mobilenet_v2_coco.hef.tmp" 2>&1; then
+                        if [ -s "ssd_mobilenet_v2_coco.hef.tmp" ] && ! head -1 "ssd_mobilenet_v2_coco.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                            mv "ssd_mobilenet_v2_coco.hef.tmp" "ssd_mobilenet_v2_coco.hef"
+                            size=$(stat -f%z "ssd_mobilenet_v2_coco.hef" 2>/dev/null || stat -c%s "ssd_mobilenet_v2_coco.hef" 2>/dev/null || echo "unknown")
+                            echo "✓ Detection model downloaded: ssd_mobilenet_v2_coco.hef ($size bytes)"
+                            DETECTION_DOWNLOADED=1
+                            break 2
+                        fi
+                    elif curl -L -f -s "$url" -o "ssd_mobilenet_v2_coco.hef.tmp" 2>/dev/null; then
+                        if [ -s "ssd_mobilenet_v2_coco.hef.tmp" ] && ! head -1 "ssd_mobilenet_v2_coco.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                            mv "ssd_mobilenet_v2_coco.hef.tmp" "ssd_mobilenet_v2_coco.hef"
+                            size=$(stat -f%z "ssd_mobilenet_v2_coco.hef" 2>/dev/null || stat -c%s "ssd_mobilenet_v2_coco.hef" 2>/dev/null || echo "unknown")
+                            echo "✓ Detection model downloaded: ssd_mobilenet_v2_coco.hef ($size bytes)"
+                            DETECTION_DOWNLOADED=1
+                            break 2
+                        fi
+                    fi
+                    rm -f "ssd_mobilenet_v2_coco.hef.tmp"
+                done
+            done
+        fi
     fi
     
     if [ $DETECTION_DOWNLOADED -eq 0 ]; then
         echo ""
         echo "ERROR: Failed to download pre-compiled HEF model"
         echo ""
-        echo "The Hailo Model Zoo should provide pre-compiled HEF files."
-        echo "If downloads fail, try:"
+        echo "Manual download commands (run these in all_models/ directory):"
         echo ""
-        echo "  1. Check Raspberry Pi AI Kit examples:"
-        echo "     https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+        echo "  # YOLOv5s (recommended):"
+        echo "  wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15/hailo8l/yolov5s.hef"
         echo ""
-        echo "  2. Browse Model Zoo repository directly:"
-        echo "     https://github.com/hailo-ai/hailo_model_zoo"
-        echo "     Look for: hailo_models/<model>/hef/<model>.hef"
+        echo "  # Or SSD MobileNet v2 (fallback):"
+        echo "  wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15/hailo8l/ssd_mobilenet_v2.hef -O ssd_mobilenet_v2_coco.hef"
         echo ""
-        echo "  3. Use Hailo Model Explorer:"
-        echo "     https://hailo.ai/de/products/hailo-software/model-explorer-vision/"
+        echo "See MANUAL_MODEL_DOWNLOAD.md for complete manual download instructions."
         echo ""
         echo "CRITICAL: Service cannot run without a detection model!"
         exit 1
