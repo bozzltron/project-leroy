@@ -1,6 +1,17 @@
 #!/bin/bash
 # Fix Hailo Driver Version Mismatch
 # This script aggressively fixes driver/library version mismatches
+# Based on Hailo Community recommendations for error 76 (INVALID_DRIVER_VERSION)
+#
+# IMPORTANT: The version mismatch IS a hard blocker - the device cannot initialize
+# until driver and library versions match. This is NOT a warning that can be ignored.
+#
+# This script performs thorough cleanup per Hailo community best practices:
+# - Removes all Hailo packages
+# - Cleans up directories (/opt/hailo, /usr/local/hailo, etc.)
+# - Unloads and removes kernel modules
+# - Reinstalls hailo-all to sync versions
+# - Requires reboot for driver to load
 
 set -e
 
