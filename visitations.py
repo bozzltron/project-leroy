@@ -1,4 +1,3 @@
-import cv2 
 import uuid
 import logging 
 import time
