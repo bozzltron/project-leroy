@@ -300,53 +300,29 @@ if [ "$PCIE_REBOOT_NEEDED" = false ] && command -v raspi-config &> /dev/null; th
     fi
 fi
 
+# Ensure Hailo packages are in sync (bulletproof approach)
+# Always reinstall to prevent driver/library version mismatches
+echo ""
+echo "Ensuring Hailo packages are in sync..."
+if [ "$HAILO_INSTALLED" = true ] || command -v hailortcli &> /dev/null; then
+    echo "Reinstalling hailo-all to ensure driver/library versions match..."
+    sudo apt-get update
+    sudo apt-get install --reinstall -y hailo-all || {
+        echo "⚠ Failed to reinstall hailo-all, but continuing..."
+    }
+fi
+
 # Verify AI Kit installation
 echo ""
 echo "Verifying AI Kit installation..."
 if command -v hailortcli &> /dev/null; then
     echo "Running hailortcli fw-control identify..."
-    IDENTIFY_OUTPUT=$(sudo hailortcli fw-control identify 2>&1)
-    IDENTIFY_EXIT=$?
-    
-    if [ $IDENTIFY_EXIT -eq 0 ]; then
+    if sudo hailortcli fw-control identify 2>/dev/null; then
         echo "✓ AI Kit hardware detected and working"
     else
-        # Check for driver version mismatch
-        if echo "$IDENTIFY_OUTPUT" | grep -q "Driver version.*is different from library version"; then
-            echo "⚠ Driver version mismatch detected!"
-            echo ""
-            echo "The Hailo driver version doesn't match the library version."
-            echo "This typically happens after system updates."
-            echo ""
-            echo "To fix, run:"
-            echo "  sudo apt-get update"
-            echo "  sudo apt-get full-upgrade"
-            echo "  sudo apt-get install --reinstall hailo-all"
-            echo "  sudo reboot"
-            echo ""
-            read -p "Update Hailo packages now? (y/N) " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                echo "Updating Hailo packages..."
-                sudo apt-get update
-                sudo apt-get install --reinstall hailo-all
-                echo ""
-                echo "⚠ REBOOT REQUIRED after updating drivers"
-                echo "Please reboot and then verify with: sudo hailortcli fw-control identify"
-                read -p "Reboot now? (y/N) " -n 1 -r
-                echo
-                if [[ $REPLY =~ ^[Yy]$ ]]; then
-                    echo "Rebooting in 5 seconds..."
-                    sleep 5
-                    sudo reboot
-                    exit 0
-                fi
-            fi
-        else
-            echo "⚠ AI Kit hardware not detected (may need reboot or hardware check)"
-            echo "Output: $IDENTIFY_OUTPUT"
-            PCIE_REBOOT_NEEDED=true
-        fi
+        echo "⚠ AI Kit hardware not detected (may need reboot)"
+        echo "This is normal if PCIe was just configured - reboot required"
+        PCIE_REBOOT_NEEDED=true
     fi
 else
     echo "⚠ hailortcli not found (AI Kit may not be fully installed)"
