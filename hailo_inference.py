@@ -13,9 +13,14 @@ logger = logging.getLogger(__name__)
 try:
     from hailo_platform import Device, InferVStreams, InferModel
     HAILO_AVAILABLE = True
-except ImportError:
+    HAILO_IMPORT_ERROR = None
+except ImportError as e:
     HAILO_AVAILABLE = False
-    logger.warning("Hailo SDK not available. Install hailo-platform package.")
+    HAILO_IMPORT_ERROR = str(e)
+    import sys
+    logger.warning(f"Hailo SDK not available at import time. Import error: {e}")
+    logger.warning(f"Python executable: {sys.executable}")
+    logger.warning(f"Python version: {sys.version}")
 
 
 class HailoInference:
@@ -29,23 +34,60 @@ class HailoInference:
     def __init__(self):
         """Initialize Hailo inference engine."""
         if not HAILO_AVAILABLE:
-            error_msg = (
-                "Hailo SDK not available.\n"
-                "\n"
-                "To install the Hailo SDK:\n"
-                "1. Follow the official Raspberry Pi AI Kit installation guide:\n"
-                "   https://www.raspberrypi.com/documentation/accessories/ai-kit.html\n"
-                "\n"
-                "2. Or try installing via apt (if repository is configured):\n"
-                "   sudo apt-get update\n"
-                "   sudo apt-get install -y hailo-platform-python3\n"
-                "\n"
-                "3. Verify installation:\n"
-                "   python3 -c 'from hailo_platform import Device; print(\"Hailo SDK installed\")'\n"
-                "\n"
-                "Note: The Hailo SDK requires the AI Kit hardware and drivers to be installed first."
-            )
-            raise RuntimeError(error_msg)
+            import sys
+            import os
+            
+            # Try importing again at runtime (in case environment changed)
+            try:
+                from hailo_platform import Device, InferVStreams, InferModel
+                # Success! Update the global flag
+                global HAILO_AVAILABLE
+                HAILO_AVAILABLE = True
+                logger.info("Hailo SDK successfully imported at runtime")
+            except ImportError as e:
+                # Still failing - provide detailed diagnostics
+                import_error = HAILO_IMPORT_ERROR if 'HAILO_IMPORT_ERROR' in globals() and HAILO_IMPORT_ERROR else str(e)
+                error_msg = (
+                    "Hailo SDK not available.\n"
+                    f"\n"
+                    f"Import error: {import_error}\n"
+                    f"\n"
+                    f"Diagnostics:\n"
+                    f"  Python executable: {sys.executable}\n"
+                    f"  Python version: {sys.version}\n"
+                    f"  Virtual environment: {os.environ.get('VIRTUAL_ENV', 'Not set')}\n"
+                    f"  PATH: {os.environ.get('PATH', 'Not set')}\n"
+                    f"\n"
+                    f"Python sys.path:\n"
+                )
+                for path in sys.path:
+                    error_msg += f"  - {path}\n"
+                
+                error_msg += (
+                    f"\n"
+                    f"To fix:\n"
+                    f"1. Verify Hailo SDK is installed system-wide:\n"
+                    f"   /usr/bin/python3 -c 'from hailo_platform import Device; print(\"OK\")'\n"
+                    f"\n"
+                    f"2. If system-wide works, ensure venv has --system-site-packages:\n"
+                    f"   Check: grep 'include-system-site-packages' venv/pyvenv.cfg\n"
+                    f"   Should show: include-system-site-packages = true\n"
+                    f"\n"
+                    f"3. If venv doesn't have system-site-packages, recreate it:\n"
+                    f"   rm -rf venv\n"
+                    f"   python3 -m venv --system-site-packages venv\n"
+                    f"   source venv/bin/activate\n"
+                    f"   pip install --upgrade pip setuptools wheel\n"
+                    f"   pip install numpy pillow opencv-contrib-python psutil imutils\n"
+                    f"\n"
+                    f"4. Verify from venv:\n"
+                    f"   venv/bin/python3 -c 'from hailo_platform import Device; print(\"OK\")'\n"
+                    f"\n"
+                    f"5. Follow official guide if still failing:\n"
+                    f"   https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+                )
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
         
         self.device = None
         self.detection_network = None
