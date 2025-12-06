@@ -1,6 +1,6 @@
 #!/bin/bash
 # Project Leroy - Model Download Script
-# Downloads HEF models directly from Hailo Model Zoo (no conversion needed)
+# Uses Hailo Model Zoo best practices to obtain HEF models
 
 # Don't exit on error - we want to try alternatives
 set +e
@@ -9,14 +9,34 @@ echo "=========================================="
 echo "Project Leroy - Model Download Script"
 echo "=========================================="
 echo ""
+echo "Using Hailo Model Zoo best practices:"
+echo "  1. Try hailomz tool (if available with Hailo SDK)"
+echo "  2. Try direct HEF downloads from Model Zoo"
+echo "  3. Provide manual download instructions"
+echo ""
 
 MODELS_DIR="all_models"
 mkdir -p "$MODELS_DIR"
 cd "$MODELS_DIR"
 
-# Hailo Model Zoo GitHub repository (v2.x branch for Hailo-8L)
-# Try multiple possible paths as the structure may vary
+# Check if hailomz tool is available (comes with Hailo SDK)
+HAILOMZ_AVAILABLE=0
+if command -v hailomz &> /dev/null; then
+    HAILOMZ_AVAILABLE=1
+    echo "✓ hailomz tool found - using Model Zoo workflow"
+elif python3 -c "import hailo_model_zoo" 2>/dev/null; then
+    HAILOMZ_AVAILABLE=1
+    echo "✓ hailo_model_zoo Python package found"
+else
+    echo "⚠ hailomz tool not found - will try direct downloads"
+    echo "  (hailomz comes with Hailo SDK installation)"
+fi
+
+# Hailo Model Zoo GitHub repository
+# Note: Pre-compiled HEF files may not be directly available
+# The proper workflow is to use hailomz to compile models
 HAILO_MODEL_ZOO_BASE="https://github.com/hailo-ai/hailo_model_zoo/raw/v2.15"
+HAILO_MODEL_ZOO_REPO="https://github.com/hailo-ai/hailo_model_zoo"
 
 # Model paths in Hailo Model Zoo - try multiple possible locations
 # Using YOLOv5s for detection (better than SSD MobileNet v2)
@@ -52,9 +72,46 @@ echo ""
 # Download detection model (YOLOv5s)
 DETECTION_DOWNLOADED=0
 if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
-    echo "Downloading detection model (YOLOv5s)..."
+    # Method 1: Try hailomz tool (best practice)
+    if [ $HAILOMZ_AVAILABLE -eq 1 ]; then
+        echo ""
+        echo "Method 1: Using hailomz tool (Model Zoo best practice)..."
+        echo "  This compiles models from the Model Zoo to HEF format"
+        echo ""
+        
+        # Try to compile YOLOv5s using hailomz
+        if command -v hailomz &> /dev/null; then
+            echo "  Attempting: hailomz compile yolov5s --target hailo8l"
+            if hailomz compile yolov5s --target hailo8l 2>&1 | tee /tmp/hailomz_output.log; then
+                # Check if HEF file was created (location may vary)
+                if [ -f "yolov5s.hef" ]; then
+                    size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Detection model compiled (YOLOv5s) using hailomz (size: $size bytes)"
+                    DETECTION_DOWNLOADED=1
+                elif find . -name "yolov5s.hef" -type f 2>/dev/null | head -1 | read hef_path; then
+                    cp "$hef_path" "yolov5s.hef"
+                    size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Detection model compiled (YOLOv5s) using hailomz (size: $size bytes)"
+                    DETECTION_DOWNLOADED=1
+                else
+                    echo "  ⚠ hailomz compile completed but HEF file not found in expected location"
+                    echo "  Check output above for actual file location"
+                fi
+            else
+                echo "  ⚠ hailomz compile failed, trying direct download..."
+            fi
+        fi
+    fi
     
-    # Try each possible path for YOLOv5s
+    # Method 2: Try direct HEF downloads (if hailomz not available or failed)
+    if [ $DETECTION_DOWNLOADED -eq 0 ]; then
+        echo ""
+        echo "Method 2: Trying direct HEF downloads from Model Zoo..."
+        echo "  Note: Pre-compiled HEF files may not be available at these paths"
+        echo ""
+        echo "Downloading detection model (YOLOv5s)..."
+        
+        # Try each possible path for YOLOv5s
     for path in "${DETECTION_MODEL_PATHS[@]}"; do
         echo "  Trying: ${HAILO_MODEL_ZOO_BASE}/${path}"
         # Try wget first
@@ -156,9 +213,30 @@ fi
 # Download classification model (MobileNet v2 - trained on 964 bird species)
 CLASSIFICATION_DOWNLOADED=0
 if [ ! -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
-    echo "Downloading classification model (MobileNet v2)..."
+    # Method 1: Try hailomz tool (best practice)
+    if [ $HAILOMZ_AVAILABLE -eq 1 ] && [ $DETECTION_DOWNLOADED -eq 1 ]; then
+        echo ""
+        echo "Method 1: Using hailomz tool for classification model..."
+        if command -v hailomz &> /dev/null; then
+            echo "  Attempting: hailomz compile mobilenet_v2 --target hailo8l"
+            if hailomz compile mobilenet_v2 --target hailo8l 2>&1; then
+                if [ -f "mobilenet_v2.hef" ]; then
+                    mv "mobilenet_v2.hef" "mobilenet_v2_1.0_224_inat_bird.hef"
+                    size=$(stat -f%z "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || stat -c%s "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Classification model compiled using hailomz (size: $size bytes)"
+                    CLASSIFICATION_DOWNLOADED=1
+                fi
+            fi
+        fi
+    fi
     
-    # Try each possible path
+    # Method 2: Try direct downloads
+    if [ $CLASSIFICATION_DOWNLOADED -eq 0 ]; then
+        echo ""
+        echo "Method 2: Trying direct HEF downloads..."
+        echo "Downloading classification model (MobileNet v2)..."
+        
+        # Try each possible path
     for path in "${CLASSIFICATION_MODEL_PATHS[@]}"; do
         echo "  Trying: ${HAILO_MODEL_ZOO_BASE}/${path}"
         # Try wget first
