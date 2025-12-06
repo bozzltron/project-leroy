@@ -1,36 +1,55 @@
 # Manual HEF Model Download Commands
 
-If the automated download script fails, use these manual commands to download HEF models directly from Hailo's S3 bucket.
+If the automated download script fails, use these methods to get HEF models.
 
-## Detection Models (REQUIRED - choose one)
+**Note**: The S3 bucket may require authentication. Use Method 1 (clone repository) for the most reliable approach.
 
-### Option 1: YOLOv5s (Recommended - better accuracy)
+## Method 1: Clone Model Zoo Repository (RECOMMENDED)
+
+This is the most reliable method - clone the repository and find HEF files:
 
 ```bash
-cd all_models
+# Clone the Model Zoo repository (v2.15 branch for Hailo-8L)
+cd ~
+git clone --branch v2.15 --depth 1 https://github.com/hailo-ai/hailo_model_zoo.git
+cd hailo_model_zoo
 
-# Try latest version (v2.15)
-wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15/hailo8l/yolov5s.hef
+# Search for YOLOv5s HEF file
+find . -name "yolov5s.hef" -type f
 
-# If that fails, try v2.14
-wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.14/hailo8l/yolov5s.hef
+# Search for SSD MobileNet v2 HEF file
+find . -name "*ssd_mobilenet*.hef" -type f
 
-# If that fails, try v2.13
-wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.13/hailo8l/yolov5s.hef
+# Search for MobileNet v2 HEF file
+find . -name "mobilenet_v2.hef" -type f
+
+# Once you find the files, copy them to your project
+# Example (adjust path based on find results):
+cp hailo_models/yolov5s/hef/yolov5s.hef ~/Projects/project-leroy/all_models/
+cp hailo_models/ssd_mobilenet_v2/hef/ssd_mobilenet_v2.hef ~/Projects/project-leroy/all_models/ssd_mobilenet_v2_coco.hef
 ```
 
-### Option 2: SSD MobileNet v2 (Fallback)
+## Method 2: Try S3 Bucket (May require authentication)
+
+The S3 bucket may return 403 Forbidden. If it works, use these URLs:
+
+### YOLOv5s (Recommended)
 
 ```bash
 cd all_models
 
-# Try latest version (v2.15)
-wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15/hailo8l/ssd_mobilenet_v2.hef -O ssd_mobilenet_v2_coco.hef
+# Try different versions
+wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.14/hailo8l/yolov5s.hef
+wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.13/hailo8l/yolov5s.hef
+wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.12/hailo8l/yolov5s.hef
+```
 
-# If that fails, try v2.14
+### SSD MobileNet v2 (Fallback)
+
+```bash
+cd all_models
+
 wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.14/hailo8l/ssd_mobilenet_v2.hef -O ssd_mobilenet_v2_coco.hef
-
-# If that fails, try v2.13
 wget https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.13/hailo8l/ssd_mobilenet_v2.hef -O ssd_mobilenet_v2_coco.hef
 ```
 
@@ -67,21 +86,27 @@ ls -lh *.hef *.txt
 # MobileNet v2: ~1-3 MB
 ```
 
-## Alternative: Clone Model Zoo Repository
+## Method 3: Check Hailo SDK Installation
 
-If direct downloads fail, you can clone the repository and find HEF files:
+Sometimes example models are included with the Hailo SDK:
 
 ```bash
-# Clone the Model Zoo repository
-git clone --branch v2.15 https://github.com/hailo-ai/hailo_model_zoo.git
-cd hailo_model_zoo
+# Check if models are installed with SDK
+find /opt/hailo -name "*.hef" 2>/dev/null
+find /usr/share/hailo -name "*.hef" 2>/dev/null
+find /usr/local/hailo -name "*.hef" 2>/dev/null
 
-# Search for HEF files
-find . -name "*.hef" -type f | grep -E "(yolov5s|ssd_mobilenet|mobilenet_v2)" | head -10
-
-# Copy found files to your project
-cp <path_to_hef_file> ~/Projects/project-leroy/all_models/
+# If found, copy to project
+cp <found_hef_file> ~/Projects/project-leroy/all_models/
 ```
+
+## Method 4: Use Hailo Model Explorer
+
+1. Visit: https://hailo.ai/de/products/hailo-software/model-explorer-vision/
+2. Filter by: Device = Hailo-8L, Task = Object Detection
+3. Find YOLOv5s or SSD MobileNet v2
+4. Download the HEF file directly from the interface
+5. Copy to `all_models/` directory
 
 ## Notes
 
