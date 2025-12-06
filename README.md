@@ -68,52 +68,25 @@ This will:
 
 **CRITICAL**: The service requires at least one detection model to run.
 
-#### Method 1: Using Hailo Model Zoo (Recommended)
-
-The **Hailo Model Zoo** is the centralized repository for models. Best practice is to use the `hailomz` tool:
+The **Hailo Model Zoo** provides pre-compiled HEF files - no compilation needed!
 
 ```bash
-# Try automated download (uses hailomz if available)
 ./download_models.sh
 ```
 
-If `hailomz` is not available, set it up manually:
+This downloads pre-compiled HEF models directly from the Model Zoo.
 
-```bash
-# 1. Clone Hailo Model Zoo
-git clone https://github.com/hailo-ai/hailo_model_zoo.git
-cd hailo_model_zoo
+**If downloads fail**, check:
 
-# 2. Install Model Zoo tools
-pip install -e .
+1. **Raspberry Pi AI Kit Documentation** (may have example models):
+   - https://www.raspberrypi.com/documentation/accessories/ai-kit.html
 
-# 3. Compile models to HEF format
-hailomz compile yolov5s --target hailo8l
-# Or for SSD MobileNet v2:
-hailomz compile ssd_mobilenet_v2 --target hailo8l
+2. **Hailo Model Explorer** (find and download models):
+   - https://hailo.ai/de/products/hailo-software/model-explorer-vision/
 
-# 4. Copy compiled HEF files to project
-cp <model_path>/yolov5s.hef ../project-leroy/all_models/
-```
-
-#### Method 2: Model Explorer
-
-Use Hailo's Model Explorer to find suitable models:
-- **Model Explorer**: https://hailo.ai/de/products/hailo-software/model-explorer-vision/
-- Filter by device (Hailo-8L), task (object detection), and performance
-
-#### Method 3: Raspberry Pi AI Kit Documentation
-
-Check the official guide for pre-compiled models:
-- https://www.raspberrypi.com/documentation/accessories/ai-kit.html
-
-#### Method 4: Convert TFLite Models
-
-If you have Hailo Dataflow Compiler installed:
-
-```bash
-./convert_models.sh
-```
+3. **Model Zoo Repository** (browse for HEF files):
+   - https://github.com/hailo-ai/hailo_model_zoo
+   - Look for: `hailo_models/<model>/hef/<model>.hef`
 
 **Model Priority**:
 - **Detection**: YOLOv5s (preferred) or SSD MobileNet v2 (fallback) - **REQUIRED**
