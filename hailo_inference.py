@@ -191,13 +191,43 @@ class HailoInference:
         if not self._initialized:
             self.initialize()
         
+        # Validate file exists and is readable before attempting to load
+        import os
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"HEF model file not found: {model_path}\n"
+                f"Please ensure the model file exists. Run download_models.sh to download models."
+            )
+        
+        if not os.path.isfile(model_path):
+            raise ValueError(f"Model path is not a file: {model_path}")
+        
+        # Check file size (HEF files should be > 0 bytes)
+        file_size = os.path.getsize(model_path)
+        if file_size == 0:
+            raise ValueError(
+                f"HEF model file is empty (0 bytes): {model_path}\n"
+                f"The file may be corrupted. Try re-downloading with download_models.sh"
+            )
+        
+        # Check file permissions
+        if not os.access(model_path, os.R_OK):
+            raise PermissionError(
+                f"Cannot read HEF model file (permission denied): {model_path}\n"
+                f"Check file permissions: ls -l {model_path}"
+            )
+        
+        logger.info(f"Loading detection model: {model_path} (size: {file_size:,} bytes)")
+        
         try:
             # Hailo SDK API: Load HEF file and configure on device
             # Method 1: Using HEF class (preferred)
             if HEF is not None:
                 try:
                     # Try HEF.from_file() first (common API)
+                    logger.debug(f"Attempting to load HEF using HEF.from_file()...")
                     hef = HEF.from_file(model_path)
+                    logger.debug(f"HEF loaded successfully, configuring on device...")
                     self.detection_network = self.device.configure(hef)
                 except (AttributeError, TypeError):
                     # Try HEF() constructor
@@ -230,9 +260,31 @@ class HailoInference:
             
             logger.info(f"Loaded detection model: {model_path}")
         except Exception as e:
+            error_msg = str(e)
             logger.error(f"Failed to load detection model {model_path}: {e}")
-            logger.error(f"Device type: {type(self.device)}")
-            logger.error(f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}")
+            
+            # Provide specific guidance based on error type
+            if '14' in error_msg or 'FILE_OPERATION_FAILURE' in error_msg or 'Failed parsing HEF' in error_msg:
+                logger.error("")
+                logger.error("HEF file parsing failed. Possible causes:")
+                logger.error("  1. File is corrupted or incomplete")
+                logger.error("  2. File format is incompatible with this Hailo SDK version")
+                logger.error("  3. File was not fully downloaded")
+                logger.error("")
+                logger.error(f"File info: {model_path}")
+                logger.error(f"  Size: {file_size:,} bytes")
+                logger.error(f"  Exists: {os.path.exists(model_path)}")
+                logger.error(f"  Readable: {os.access(model_path, os.R_OK)}")
+                logger.error("")
+                logger.error("Solutions:")
+                logger.error("  1. Re-download the model: ./download_models.sh")
+                logger.error("  2. Verify file integrity: file all_models/yolov5s.hef")
+                logger.error("  3. Check if file is actually a HEF file (should start with HEF magic bytes)")
+                logger.error("  4. Try a different model if available")
+            else:
+                logger.error(f"Device type: {type(self.device)}")
+                logger.error(f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}")
+            
             raise
     
     def load_classification_model(self, model_path: str) -> None:
@@ -245,13 +297,43 @@ class HailoInference:
         if not self._initialized:
             self.initialize()
         
+        # Validate file exists and is readable before attempting to load
+        import os
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"HEF model file not found: {model_path}\n"
+                f"Please ensure the model file exists. Run download_models.sh to download models."
+            )
+        
+        if not os.path.isfile(model_path):
+            raise ValueError(f"Model path is not a file: {model_path}")
+        
+        # Check file size (HEF files should be > 0 bytes)
+        file_size = os.path.getsize(model_path)
+        if file_size == 0:
+            raise ValueError(
+                f"HEF model file is empty (0 bytes): {model_path}\n"
+                f"The file may be corrupted. Try re-downloading with download_models.sh"
+            )
+        
+        # Check file permissions
+        if not os.access(model_path, os.R_OK):
+            raise PermissionError(
+                f"Cannot read HEF model file (permission denied): {model_path}\n"
+                f"Check file permissions: ls -l {model_path}"
+            )
+        
+        logger.info(f"Loading classification model: {model_path} (size: {file_size:,} bytes)")
+        
         try:
             # Hailo SDK API: Load HEF file and configure on device
             # Method 1: Using HEF class (preferred)
             if HEF is not None:
                 try:
                     # Try HEF.from_file() first (common API)
+                    logger.debug(f"Attempting to load HEF using HEF.from_file()...")
                     hef = HEF.from_file(model_path)
+                    logger.debug(f"HEF loaded successfully, configuring on device...")
                     self.classification_network = self.device.configure(hef)
                 except (AttributeError, TypeError):
                     # Try HEF() constructor
@@ -284,9 +366,31 @@ class HailoInference:
             
             logger.info(f"Loaded classification model: {model_path}")
         except Exception as e:
+            error_msg = str(e)
             logger.error(f"Failed to load classification model {model_path}: {e}")
-            logger.error(f"Device type: {type(self.device)}")
-            logger.error(f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}")
+            
+            # Provide specific guidance based on error type
+            if '14' in error_msg or 'FILE_OPERATION_FAILURE' in error_msg or 'Failed parsing HEF' in error_msg:
+                logger.error("")
+                logger.error("HEF file parsing failed. Possible causes:")
+                logger.error("  1. File is corrupted or incomplete")
+                logger.error("  2. File format is incompatible with this Hailo SDK version")
+                logger.error("  3. File was not fully downloaded")
+                logger.error("")
+                logger.error(f"File info: {model_path}")
+                logger.error(f"  Size: {file_size:,} bytes")
+                logger.error(f"  Exists: {os.path.exists(model_path)}")
+                logger.error(f"  Readable: {os.access(model_path, os.R_OK)}")
+                logger.error("")
+                logger.error("Solutions:")
+                logger.error("  1. Re-download the model: ./download_models.sh")
+                logger.error("  2. Verify file integrity: file all_models/mobilenet_v2_1.0_224_inat_bird.hef")
+                logger.error("  3. Check if file is actually a HEF file (should start with HEF magic bytes)")
+                logger.error("  4. Try a different model if available")
+            else:
+                logger.error(f"Device type: {type(self.device)}")
+                logger.error(f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}")
+            
             raise
     
     def detect(self, image: Image.Image, score_threshold: float = 0.1, top_k: int = 3) -> List[dict]:
