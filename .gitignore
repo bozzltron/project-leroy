@@ -48,6 +48,10 @@ Thumbs.db
 *.sublime-workspace
 .cursor/
 
+# Documentation files (except README.md)
+*.md
+!README.md
+
 # Temporary files
 *.tmp
 *.bak
