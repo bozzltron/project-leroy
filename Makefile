@@ -18,6 +18,9 @@ help:
 	@echo "  make docker-pi5-test     - Run all tests"
 	@echo "  make docker-pi5-test-file TEST=... - Run specific test"
 	@echo ""
+	@echo "Linting (Docker):"
+	@echo "  make docker-pi5-lint     - Run linter on Python files"
+	@echo ""
 	@echo "Web Preview (Local Dev):"
 	@echo "  make web-preview         - Preview web app locally"
 	@echo ""
@@ -55,6 +58,10 @@ docker-pi5-test:
 docker-pi5-test-file:
 	docker-compose -f docker-compose.pi5.yml run --rm leroy-pi5 bash -c \
 		"cd /app && source venv/bin/activate && python3 -m unittest $(TEST) -v"
+
+docker-pi5-lint:
+	docker-compose -f docker-compose.pi5.yml run --rm leroy-pi5 bash -c \
+		"cd /app && source venv/bin/activate && python3 -m flake8 --exclude=venv,storage,all_models --max-line-length=120 --ignore=E501,W503 *.py || python3 -m py_compile *.py 2>&1 | head -20"
 
 # Web preview (local development only)
 web-preview:

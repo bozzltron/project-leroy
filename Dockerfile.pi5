@@ -53,7 +53,8 @@ RUN venv/bin/pip install \
     pillow \
     opencv-contrib-python \
     psutil \
-    imutils
+    imutils \
+    flake8
 
 # Note: Hailo SDK cannot be installed in Docker without actual hardware
 # This is for testing installation scripts and code structure only
