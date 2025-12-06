@@ -218,8 +218,8 @@ if [ "$SKIP_REINSTALL" != "true" ]; then
 fi
 
 if command -v hailortcli &> /dev/null; then
-    echo "   Testing: hailortcli fw-control identify"
-    IDENTIFY_OUTPUT=$(hailortcli fw-control identify 2>&1 || true)
+    echo "   Running: sudo hailortcli fw-control identify"
+    IDENTIFY_OUTPUT=$(sudo hailortcli fw-control identify 2>&1 || true)
     
     if echo "$IDENTIFY_OUTPUT" | grep -q "Driver version.*is different from library version"; then
         echo "   ⚠ Version mismatch still present"
