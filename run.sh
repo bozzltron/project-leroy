@@ -9,6 +9,53 @@ cd "$SCRIPT_DIR"
 # Activate virtual environment
 if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
+    
+    # Verify we're using the venv Python
+    if [ -z "$VIRTUAL_ENV" ]; then
+        echo "ERROR: Virtual environment not activated properly"
+        exit 1
+    fi
+    echo "Using virtual environment: $VIRTUAL_ENV"
+    echo "Python path: $(which python3)"
+    
+    # Check if venv has system-site-packages enabled
+    if [ -f "$VIRTUAL_ENV/pyvenv.cfg" ]; then
+        if grep -q "include-system-site-packages = true" "$VIRTUAL_ENV/pyvenv.cfg"; then
+            echo "✓ Virtual environment has system-site-packages enabled"
+        else
+            echo "⚠ WARNING: Virtual environment does NOT have system-site-packages enabled"
+            echo "  This means system-installed packages (like Hailo SDK) won't be accessible"
+            echo "  To fix, recreate the venv:"
+            echo "    rm -rf venv"
+            echo "    python3 -m venv --system-site-packages venv"
+            echo "    source venv/bin/activate"
+            echo "    pip install --upgrade pip setuptools wheel"
+            echo "    pip install numpy pillow opencv-contrib-python psutil imutils"
+        fi
+    fi
+    
+    # Verify Hailo SDK is accessible in this environment
+    if ! python3 -c "from hailo_platform import Device" 2>/dev/null; then
+        echo "ERROR: Hailo SDK not accessible in virtual environment"
+        echo ""
+        echo "Troubleshooting:"
+        echo "  1. Check if Hailo SDK is installed system-wide:"
+        echo "     python3 -c 'from hailo_platform import Device; print(\"OK\")'"
+        echo ""
+        echo "  2. If system-wide works but venv doesn't, recreate venv with system-site-packages:"
+        echo "     rm -rf venv"
+        echo "     python3 -m venv --system-site-packages venv"
+        echo "     source venv/bin/activate"
+        echo "     pip install --upgrade pip setuptools wheel"
+        echo "     pip install numpy pillow opencv-contrib-python psutil imutils"
+        echo ""
+        echo "  3. Restart service after recreating venv:"
+        echo "     sudo systemctl restart leroy.service"
+        echo ""
+        exit 1
+    else
+        echo "✓ Hailo SDK is accessible in virtual environment"
+    fi
 else
     echo "ERROR: Virtual environment not found at venv/bin/activate"
     echo "Please run install-pi5.sh to set up the environment"
