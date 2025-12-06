@@ -301,16 +301,20 @@ class HailoInference:
         import os
         # Resolve relative paths to absolute paths based on script location
         if not os.path.isabs(model_path):
-            # Get the directory where the script is located
+            # Get the directory where this script is located (project root)
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(script_dir) if os.path.basename(script_dir) != 'project-leroy' else script_dir
-            # Try resolving relative to project root
-            resolved_path = os.path.join(project_root, model_path)
+            # Try resolving relative to project root first
+            resolved_path = os.path.join(script_dir, model_path)
             if os.path.exists(resolved_path):
                 model_path = os.path.abspath(resolved_path)
             else:
                 # Try resolving relative to current working directory
-                model_path = os.path.abspath(model_path)
+                cwd_path = os.path.abspath(model_path)
+                if os.path.exists(cwd_path):
+                    model_path = cwd_path
+                else:
+                    # Keep original path for error message
+                    model_path = os.path.abspath(model_path)
         
         logger.debug(f"Resolved model path: {model_path} (absolute: {os.path.isabs(model_path)})")
         
