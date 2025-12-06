@@ -128,13 +128,23 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     
     try:
-        default_model_dir = 'all_models'
+        # Get project root directory (where this script is located)
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = script_dir
+        
+        default_model_dir = os.path.join(project_root, 'all_models')
         # Prefer YOLOv5s if available (better accuracy), fallback to SSD MobileNet v2
-        if os.path.exists(os.path.join(default_model_dir, 'yolov5s.hef')):
-            default_model = 'yolov5s.hef'  # YOLOv5s - better accuracy
+        yolov5s_path = os.path.join(default_model_dir, 'yolov5s.hef')
+        ssd_path = os.path.join(default_model_dir, 'ssd_mobilenet_v2_coco.hef')
+        
+        if os.path.exists(yolov5s_path):
+            default_model = yolov5s_path  # YOLOv5s - better accuracy
+        elif os.path.exists(ssd_path):
+            default_model = ssd_path  # SSD MobileNet v2 - fallback
         else:
-            default_model = 'ssd_mobilenet_v2_coco.hef'  # SSD MobileNet v2 - fallback
-        default_labels = 'coco_labels.txt'
+            default_model = yolov5s_path  # Default to yolov5s path even if not exists (will error clearly)
+        
+        default_labels = os.path.join(default_model_dir, 'coco_labels.txt')
         
         parser = argparse.ArgumentParser(
             description='Project Leroy - Bird Detection with Hailo AI Kit'
@@ -142,12 +152,12 @@ def main():
         parser.add_argument(
             '--model',
             help='HEF model path',
-            default=os.path.join(default_model_dir, default_model)
+            default=default_model
         )
         parser.add_argument(
             '--labels',
             help='Label file path',
-            default=os.path.join(default_model_dir, default_labels)
+            default=default_labels
         )
         parser.add_argument(
             '--top_k',

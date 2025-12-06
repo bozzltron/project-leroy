@@ -299,6 +299,21 @@ class HailoInference:
         
         # Validate file exists and is readable before attempting to load
         import os
+        # Resolve relative paths to absolute paths based on script location
+        if not os.path.isabs(model_path):
+            # Get the directory where the script is located
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(script_dir) if os.path.basename(script_dir) != 'project-leroy' else script_dir
+            # Try resolving relative to project root
+            resolved_path = os.path.join(project_root, model_path)
+            if os.path.exists(resolved_path):
+                model_path = os.path.abspath(resolved_path)
+            else:
+                # Try resolving relative to current working directory
+                model_path = os.path.abspath(model_path)
+        
+        logger.debug(f"Resolved model path: {model_path} (absolute: {os.path.isabs(model_path)})")
+        
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 f"HEF model file not found: {model_path}\n"
