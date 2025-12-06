@@ -305,11 +305,48 @@ echo ""
 echo "Verifying AI Kit installation..."
 if command -v hailortcli &> /dev/null; then
     echo "Running hailortcli fw-control identify..."
-    if sudo hailortcli fw-control identify 2>/dev/null; then
+    IDENTIFY_OUTPUT=$(sudo hailortcli fw-control identify 2>&1)
+    IDENTIFY_EXIT=$?
+    
+    if [ $IDENTIFY_EXIT -eq 0 ]; then
         echo "✓ AI Kit hardware detected and working"
     else
-        echo "⚠ AI Kit hardware not detected (may need reboot or hardware check)"
-        PCIE_REBOOT_NEEDED=true
+        # Check for driver version mismatch
+        if echo "$IDENTIFY_OUTPUT" | grep -q "Driver version.*is different from library version"; then
+            echo "⚠ Driver version mismatch detected!"
+            echo ""
+            echo "The Hailo driver version doesn't match the library version."
+            echo "This typically happens after system updates."
+            echo ""
+            echo "To fix, run:"
+            echo "  sudo apt-get update"
+            echo "  sudo apt-get full-upgrade"
+            echo "  sudo apt-get install --reinstall hailo-all"
+            echo "  sudo reboot"
+            echo ""
+            read -p "Update Hailo packages now? (y/N) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo "Updating Hailo packages..."
+                sudo apt-get update
+                sudo apt-get install --reinstall hailo-all
+                echo ""
+                echo "⚠ REBOOT REQUIRED after updating drivers"
+                echo "Please reboot and then verify with: sudo hailortcli fw-control identify"
+                read -p "Reboot now? (y/N) " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    echo "Rebooting in 5 seconds..."
+                    sleep 5
+                    sudo reboot
+                    exit 0
+                fi
+            fi
+        else
+            echo "⚠ AI Kit hardware not detected (may need reboot or hardware check)"
+            echo "Output: $IDENTIFY_OUTPUT"
+            PCIE_REBOOT_NEEDED=true
+        fi
     fi
 else
     echo "⚠ hailortcli not found (AI Kit may not be fully installed)"
