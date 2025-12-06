@@ -94,14 +94,43 @@ depmod -a 2>/dev/null || true
 
 echo "   ✓ Kernel modules removed"
 
-# Step 5: Update package list
+# Step 5: Fix repository configuration (if needed)
 echo ""
-echo "5. Updating package list..."
+echo "5. Checking Hailo repository configuration..."
+HAILO_REPO_FILE="/etc/apt/sources.list.d/hailo.list"
+if [ -f "$HAILO_REPO_FILE" ]; then
+    # Detect OS version
+    DETECTED_VERSION=$(lsb_release -cs 2>/dev/null || echo "bookworm")
+    
+    # Hailo repository doesn't support trixie/sid, use bookworm
+    if [ "$DETECTED_VERSION" = "trixie" ] || [ "$DETECTED_VERSION" = "sid" ]; then
+        echo "   Detected OS: $DETECTED_VERSION (not supported by Hailo repo)"
+        echo "   Updating repository to use 'bookworm' instead..."
+        
+        # Update repository file to use bookworm
+        HAILO_REPO_URL="https://hailo.ai/debian"
+        if grep -q "signed-by" "$HAILO_REPO_FILE"; then
+            echo "deb [signed-by=/usr/share/keyrings/hailo-archive-keyring.gpg] $HAILO_REPO_URL bookworm main" | tee "$HAILO_REPO_FILE" > /dev/null
+        else
+            echo "deb $HAILO_REPO_URL bookworm main" | tee "$HAILO_REPO_FILE" > /dev/null
+        fi
+        echo "   ✓ Repository updated to use 'bookworm'"
+    else
+        echo "   ✓ Repository configuration looks correct"
+    fi
+else
+    echo "   ⚠ Hailo repository not configured"
+    echo "   Will be configured during reinstall"
+fi
+
+# Step 6: Update package list
+echo ""
+echo "6. Updating package list..."
 apt-get update
 
-# Step 6: Reinstall hailo-all
+# Step 7: Reinstall hailo-all
 echo ""
-echo "6. Reinstalling hailo-all..."
+echo "7. Reinstalling hailo-all..."
 if apt-get install -y hailo-all; then
     echo "   ✓ hailo-all installed"
 else
@@ -114,9 +143,9 @@ else
     exit 1
 fi
 
-# Step 7: Verify installation
+# Step 8: Verify installation
 echo ""
-echo "7. Verifying installation..."
+echo "8. Verifying installation..."
 sleep 2  # Give system a moment to register new packages
 
 if command -v hailortcli &> /dev/null; then
@@ -137,7 +166,7 @@ else
     echo "   ⚠ hailortcli not found after installation"
 fi
 
-# Step 8: Reboot prompt
+# Step 9: Reboot prompt
 echo ""
 echo "=========================================="
 echo "REBOOT REQUIRED"
