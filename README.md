@@ -66,17 +66,46 @@ This will:
 
 ### 3. Download Models
 
-Download pre-compiled HEF models from Hailo Model Zoo:
+**CRITICAL**: The service requires at least one detection model to run.
+
+Download pre-compiled HEF models:
 
 ```bash
 ./download_models.sh
 ```
 
-**Model Priority**:
-- **Detection**: YOLOv5s (preferred) or SSD MobileNet v2 (fallback)
-- **Classification**: MobileNet v2 (trained on 964 iNaturalist bird species)
+**Note**: The script will try to download from Hailo Model Zoo, but HEF files may not be directly available. If downloads fail:
 
-Models are downloaded directly in HEF format - no conversion needed.
+1. **Check Raspberry Pi AI Kit Documentation**:
+   - The official guide may have direct download links:
+   - https://www.raspberrypi.com/documentation/accessories/ai-kit.html
+
+2. **Check Hailo Developer Zone**:
+   - Look for pre-compiled HEF models:
+   - https://hailo.ai/developer-zone/
+
+3. **Convert TFLite Models** (if you have Hailo Dataflow Compiler):
+   ```bash
+   ./convert_models.sh
+   ```
+
+4. **Manual Download**:
+   - Download HEF files from Hailo Model Zoo or other sources
+   - Place in `all_models/` directory
+
+**Model Priority**:
+- **Detection**: YOLOv5s (preferred) or SSD MobileNet v2 (fallback) - **REQUIRED**
+- **Classification**: MobileNet v2 (trained on 964 iNaturalist bird species) - Optional
+
+**Verify Models**:
+```bash
+ls -lh all_models/*.hef
+```
+
+All HEF files should show non-zero file sizes. If any are 0 bytes, remove them and re-download:
+```bash
+./fix_empty_models.sh
+```
 
 ## Usage
 

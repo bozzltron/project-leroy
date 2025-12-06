@@ -56,20 +56,40 @@ if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
     
     # Try each possible path for YOLOv5s
     for path in "${DETECTION_MODEL_PATHS[@]}"; do
-        echo "  Trying: $path"
+        echo "  Trying: ${HAILO_MODEL_ZOO_BASE}/${path}"
+        # Try wget first
         if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "yolov5s.hef.tmp" 2>&1; then
             if [ -s "yolov5s.hef.tmp" ]; then
-                mv "yolov5s.hef.tmp" "yolov5s.hef"
-                size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
-                echo "✓ Detection model downloaded (YOLOv5s) from: $path (size: $size bytes)"
-                DETECTION_DOWNLOADED=1
-                break
+                # Check if it's actually a valid file (not an HTML error page)
+                if head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                    rm -f "yolov5s.hef.tmp"
+                    echo "  ✗ Got HTML error page (404?), trying next path..."
+                else
+                    mv "yolov5s.hef.tmp" "yolov5s.hef"
+                    size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Detection model downloaded (YOLOv5s) from: $path (size: $size bytes)"
+                    DETECTION_DOWNLOADED=1
+                    break
+                fi
             else
                 rm -f "yolov5s.hef.tmp"
-                echo "  ⚠ Downloaded file is empty, trying next path..."
+                echo "  ✗ Downloaded file is empty, trying next path..."
             fi
         else
             rm -f "yolov5s.hef.tmp"
+            # Try curl as fallback
+            echo "  Trying with curl..."
+            if curl -L -f -s "${HAILO_MODEL_ZOO_BASE}/${path}" -o "yolov5s.hef.tmp" 2>/dev/null; then
+                if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                    mv "yolov5s.hef.tmp" "yolov5s.hef"
+                    size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Detection model downloaded (YOLOv5s) from: $path (size: $size bytes)"
+                    DETECTION_DOWNLOADED=1
+                    break
+                else
+                    rm -f "yolov5s.hef.tmp"
+                fi
+            fi
         fi
     done
     
@@ -97,22 +117,36 @@ if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
     
     if [ $DETECTION_DOWNLOADED -eq 0 ]; then
         echo ""
-        echo "ERROR: Failed to download detection model from Hailo Model Zoo"
+        echo "=========================================="
+        echo "ERROR: Failed to download detection model"
+        echo "=========================================="
         echo ""
-        echo "The models may not be available at the expected paths, or the repository structure has changed."
+        echo "The HEF models are not available at the expected GitHub paths."
+        echo "This is common - Hailo Model Zoo may require conversion from TFLite."
         echo ""
-        echo "Manual download options:"
-        echo "1. Visit Hailo Model Zoo: https://github.com/hailo-ai/hailo_model_zoo"
-        echo "2. Check the v2.15 branch: https://github.com/hailo-ai/hailo_model_zoo/tree/v2.15"
-        echo "3. Look for HEF files in the repository"
-        echo "4. Download and place in all_models/ directory:"
-        echo "   - Detection: yolov5s.hef or ssd_mobilenet_v2_coco.hef"
-        echo "   - Classification: mobilenet_v2.hef (or convert from TFLite)"
+        echo "SOLUTION: Download pre-compiled models or convert TFLite models"
         echo ""
-        echo "Alternatively, you can convert TFLite models using convert_models.sh"
-        echo "after installing the Hailo Dataflow Compiler."
+        echo "Option 1: Check Raspberry Pi AI Kit documentation"
+        echo "  The official Raspberry Pi AI Kit guide may have direct download links:"
+        echo "  https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
         echo ""
-        # Don't exit - continue with label files
+        echo "Option 2: Use Hailo Developer Zone"
+        echo "  Check for pre-compiled HEF models:"
+        echo "  https://hailo.ai/developer-zone/"
+        echo ""
+        echo "Option 3: Convert TFLite models (if you have Hailo DFC installed)"
+        echo "  Run: ./convert_models.sh"
+        echo "  This requires the Hailo Dataflow Compiler"
+        echo ""
+        echo "Option 4: Manual download from GitHub"
+        echo "  1. Visit: https://github.com/hailo-ai/hailo_model_zoo"
+        echo "  2. Browse the repository for HEF files"
+        echo "  3. Download and place in all_models/ directory"
+        echo ""
+        echo "CRITICAL: The service cannot run without a detection model!"
+        echo "Please download a model before starting the service."
+        echo ""
+        # Don't exit - continue with label files, but warn user
     fi
 elif [ -f "yolov5s.hef" ] || [ -f "ssd_mobilenet_v2_coco.hef" ]; then
     echo "✓ Detection model already exists"
@@ -126,20 +160,40 @@ if [ ! -f "mobilenet_v2_1.0_224_inat_bird.hef" ]; then
     
     # Try each possible path
     for path in "${CLASSIFICATION_MODEL_PATHS[@]}"; do
-        echo "  Trying: $path"
+        echo "  Trying: ${HAILO_MODEL_ZOO_BASE}/${path}"
+        # Try wget first
         if wget -q --show-progress "${HAILO_MODEL_ZOO_BASE}/${path}" -O "mobilenet_v2_1.0_224_inat_bird.hef.tmp" 2>&1; then
             if [ -s "mobilenet_v2_1.0_224_inat_bird.hef.tmp" ]; then
-                mv "mobilenet_v2_1.0_224_inat_bird.hef.tmp" "mobilenet_v2_1.0_224_inat_bird.hef"
-                size=$(stat -f%z "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || stat -c%s "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || echo "unknown")
-                echo "✓ Classification model downloaded (MobileNet v2) from: $path (size: $size bytes)"
-                CLASSIFICATION_DOWNLOADED=1
-                break
+                # Check if it's actually a valid file (not an HTML error page)
+                if head -1 "mobilenet_v2_1.0_224_inat_bird.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                    rm -f "mobilenet_v2_1.0_224_inat_bird.hef.tmp"
+                    echo "  ✗ Got HTML error page (404?), trying next path..."
+                else
+                    mv "mobilenet_v2_1.0_224_inat_bird.hef.tmp" "mobilenet_v2_1.0_224_inat_bird.hef"
+                    size=$(stat -f%z "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || stat -c%s "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Classification model downloaded (MobileNet v2) from: $path (size: $size bytes)"
+                    CLASSIFICATION_DOWNLOADED=1
+                    break
+                fi
             else
                 rm -f "mobilenet_v2_1.0_224_inat_bird.hef.tmp"
-                echo "  ⚠ Downloaded file is empty, trying next path..."
+                echo "  ✗ Downloaded file is empty, trying next path..."
             fi
         else
             rm -f "mobilenet_v2_1.0_224_inat_bird.hef.tmp"
+            # Try curl as fallback
+            echo "  Trying with curl..."
+            if curl -L -f -s "${HAILO_MODEL_ZOO_BASE}/${path}" -o "mobilenet_v2_1.0_224_inat_bird.hef.tmp" 2>/dev/null; then
+                if [ -s "mobilenet_v2_1.0_224_inat_bird.hef.tmp" ] && ! head -1 "mobilenet_v2_1.0_224_inat_bird.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
+                    mv "mobilenet_v2_1.0_224_inat_bird.hef.tmp" "mobilenet_v2_1.0_224_inat_bird.hef"
+                    size=$(stat -f%z "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || stat -c%s "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || echo "unknown")
+                    echo "✓ Classification model downloaded (MobileNet v2) from: $path (size: $size bytes)"
+                    CLASSIFICATION_DOWNLOADED=1
+                    break
+                else
+                    rm -f "mobilenet_v2_1.0_224_inat_bird.hef.tmp"
+                fi
+            fi
         fi
     done
     
