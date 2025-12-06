@@ -1,14 +1,22 @@
 #!/bin/bash
 # Project Leroy - Model Download Script
-# Downloads pre-compiled HEF models (no compilation needed)
+# Uses git sparse-checkout to efficiently download only HEF files from Model Zoo
 
-set +e
+set -e
 
-echo "Downloading pre-compiled HEF models..."
+echo "Downloading HEF models using git sparse-checkout..."
 
 MODELS_DIR="all_models"
 mkdir -p "$MODELS_DIR"
 cd "$MODELS_DIR"
+
+# Check if git supports sparse-checkout (git 2.25+)
+if ! git --version | grep -qE "git version [2-9]\.([2-9][0-9]|[3-9][0-9])"; then
+    echo "Using fallback method (git sparse-checkout not available)..."
+    USE_SPARSE_CHECKOUT=false
+else
+    USE_SPARSE_CHECKOUT=true
+fi
 
 # Hailo Model Zoo provides pre-compiled HEF files
 # Primary source: Hailo S3 bucket (official pre-compiled models)
@@ -41,12 +49,56 @@ CLASSIFICATION_MODEL_PATHS=(
 COCO_LABELS_URL="https://dl.google.com/coral/canned_models/coco_labels.txt"
 INAT_BIRD_LABELS_URL="https://github.com/google-coral/edgetpu/raw/master/test_data/inat_bird_labels.txt"
 
-# Download detection model (YOLOv5s)
+# Method 1: Use git sparse-checkout (most efficient - only downloads HEF files)
+if [ "$USE_SPARSE_CHECKOUT" = true ] && [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
+    echo "Using git sparse-checkout to download only HEF files..."
+    TMP_DIR="/tmp/hailo_model_zoo_$$"
+    rm -rf "$TMP_DIR"
+    
+    # Clone with sparse-checkout (only downloads HEF files, not entire repo)
+    git clone --filter=blob:none --sparse --branch v2.15 --depth 1 \
+        https://github.com/hailo-ai/hailo_model_zoo.git "$TMP_DIR" 2>/dev/null || {
+        echo "Sparse checkout failed, trying full clone..."
+        git clone --branch v2.15 --depth 1 \
+            https://github.com/hailo-ai/hailo_model_zoo.git "$TMP_DIR" 2>/dev/null || {
+            USE_SPARSE_CHECKOUT=false
+        }
+    }
+    
+    if [ -d "$TMP_DIR" ]; then
+        cd "$TMP_DIR"
+        
+        if [ "$USE_SPARSE_CHECKOUT" = true ]; then
+            git sparse-checkout init --cone 2>/dev/null || true
+            git sparse-checkout set 'hailo_models/*/hef/*.hef' 2>/dev/null || true
+        fi
+        
+        # Find and copy HEF files
+        find hailo_models -name "*.hef" -type f 2>/dev/null | while read hef_file; do
+            model_name=$(basename "$hef_file" .hef)
+            if [[ "$model_name" == "yolov5s" ]]; then
+                cp "$hef_file" "../../yolov5s.hef" 2>/dev/null && \
+                    echo "✓ Downloaded: yolov5s.hef" && DETECTION_DOWNLOADED=1
+            elif [[ "$model_name" == "ssd_mobilenet_v2" ]]; then
+                cp "$hef_file" "../../ssd_mobilenet_v2_coco.hef" 2>/dev/null && \
+                    echo "✓ Downloaded: ssd_mobilenet_v2_coco.hef" && DETECTION_DOWNLOADED=1
+            elif [[ "$model_name" == "mobilenet_v2" ]]; then
+                cp "$hef_file" "../../mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null && \
+                    echo "✓ Downloaded: mobilenet_v2_1.0_224_inat_bird.hef"
+            fi
+        done
+        
+        cd ../..
+        rm -rf "$TMP_DIR"
+    fi
+fi
+
+# Download detection model (YOLOv5s) - fallback methods
 DETECTION_DOWNLOADED=0
 if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
     echo "Downloading detection model..."
     
-    # Method 1: Try Hailo S3 bucket (official pre-compiled models for Hailo-8L)
+    # Method 2: Try Hailo S3 bucket (may require auth)
     for version in "${HAILO_VERSIONS[@]}"; do
         url="${HAILO_S3_BASE}/${version}/hailo8l/yolov5s.hef"
         if wget -q --show-progress "$url" -O "yolov5s.hef.tmp" 2>&1; then
@@ -68,33 +120,7 @@ if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
         fi
         rm -f "yolov5s.hef.tmp"
     done
-    
-    # Method 2: Try GitHub repository (fallback)
-    if [ $DETECTION_DOWNLOADED -eq 0 ]; then
-        for branch in "${HAILO_BRANCHES[@]}"; do
-            for path in "${DETECTION_MODEL_PATHS[@]}"; do
-                url="${HAILO_MODEL_ZOO_BASE}/${branch}/${path}"
-                if wget -q --show-progress "$url" -O "yolov5s.hef.tmp" 2>&1; then
-                    if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
-                        mv "yolov5s.hef.tmp" "yolov5s.hef"
-                        size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
-                        echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
-                        DETECTION_DOWNLOADED=1
-                        break 2
-                    fi
-                elif curl -L -f -s "$url" -o "yolov5s.hef.tmp" 2>/dev/null; then
-                    if [ -s "yolov5s.hef.tmp" ] && ! head -1 "yolov5s.hef.tmp" | grep -q "<!DOCTYPE\|<html"; then
-                        mv "yolov5s.hef.tmp" "yolov5s.hef"
-                        size=$(stat -f%z "yolov5s.hef" 2>/dev/null || stat -c%s "yolov5s.hef" 2>/dev/null || echo "unknown")
-                        echo "✓ Detection model downloaded: yolov5s.hef ($size bytes)"
-                        DETECTION_DOWNLOADED=1
-                        break 2
-                    fi
-                fi
-                rm -f "yolov5s.hef.tmp"
-            done
-        done
-    fi
+fi
     
     # If YOLOv5s failed, try SSD MobileNet v2 alternatives
     if [ $DETECTION_DOWNLOADED -eq 0 ]; then
@@ -153,18 +179,14 @@ if [ ! -f "yolov5s.hef" ] && [ ! -f "ssd_mobilenet_v2_coco.hef" ]; then
     
     if [ $DETECTION_DOWNLOADED -eq 0 ]; then
         echo ""
-        echo "ERROR: Failed to download pre-compiled HEF model"
+        echo "ERROR: Failed to download detection model"
         echo ""
-        echo "The S3 bucket may require authentication (403 Forbidden)."
-        echo ""
-        echo "RECOMMENDED: Clone Model Zoo repository and find HEF files:"
-        echo ""
+        echo "Try manual download:"
         echo "  cd ~"
         echo "  git clone --branch v2.15 --depth 1 https://github.com/hailo-ai/hailo_model_zoo.git"
         echo "  cd hailo_model_zoo"
-        echo "  find . -name \"yolov5s.hef\" -type f"
-        echo "  find . -name \"*ssd_mobilenet*.hef\" -type f"
-        echo "  # Copy found files to: ~/Projects/project-leroy/all_models/"
+        echo "  find . -name \"*.hef\" -type f"
+        echo "  # Copy yolov5s.hef or ssd_mobilenet_v2.hef to all_models/"
         echo ""
         echo "See MANUAL_MODEL_DOWNLOAD.md for complete instructions."
         echo ""
