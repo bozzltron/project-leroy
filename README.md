@@ -313,6 +313,19 @@ sudo hailortcli fw-control identify
 
 **Why this happens:** After system updates, the Hailo driver and library can get out of sync. The driver loads at boot, so a reboot is required after reinstalling. The kernel modules must be removed for a clean reinstall.
 
+**Repository Unavailable (404 Error):**
+
+If you see `404 Not Found` when updating packages, the Hailo repository may be:
+- Temporarily unavailable
+- Not supporting your OS version (trixie/sid)
+
+**Workaround:**
+1. Check if packages are already installed: `dpkg -l | grep hailo`
+2. If installed, try rebooting first - sometimes fixes version mismatch
+3. Check official Raspberry Pi AI Kit guide for latest repository info:
+   https://www.raspberrypi.com/documentation/accessories/ai-kit.html
+4. The fix script will detect repository issues and provide guidance
+
 ### Service Keeps Restarting
 
 Check logs to identify the crash cause:

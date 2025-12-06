@@ -126,27 +126,69 @@ fi
 # Step 6: Update package list
 echo ""
 echo "6. Updating package list..."
-apt-get update
-
-# Step 7: Reinstall hailo-all
-echo ""
-echo "7. Reinstalling hailo-all..."
-if apt-get install -y hailo-all; then
-    echo "   ✓ hailo-all installed"
+if apt-get update 2>&1 | grep -q "404\|Not Found"; then
+    echo "   ⚠ Repository returned 404 - repository may be unavailable"
+    echo "   Checking if packages are already installed locally..."
+    
+    # Check if packages are installed
+    if dpkg -l | grep -q hailo; then
+        echo "   ✓ Hailo packages are installed locally"
+        echo ""
+        echo "   Since repository is unavailable, we'll work with installed packages."
+        echo "   The version mismatch may require manual intervention or waiting for"
+        echo "   repository to become available."
+        echo ""
+        echo "   Options:"
+        echo "   1. Wait and try again later (repository may be temporarily down)"
+        echo "   2. Check official Raspberry Pi AI Kit guide for alternative installation"
+        echo "   3. Contact Hailo support if issue persists"
+        echo ""
+        read -p "Continue with cleanup anyway? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Aborted. Repository unavailable."
+            exit 1
+        fi
+        # Skip reinstall if repository unavailable
+        SKIP_REINSTALL=true
+    else
+        echo "   ✗ Hailo packages not installed and repository unavailable"
+        echo "   Cannot proceed without repository access"
+        exit 1
+    fi
 else
-    echo "   ✗ Failed to install hailo-all"
+    SKIP_REINSTALL=false
+fi
+
+# Step 7: Reinstall hailo-all (if repository is available)
+if [ "$SKIP_REINSTALL" != "true" ]; then
     echo ""
-    echo "Troubleshooting:"
-    echo "  1. Check repository is configured: cat /etc/apt/sources.list.d/hailo.list"
-    echo "  2. Check network connectivity"
-    echo "  3. Try: sudo apt-get update && sudo apt-get install -y hailo-all"
-    exit 1
+    echo "7. Reinstalling hailo-all..."
+    if apt-get install -y hailo-all; then
+        echo "   ✓ hailo-all installed"
+    else
+        echo "   ✗ Failed to install hailo-all"
+        echo ""
+        echo "Troubleshooting:"
+        echo "  1. Check repository is configured: cat /etc/apt/sources.list.d/hailo.list"
+        echo "  2. Check network connectivity"
+        echo "  3. Repository may be temporarily unavailable - try again later"
+        echo "  4. Check official Raspberry Pi AI Kit installation guide:"
+        echo "     https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+        exit 1
+    fi
+else
+    echo ""
+    echo "7. Skipping reinstall (repository unavailable)"
+    echo "   Packages remain installed - reboot may still help"
 fi
 
 # Step 8: Verify installation
 echo ""
 echo "8. Verifying installation..."
-sleep 2  # Give system a moment to register new packages
+if [ "$SKIP_REINSTALL" != "true" ]; then
+    sleep 2  # Give system a moment to register new packages
+fi
 
 if command -v hailortcli &> /dev/null; then
     echo "   Testing: hailortcli fw-control identify"
@@ -154,7 +196,14 @@ if command -v hailortcli &> /dev/null; then
     
     if echo "$IDENTIFY_OUTPUT" | grep -q "Driver version.*is different from library version"; then
         echo "   ⚠ Version mismatch still present"
-        echo "   This may require a reboot to load the new driver"
+        if [ "$SKIP_REINSTALL" = "true" ]; then
+            echo "   Repository was unavailable - could not reinstall packages"
+            echo "   Try again later when repository is available, or:"
+            echo "   1. Check official Raspberry Pi AI Kit guide"
+            echo "   2. Contact Hailo support"
+        else
+            echo "   This may require a reboot to load the new driver"
+        fi
     elif echo "$IDENTIFY_OUTPUT" | grep -q "error\|ERROR"; then
         echo "   ⚠ Error detected (may need reboot):"
         echo "$IDENTIFY_OUTPUT" | head -5
@@ -163,7 +212,7 @@ if command -v hailortcli &> /dev/null; then
         echo "$IDENTIFY_OUTPUT" | head -10
     fi
 else
-    echo "   ⚠ hailortcli not found after installation"
+    echo "   ⚠ hailortcli not found"
 fi
 
 # Step 9: Reboot prompt
