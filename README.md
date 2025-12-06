@@ -68,30 +68,52 @@ This will:
 
 **CRITICAL**: The service requires at least one detection model to run.
 
-Download pre-compiled HEF models:
+#### Method 1: Using Hailo Model Zoo (Recommended)
+
+The **Hailo Model Zoo** is the centralized repository for models. Best practice is to use the `hailomz` tool:
 
 ```bash
+# Try automated download (uses hailomz if available)
 ./download_models.sh
 ```
 
-**Note**: The script will try to download from Hailo Model Zoo, but HEF files may not be directly available. If downloads fail:
+If `hailomz` is not available, set it up manually:
 
-1. **Check Raspberry Pi AI Kit Documentation**:
-   - The official guide may have direct download links:
-   - https://www.raspberrypi.com/documentation/accessories/ai-kit.html
+```bash
+# 1. Clone Hailo Model Zoo
+git clone https://github.com/hailo-ai/hailo_model_zoo.git
+cd hailo_model_zoo
 
-2. **Check Hailo Developer Zone**:
-   - Look for pre-compiled HEF models:
-   - https://hailo.ai/developer-zone/
+# 2. Install Model Zoo tools
+pip install -e .
 
-3. **Convert TFLite Models** (if you have Hailo Dataflow Compiler):
-   ```bash
-   ./convert_models.sh
-   ```
+# 3. Compile models to HEF format
+hailomz compile yolov5s --target hailo8l
+# Or for SSD MobileNet v2:
+hailomz compile ssd_mobilenet_v2 --target hailo8l
 
-4. **Manual Download**:
-   - Download HEF files from Hailo Model Zoo or other sources
-   - Place in `all_models/` directory
+# 4. Copy compiled HEF files to project
+cp <model_path>/yolov5s.hef ../project-leroy/all_models/
+```
+
+#### Method 2: Model Explorer
+
+Use Hailo's Model Explorer to find suitable models:
+- **Model Explorer**: https://hailo.ai/de/products/hailo-software/model-explorer-vision/
+- Filter by device (Hailo-8L), task (object detection), and performance
+
+#### Method 3: Raspberry Pi AI Kit Documentation
+
+Check the official guide for pre-compiled models:
+- https://www.raspberrypi.com/documentation/accessories/ai-kit.html
+
+#### Method 4: Convert TFLite Models
+
+If you have Hailo Dataflow Compiler installed:
+
+```bash
+./convert_models.sh
+```
 
 **Model Priority**:
 - **Detection**: YOLOv5s (preferred) or SSD MobileNet v2 (fallback) - **REQUIRED**
