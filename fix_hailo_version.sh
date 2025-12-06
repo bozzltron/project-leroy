@@ -210,9 +210,9 @@ else
     echo "   Packages remain installed - reboot may still help"
 fi
 
-# Step 8: Verify installation
+# Step 9: Verify installation (per official documentation)
 echo ""
-echo "8. Verifying installation..."
+echo "9. Verifying installation..."
 if [ "$SKIP_REINSTALL" != "true" ]; then
     sleep 2  # Give system a moment to register new packages
 fi
