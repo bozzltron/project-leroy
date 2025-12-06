@@ -280,6 +280,91 @@ Common causes:
 - Hailo model loading error
 - Missing dependencies
 
+### Camera Diagnostics
+
+**Quick Diagnostic Script:**
+```bash
+./diagnose_camera.sh
+```
+
+This script checks:
+- Camera interface status
+- Device detection (`/dev/video0`)
+- Camera permissions
+- OpenCV access
+- Project Leroy camera manager
+
+**Manual Camera Tests:**
+
+1. **Check camera interface is enabled:**
+   ```bash
+   grep start_x /boot/firmware/config.txt
+   # Should show: start_x=1
+   ```
+
+2. **Check camera device exists:**
+   ```bash
+   ls -l /dev/video*
+   # Should show /dev/video0 with video group
+   ```
+
+3. **Test with v4l2-utils:**
+   ```bash
+   sudo apt-get install v4l-utils
+   v4l2-ctl --device=/dev/video0 --all
+   ```
+
+4. **Test with rpicam (Raspberry Pi official tools):**
+   ```bash
+   sudo apt-get install rpicam-apps
+   rpicam-hello  # 5 second preview
+   rpicam-still -o test.jpg  # Capture test image
+   ```
+
+5. **Test with OpenCV (Python):**
+   ```bash
+   python3 << 'EOF'
+   import cv2
+   cap = cv2.VideoCapture(0)
+   if cap.isOpened():
+       ret, frame = cap.read()
+       if ret:
+           print(f"Camera working! Frame: {frame.shape[1]}x{frame.shape[0]}")
+       else:
+           print("Camera opened but can't read frames")
+       cap.release()
+   else:
+       print("Failed to open camera")
+   EOF
+   ```
+
+6. **Check user permissions:**
+   ```bash
+   groups  # Should include 'video'
+   # If not: sudo usermod -aG video $USER
+   # Then logout and login again
+   ```
+
+7. **Test with Project Leroy's camera manager:**
+   ```bash
+   python3 << 'EOF'
+   from camera_manager import CameraManager
+   camera = CameraManager(camera_idx=0)
+   if camera.initialize():
+       print("Camera manager initialized successfully")
+       camera.release()
+   else:
+       print("Camera manager failed to initialize")
+   EOF
+   ```
+
+**Common Camera Issues:**
+
+- **Camera not detected**: Check cable connection, try different camera port
+- **Permission denied**: Add user to video group: `sudo usermod -aG video $USER`
+- **Interface not enabled**: Run `sudo raspi-config` → Interface Options → Camera → Enable
+- **Wrong camera index**: Try different indices (0, 1, 2) with `--camera_idx` argument
+
 ### View Detection Photos
 
 Photos are stored in:
