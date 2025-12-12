@@ -195,7 +195,47 @@ def main():
             logger.error(error_msg)
             raise FileNotFoundError(error_msg)
         
-        default_labels = os.path.join(default_model_dir, 'coco_labels.txt')
+        # Try to find labels file - check multiple possible names
+        coco_labels_path = os.path.join(default_model_dir, 'coco_labels.txt')
+        inat_labels_path = os.path.join(default_model_dir, 'inat_bird_labels.txt')
+        
+        if os.path.exists(coco_labels_path):
+            default_labels = coco_labels_path
+        elif os.path.exists(inat_labels_path):
+            default_labels = inat_labels_path
+        else:
+            # No labels found - provide helpful error message
+            available_files = []
+            if os.path.exists(default_model_dir):
+                available_files = [f for f in os.listdir(default_model_dir) if f.endswith('.txt')]
+            
+            error_msg = (
+                f"\n"
+                f"ERROR: No labels file found in {default_model_dir}\n"
+                f"Expected: coco_labels.txt or inat_bird_labels.txt\n"
+                f"\n"
+            )
+            if available_files:
+                error_msg += (
+                    f"Found text files:\n"
+                )
+                for f in available_files:
+                    error_msg += f"  - {f}\n"
+                error_msg += f"\n"
+            error_msg += (
+                f"SOLUTION:\n"
+                f"1. Labels files should be included with models or downloaded separately\n"
+                f"2. For COCO models (YOLO, SSD): Use coco_labels.txt (80 classes)\n"
+                f"3. For iNaturalist models: Use inat_bird_labels.txt (bird species)\n"
+                f"4. Place labels file in: {default_model_dir}/\n"
+                f"5. Labels files are typically available from:\n"
+                f"   - Model Zoo repositories\n"
+                f"   - Model documentation pages\n"
+                f"   - Hailo Model Explorer (check model details)\n"
+                f"\n"
+            )
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
         
         parser = argparse.ArgumentParser(
             description='Project Leroy - Bird Detection with Hailo AI Kit'
