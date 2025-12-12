@@ -75,21 +75,27 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
    - Sign in (create account if needed)
 
 2. **Download Detection Model** (REQUIRED):
-   - Filter: AI Processor = **Hailo-8L**, Task = **Object Detection**
+   - **CRITICAL**: Filter by AI Processor = **Hailo-8L** (NOT Hailo-8 or Hailo-10)
+   - Task = **Object Detection**
    - Recommended: **YOLOv11s**, **YOLOv10s**, **YOLOv8s**, or **YOLOv8m** (best balance of speed/accuracy)
    - Alternative: **YOLOv5s** or **SSD MobileNet v2**
    - Download the **COMPILED HEF** file (not pretrained)
+   - **Verify**: Model description should mention "Hailo-8L" or "hailo8l"
    - Save as: `yolov11s.hef`, `yolov10s.hef`, `yolov8s.hef`, `yolov5s.hef`, or `detection_model.hef`
    - The code will automatically detect any of these names
+   - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
 
 3. **Download Classification Model** (REQUIRED):
-   - Filter: AI Processor = **Hailo-8L**, Task = **Classification**
+   - **CRITICAL**: Filter by AI Processor = **Hailo-8L** (NOT Hailo-8 or Hailo-10)
+   - Task = **Classification**
    - Recommended: **MobileNet v3** or **MobileNet v2**
    - Note: Standard models are ImageNet-trained (~59 bird species)
    - For 964 bird species, you'll need a custom fine-tuned model
    - Download the **COMPILED HEF** file
+   - **Verify**: Model description should mention "Hailo-8L" or "hailo8l"
    - Save as: `mobilenet_v3.hef` or `mobilenet_v2_1.0_224_inat_bird.hef`
    - The code will automatically detect either name
+   - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
 
 4. **Copy Models to Project**:
    ```bash
