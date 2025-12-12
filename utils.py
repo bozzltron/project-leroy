@@ -15,8 +15,12 @@ def load_labels(path: str) -> Dict[int, str]:
     """
     Load label file and return as dictionary.
     
+    Supports two formats:
+    1. Text format: "ID label" (e.g., "16 bird")
+    2. JSON format: {"0": "person", "1": "bicycle", ...} (Hailo Model Zoo format)
+    
     Args:
-        path: Path to label file
+        path: Path to label file (.txt or .json)
         
     Returns:
         Dictionary mapping label IDs to label names
@@ -25,15 +29,39 @@ def load_labels(path: str) -> Dict[int, str]:
         FileNotFoundError: If label file doesn't exist
         ValueError: If label file format is invalid
     """
-    p = re.compile(r'\s*(\d+)(.+)')
     labels = {}
     try:
-        with open(path, 'r', encoding='utf-8') as f:
-            for line in f.readlines():
-                match = p.match(line)
-                if match:
-                    num, text = match.groups()
-                    labels[int(num)] = text.strip()
+        # Try JSON format first (Hailo Model Zoo format)
+        if path.endswith('.json'):
+            import json
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # Handle both {"0": "label"} and {"labels": ["label0", "label1"]} formats
+                if isinstance(data, dict):
+                    if "labels" in data:
+                        # Format: {"labels": ["person", "bicycle", ...]}
+                        for idx, label in enumerate(data["labels"]):
+                            labels[idx] = str(label)
+                    else:
+                        # Format: {"0": "person", "1": "bicycle", ...}
+                        for key, value in data.items():
+                            try:
+                                labels[int(key)] = str(value)
+                            except (ValueError, TypeError):
+                                continue
+                elif isinstance(data, list):
+                    # Format: ["person", "bicycle", ...]
+                    for idx, label in enumerate(data):
+                        labels[idx] = str(label)
+        else:
+            # Try text format: "ID label"
+            p = re.compile(r'\s*(\d+)(.+)')
+            with open(path, 'r', encoding='utf-8') as f:
+                for line in f.readlines():
+                    match = p.match(line)
+                    if match:
+                        num, text = match.groups()
+                        labels[int(num)] = text.strip()
     except FileNotFoundError:
         # Provide helpful error message with suggestions
         import os

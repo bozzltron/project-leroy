@@ -195,12 +195,15 @@ def main():
             logger.error(error_msg)
             raise FileNotFoundError(error_msg)
         
-        # Try to find labels file - check multiple possible names
-        coco_labels_path = os.path.join(default_model_dir, 'coco_labels.txt')
+        # Try to find labels file - check multiple possible names and formats
+        coco_labels_txt = os.path.join(default_model_dir, 'coco_labels.txt')
+        coco_labels_json = os.path.join(default_model_dir, 'labels_coco.json')
         inat_labels_path = os.path.join(default_model_dir, 'inat_bird_labels.txt')
         
-        if os.path.exists(coco_labels_path):
-            default_labels = coco_labels_path
+        if os.path.exists(coco_labels_txt):
+            default_labels = coco_labels_txt
+        elif os.path.exists(coco_labels_json):
+            default_labels = coco_labels_json  # Support Hailo Model Zoo JSON format
         elif os.path.exists(inat_labels_path):
             default_labels = inat_labels_path
         else:

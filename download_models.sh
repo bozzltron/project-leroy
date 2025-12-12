@@ -95,12 +95,42 @@ fi
 # Download label files (these are publicly available)
 echo ""
 echo "Downloading label files..."
+echo "Note: Labels may also be included with models from Hailo Model Explorer"
+echo ""
+
+# Try downloading from Hailo Model Zoo first (JSON format, but we support it)
+if [ ! -f "coco_labels.txt" ] && [ ! -f "labels_coco.json" ]; then
+    # Try Hailo Model Zoo format (JSON)
+    wget -q --show-progress "https://raw.githubusercontent.com/hailo-ai/hailo_model_zoo/master/datasets/labels_coco.json" -O "labels_coco.json" 2>&1 || \
+        curl -L -f -s "https://raw.githubusercontent.com/hailo-ai/hailo_model_zoo/master/datasets/labels_coco.json" -o "labels_coco.json" 2>/dev/null || true
+    if [ -f "labels_coco.json" ]; then
+        echo "✓ COCO labels downloaded from Hailo Model Zoo (JSON format)"
+        # Also create text format for compatibility
+        python3 -c "
+import json
+with open('labels_coco.json', 'r') as f:
+    data = json.load(f)
+    if isinstance(data, dict) and 'labels' in data:
+        labels = data['labels']
+    elif isinstance(data, dict):
+        labels = [data.get(str(i), '') for i in range(max(int(k) for k in data.keys()) + 1)]
+    else:
+        labels = data
+with open('coco_labels.txt', 'w') as f:
+    for i, label in enumerate(labels):
+        f.write(f'{i} {label}\n')
+" 2>/dev/null && echo "  → Converted to coco_labels.txt" || true
+    fi
+fi
+
+# Fallback to Google Coral source (text format)
 if [ ! -f "coco_labels.txt" ]; then
     wget -q --show-progress "https://dl.google.com/coral/canned_models/coco_labels.txt" -O "coco_labels.txt" 2>&1 || \
         curl -L -f -s "https://dl.google.com/coral/canned_models/coco_labels.txt" -o "coco_labels.txt" 2>/dev/null || true
-    [ -f "coco_labels.txt" ] && echo "✓ COCO labels downloaded"
+    [ -f "coco_labels.txt" ] && echo "✓ COCO labels downloaded (text format)"
 fi
 
+# iNaturalist bird labels
 if [ ! -f "inat_bird_labels.txt" ]; then
     wget -q --show-progress "https://github.com/google-coral/edgetpu/raw/master/test_data/inat_bird_labels.txt" -O "inat_bird_labels.txt" 2>&1 || \
         curl -L -f -s "https://github.com/google-coral/edgetpu/raw/master/test_data/inat_bird_labels.txt" -o "inat_bird_labels.txt" 2>/dev/null || true
