@@ -194,10 +194,45 @@ class HailoInference:
         # Validate file exists and is readable before attempting to load
         import os
         if not os.path.exists(model_path):
-            raise FileNotFoundError(
+            # Check if there are any HEF files in the models directory
+            model_dir = os.path.dirname(model_path) if os.path.dirname(model_path) else 'all_models'
+            available_models = []
+            if os.path.exists(model_dir):
+                available_models = [f for f in os.listdir(model_dir) if f.endswith('.hef')]
+            
+            error_msg = (
                 f"HEF model file not found: {model_path}\n"
-                f"Please ensure the model file exists. Run download_models.sh to download models."
+                f"\n"
             )
+            if available_models:
+                error_msg += (
+                    f"Found HEF files in {model_dir}:\n"
+                )
+                for f in available_models:
+                    full_path = os.path.join(model_dir, f)
+                    size = os.path.getsize(full_path) if os.path.exists(full_path) else 0
+                    error_msg += f"  - {f} ({size:,} bytes)\n"
+                error_msg += (
+                    f"\n"
+                    f"If these models give 'HEF_NOT_COMPATIBLE' errors, they were compiled for wrong device.\n"
+                    f"Delete them and download Hailo-8L compatible models from Model Explorer.\n"
+                    f"\n"
+                )
+            else:
+                error_msg += (
+                    f"No HEF files found in {model_dir}\n"
+                    f"\n"
+                )
+            error_msg += (
+                f"SOLUTION:\n"
+                f"1. Download Hailo-8L compatible models from:\n"
+                f"   https://hailo.ai/products/hailo-software/model-explorer-vision/\n"
+                f"2. Filter by: AI Processor = Hailo-8L (NOT Hailo-8 or Hailo-10)\n"
+                f"3. Download COMPILED HEF files (not pretrained)\n"
+                f"4. Copy to: {model_dir}/\n"
+                f"5. Supported names: yolov11s.hef, yolov10s.hef, yolov8s.hef, yolov5s.hef, detection_model.hef\n"
+            )
+            raise FileNotFoundError(error_msg)
         
         if not os.path.isfile(model_path):
             raise ValueError(f"Model path is not a file: {model_path}")

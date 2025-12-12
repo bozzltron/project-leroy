@@ -154,7 +154,46 @@ def main():
         elif os.path.exists(ssd_path):
             default_model = ssd_path  # SSD MobileNet v2 - fallback
         else:
-            default_model = detection_model_path  # Default to generic name (will error clearly)
+            # No models found - provide helpful error message
+            available_files = []
+            if os.path.exists(default_model_dir):
+                available_files = [f for f in os.listdir(default_model_dir) if f.endswith('.hef')]
+            
+            error_msg = (
+                f"\n"
+                f"ERROR: No detection model found in {default_model_dir}\n"
+                f"\n"
+            )
+            if available_files:
+                error_msg += (
+                    f"Found HEF files (may be incompatible):\n"
+                )
+                for f in available_files:
+                    size = os.path.getsize(os.path.join(default_model_dir, f))
+                    error_msg += f"  - {f} ({size:,} bytes)\n"
+                error_msg += (
+                    f"\n"
+                    f"If these models give 'HEF_NOT_COMPATIBLE' errors, they were compiled for wrong device.\n"
+                    f"Delete them and download Hailo-8L compatible models.\n"
+                    f"\n"
+                )
+            else:
+                error_msg += (
+                    f"No HEF files found in {default_model_dir}\n"
+                    f"\n"
+                )
+            error_msg += (
+                f"SOLUTION:\n"
+                f"1. Download Hailo-8L compatible models from:\n"
+                f"   https://hailo.ai/products/hailo-software/model-explorer-vision/\n"
+                f"2. Filter by: AI Processor = Hailo-8L (NOT Hailo-8 or Hailo-10)\n"
+                f"3. Download COMPILED HEF files (not pretrained)\n"
+                f"4. Copy to: {default_model_dir}/\n"
+                f"5. Supported names: yolov11s.hef, yolov10s.hef, yolov8s.hef, yolov5s.hef, detection_model.hef\n"
+                f"\n"
+            )
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
         
         default_labels = os.path.join(default_model_dir, 'coco_labels.txt')
         
