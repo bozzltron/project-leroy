@@ -220,43 +220,50 @@ class HailoInference:
         logger.info(f"Loading detection model: {model_path} (size: {file_size:,} bytes)")
         
         try:
-            # Hailo SDK API: Load HEF file and configure on device
-            # Method 1: Using HEF class (preferred)
-            if HEF is not None:
+            # Hailo SDK API: Use device.load_model() directly (correct API for Raspberry Pi AI Kit)
+            # Method 1: Try device.load_model() directly (preferred - correct API)
+            if hasattr(self.device, 'load_model'):
+                logger.debug(f"Attempting to load model using device.load_model()...")
+                self.detection_network = self.device.load_model(model_path)
+                logger.debug(f"Model loaded successfully using device.load_model()")
+            # Method 2: Try using HEF class with VDevice (if available)
+            elif HEF is not None:
                 try:
-                    # Try HEF.from_file() first (common API)
-                    logger.debug(f"Attempting to load HEF using HEF.from_file()...")
-                    hef = HEF.from_file(model_path)
-                    logger.debug(f"HEF loaded successfully, configuring on device...")
-                    self.detection_network = self.device.configure(hef)
-                except (AttributeError, TypeError):
-                    # Try HEF() constructor
+                    # Some SDK versions require VDevice for configure()
+                    from hailo_platform import VDevice
+                    logger.debug(f"Attempting to load HEF using VDevice...")
+                    vdevice = VDevice()
+                    hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
+                    self.detection_network = vdevice.configure(hef)
+                    logger.debug(f"Model loaded successfully using VDevice.configure()")
+                except (ImportError, AttributeError, TypeError) as e:
+                    logger.debug(f"VDevice approach failed: {e}, trying HEF directly...")
+                    # Try HEF() constructor and see if device has other methods
                     try:
-                        hef = HEF(model_path)
-                        self.detection_network = self.device.configure(hef)
-                    except (AttributeError, TypeError):
-                        # Try direct file path
                         hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
-                        self.detection_network = self.device.configure(hef)
-            else:
-                # Method 2: Try device.load_model() (if available in some SDK versions)
-                if hasattr(self.device, 'load_model'):
-                    self.detection_network = self.device.load_model(model_path)
-                # Method 3: Try device.configure() with file path directly
-                elif hasattr(self.device, 'configure'):
-                    self.detection_network = self.device.configure(model_path)
-                else:
-                    # Method 4: Try importing HEF dynamically
-                    try:
-                        from hailo_platform import HEF as HEFClass
-                        hef = HEFClass.from_file(model_path) if hasattr(HEFClass, 'from_file') else HEFClass(model_path)
-                        self.detection_network = self.device.configure(hef)
+                        # Check if device has a method that accepts HEF
+                        if hasattr(self.device, 'load_hef'):
+                            self.detection_network = self.device.load_hef(hef)
+                        else:
+                            raise AttributeError("Device has no load_model, configure, or load_hef method")
                     except Exception as e2:
                         raise RuntimeError(
-                            f"Could not load model using any known API. "
-                            f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}. "
+                            f"Could not load model. Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}. "
                             f"Error: {e2}"
                         )
+            else:
+                # Method 3: Last resort - try to find any method that might work
+                available_methods = [m for m in dir(self.device) if not m.startswith('_') and 'load' in m.lower()]
+                if available_methods:
+                    logger.warning(f"Trying alternative methods: {available_methods}")
+                    # Try the first method that looks like it might load a model
+                    method = getattr(self.device, available_methods[0])
+                    self.detection_network = method(model_path)
+                else:
+                    raise RuntimeError(
+                        f"Could not load model. Device has no load_model method. "
+                        f"Available methods: {[m for m in dir(self.device) if not m.startswith('_')]}"
+                    )
             
             logger.info(f"Loaded detection model: {model_path}")
         except Exception as e:
@@ -345,43 +352,50 @@ class HailoInference:
         logger.info(f"Loading classification model: {model_path} (size: {file_size:,} bytes)")
         
         try:
-            # Hailo SDK API: Load HEF file and configure on device
-            # Method 1: Using HEF class (preferred)
-            if HEF is not None:
+            # Hailo SDK API: Use device.load_model() directly (correct API for Raspberry Pi AI Kit)
+            # Method 1: Try device.load_model() directly (preferred - correct API)
+            if hasattr(self.device, 'load_model'):
+                logger.debug(f"Attempting to load model using device.load_model()...")
+                self.classification_network = self.device.load_model(model_path)
+                logger.debug(f"Model loaded successfully using device.load_model()")
+            # Method 2: Try using HEF class with VDevice (if available)
+            elif HEF is not None:
                 try:
-                    # Try HEF.from_file() first (common API)
-                    logger.debug(f"Attempting to load HEF using HEF.from_file()...")
-                    hef = HEF.from_file(model_path)
-                    logger.debug(f"HEF loaded successfully, configuring on device...")
-                    self.classification_network = self.device.configure(hef)
-                except (AttributeError, TypeError):
-                    # Try HEF() constructor
+                    # Some SDK versions require VDevice for configure()
+                    from hailo_platform import VDevice
+                    logger.debug(f"Attempting to load HEF using VDevice...")
+                    vdevice = VDevice()
+                    hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
+                    self.classification_network = vdevice.configure(hef)
+                    logger.debug(f"Model loaded successfully using VDevice.configure()")
+                except (ImportError, AttributeError, TypeError) as e:
+                    logger.debug(f"VDevice approach failed: {e}, trying HEF directly...")
+                    # Try HEF() constructor and see if device has other methods
                     try:
-                        hef = HEF(model_path)
-                        self.classification_network = self.device.configure(hef)
-                    except (AttributeError, TypeError):
-                        # Try direct file path
                         hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
-                        self.classification_network = self.device.configure(hef)
-            else:
-                # Method 2: Try device.load_model() (if available in some SDK versions)
-                if hasattr(self.device, 'load_model'):
-                    self.classification_network = self.device.load_model(model_path)
-                # Method 3: Try device.configure() with file path directly
-                elif hasattr(self.device, 'configure'):
-                    self.classification_network = self.device.configure(model_path)
-                else:
-                    # Method 4: Try importing HEF dynamically
-                    try:
-                        from hailo_platform import HEF as HEFClass
-                        hef = HEFClass.from_file(model_path) if hasattr(HEFClass, 'from_file') else HEFClass(model_path)
-                        self.classification_network = self.device.configure(hef)
+                        # Check if device has a method that accepts HEF
+                        if hasattr(self.device, 'load_hef'):
+                            self.classification_network = self.device.load_hef(hef)
+                        else:
+                            raise AttributeError("Device has no load_model, configure, or load_hef method")
                     except Exception as e2:
                         raise RuntimeError(
-                            f"Could not load model using any known API. "
-                            f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}. "
+                            f"Could not load model. Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}. "
                             f"Error: {e2}"
                         )
+            else:
+                # Method 3: Last resort - try to find any method that might work
+                available_methods = [m for m in dir(self.device) if not m.startswith('_') and 'load' in m.lower()]
+                if available_methods:
+                    logger.warning(f"Trying alternative methods: {available_methods}")
+                    # Try the first method that looks like it might load a model
+                    method = getattr(self.device, available_methods[0])
+                    self.classification_network = method(model_path)
+                else:
+                    raise RuntimeError(
+                        f"Could not load model. Device has no load_model method. "
+                        f"Available methods: {[m for m in dir(self.device) if not m.startswith('_')]}"
+                    )
             
             logger.info(f"Loaded classification model: {model_path}")
         except Exception as e:
