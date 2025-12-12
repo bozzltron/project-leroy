@@ -37,10 +37,25 @@ def main():
     parser = argparse.ArgumentParser(
         description='Project Leroy - Bird Classification with Hailo AI Kit'
     )
+    # Try to find classification model - check for various MobileNet versions
+    default_model_dir = os.path.join('all_models')
+    mobilenet_v3_path = os.path.join(default_model_dir, 'mobilenet_v3.hef')
+    mobilenet_v2_path = os.path.join(default_model_dir, 'mobilenet_v2_1.0_224_inat_bird.hef')
+    mobilenet_v2_alt_path = os.path.join(default_model_dir, 'mobilenet_v2.hef')
+    
+    if os.path.exists(mobilenet_v3_path):
+        default_classification_model = mobilenet_v3_path
+    elif os.path.exists(mobilenet_v2_path):
+        default_classification_model = mobilenet_v2_path
+    elif os.path.exists(mobilenet_v2_alt_path):
+        default_classification_model = mobilenet_v2_alt_path
+    else:
+        default_classification_model = mobilenet_v2_path  # Default (will error clearly if missing)
+    
     parser.add_argument(
         '--model',
         help='HEF model path',
-        default=os.path.join('all_models', 'mobilenet_v2_1.0_224_inat_bird.hef')
+        default=default_classification_model
     )
     parser.add_argument(
         '--label',

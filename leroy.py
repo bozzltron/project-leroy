@@ -133,16 +133,28 @@ def main():
         project_root = script_dir
         
         default_model_dir = os.path.join(project_root, 'all_models')
-        # Prefer YOLOv5s if available (better accuracy), fallback to SSD MobileNet v2
+        # Try generic detection_model.hef first, then check for various YOLO versions and fallbacks
+        detection_model_path = os.path.join(default_model_dir, 'detection_model.hef')
+        yolov11s_path = os.path.join(default_model_dir, 'yolov11s.hef')
+        yolov10s_path = os.path.join(default_model_dir, 'yolov10s.hef')
+        yolov8s_path = os.path.join(default_model_dir, 'yolov8s.hef')
         yolov5s_path = os.path.join(default_model_dir, 'yolov5s.hef')
         ssd_path = os.path.join(default_model_dir, 'ssd_mobilenet_v2_coco.hef')
         
-        if os.path.exists(yolov5s_path):
-            default_model = yolov5s_path  # YOLOv5s - better accuracy
+        if os.path.exists(detection_model_path):
+            default_model = detection_model_path  # Generic name (works with any YOLO variant)
+        elif os.path.exists(yolov11s_path):
+            default_model = yolov11s_path  # YOLOv11s - latest version
+        elif os.path.exists(yolov10s_path):
+            default_model = yolov10s_path  # YOLOv10s
+        elif os.path.exists(yolov8s_path):
+            default_model = yolov8s_path  # YOLOv8s
+        elif os.path.exists(yolov5s_path):
+            default_model = yolov5s_path  # YOLOv5s - backward compatibility
         elif os.path.exists(ssd_path):
             default_model = ssd_path  # SSD MobileNet v2 - fallback
         else:
-            default_model = yolov5s_path  # Default to yolov5s path even if not exists (will error clearly)
+            default_model = detection_model_path  # Default to generic name (will error clearly)
         
         default_labels = os.path.join(default_model_dir, 'coco_labels.txt')
         

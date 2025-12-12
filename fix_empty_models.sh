@@ -30,14 +30,12 @@ if [ $EMPTY_FILES -gt 0 ]; then
     echo ""
     echo "Removed $EMPTY_FILES empty HEF file(s)"
     echo ""
-    echo "Re-downloading models..."
-    cd ..
-    bash download_models.sh
+    echo "⚠ Empty files removed. Download models from Hailo Model Explorer:"
+    echo "   https://hailo.ai/products/hailo-software/model-explorer-vision/"
+    echo ""
+    echo "After downloading, run: ./download_models.sh to verify"
 else
     echo ""
     echo "✓ All HEF files are valid (non-empty)"
-    echo ""
-    echo "If you still have issues, try:"
-    echo "  cd all_models && rm -f *.hef && cd .. && ./download_models.sh"
 fi
 

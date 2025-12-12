@@ -277,10 +277,10 @@ class HailoInference:
                 logger.error(f"  Readable: {os.access(model_path, os.R_OK)}")
                 logger.error("")
                 logger.error("Solutions:")
-                logger.error("  1. Re-download the model: ./download_models.sh")
-                logger.error("  2. Verify file integrity: file all_models/yolov5s.hef")
+                logger.error("  1. Download model from Hailo Model Explorer: https://hailo.ai/products/hailo-software/model-explorer-vision/")
+                logger.error("  2. Verify file integrity: file all_models/detection_model.hef")
                 logger.error("  3. Check if file is actually a HEF file (should start with HEF magic bytes)")
-                logger.error("  4. Try a different model if available")
+                logger.error("  4. Run ./download_models.sh to verify models")
             else:
                 logger.error(f"Device type: {type(self.device)}")
                 logger.error(f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}")
@@ -403,7 +403,7 @@ class HailoInference:
                 logger.error("")
                 logger.error("Solutions:")
                 logger.error("  1. Re-download the model: ./download_models.sh")
-                logger.error("  2. Verify file integrity: file all_models/mobilenet_v2_1.0_224_inat_bird.hef")
+                logger.error("  2. Verify file integrity: file all_models/mobilenet_v3.hef (or mobilenet_v2_1.0_224_inat_bird.hef)")
                 logger.error("  3. Check if file is actually a HEF file (should start with HEF magic bytes)")
                 logger.error("  4. Try a different model if available")
             else:

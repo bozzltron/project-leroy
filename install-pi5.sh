@@ -202,20 +202,33 @@ sudo usermod -aG video,www-data $USER
 
 # Models
 echo ""
-echo "Downloading models..."
+echo "Checking for models..."
 VALID_MODELS=0
 for hef_file in all_models/*.hef; do
     [ -f "$hef_file" ] && [ -s "$hef_file" ] && VALID_MODELS=$((VALID_MODELS + 1)) || rm -f "$hef_file"
 done
 
 if [ $VALID_MODELS -eq 0 ]; then
-    read -p "Download HEF models now? (Y/n) " -n 1 -r
+    echo ""
+    echo "⚠ No HEF models found. Models must be downloaded from Hailo Model Explorer."
+    echo ""
+    echo "To download models:"
+    echo "1. Visit: https://hailo.ai/products/hailo-software/model-explorer-vision/"
+    echo "2. Sign in and filter by: AI Processor = Hailo-8L"
+    echo "3. Download COMPILED HEF files (not pretrained):"
+    echo "   - Detection: YOLOv8s, YOLOv8m, or YOLOv5s (Object Detection task)"
+    echo "   - Classification: MobileNet v2 or v3 (Classification task)"
+    echo "4. Copy to: $(pwd)/all_models/"
+    echo "   - Detection model → detection_model.hef"
+    echo "   - Classification model → mobilenet_v2_1.0_224_inat_bird.hef"
+    echo ""
+    echo "Run ./download_models.sh to verify models after downloading."
+    echo ""
+    read -p "Continue installation? (Y/n) " -n 1 -r
     echo
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        [ -f "download_models.sh" ] && bash download_models.sh || {
-            echo "ERROR: download_models.sh not found"
-            exit 1
-        }
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        echo "Installation cancelled. Download models first, then re-run install-pi5.sh"
+        exit 1
     fi
 fi
 

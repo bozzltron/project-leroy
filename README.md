@@ -57,7 +57,7 @@ This will:
 - Set up cron jobs
 - Configure and start nginx
 - Create storage directories
-- Download HEF models (optional)
+- Check for HEF models (models must be downloaded from Hailo Model Explorer)
 
 **Note**: All directories are created automatically when needed:
 - `storage/detected/{date}/{visitation_id}/` - Created by `photo.py` when saving photos
@@ -66,41 +66,74 @@ This will:
 
 ### 3. Download Models
 
-**CRITICAL**: The service requires at least one detection model to run.
+**CRITICAL**: The service requires both detection and classification models to run.
 
-The **Hailo Model Zoo** provides pre-compiled HEF files - no compilation needed!
+HEF models must be downloaded manually from **Hailo Model Explorer**:
 
+1. **Visit Hailo Model Explorer**:
+   - https://hailo.ai/products/hailo-software/model-explorer-vision/
+   - Sign in (create account if needed)
+
+2. **Download Detection Model** (REQUIRED):
+   - Filter: AI Processor = **Hailo-8L**, Task = **Object Detection**
+   - Recommended: **YOLOv11s**, **YOLOv10s**, **YOLOv8s**, or **YOLOv8m** (best balance of speed/accuracy)
+   - Alternative: **YOLOv5s** or **SSD MobileNet v2**
+   - Download the **COMPILED HEF** file (not pretrained)
+   - Save as: `yolov11s.hef`, `yolov10s.hef`, `yolov8s.hef`, `yolov5s.hef`, or `detection_model.hef`
+   - The code will automatically detect any of these names
+
+3. **Download Classification Model** (REQUIRED):
+   - Filter: AI Processor = **Hailo-8L**, Task = **Classification**
+   - Recommended: **MobileNet v3** or **MobileNet v2**
+   - Note: Standard models are ImageNet-trained (~59 bird species)
+   - For 964 bird species, you'll need a custom fine-tuned model
+   - Download the **COMPILED HEF** file
+   - Save as: `mobilenet_v3.hef` or `mobilenet_v2_1.0_224_inat_bird.hef`
+   - The code will automatically detect either name
+
+4. **Copy Models to Project**:
+   ```bash
+   # Copy downloaded HEF files to all_models/ directory
+   # Detection model (use the actual filename you downloaded):
+   cp ~/Downloads/yolov11s.hef all_models/
+   # Or: cp ~/Downloads/yolov10s.hef all_models/
+   # Or: cp ~/Downloads/yolov8s.hef all_models/
+   
+   # Classification model (use the actual filename you downloaded):
+   cp ~/Downloads/mobilenet_v3.hef all_models/
+   # Or: cp ~/Downloads/mobilenet_v2.hef all_models/mobilenet_v2_1.0_224_inat_bird.hef
+   ```
+
+5. **Verify Models**:
+   ```bash
+   ./download_models.sh
+   # This script verifies models and downloads label files
+   # It will show which models were detected and their file sizes
+   ```
+
+**Example Output** (after downloading models):
 ```bash
-./download_models.sh
+$ ./download_models.sh
+✓ Detection model found: yolov11s.hef (5242880 bytes)
+✓ Classification model found: mobilenet_v3.hef (3145728 bytes)
+✓ COCO labels: coco_labels.txt
+✓ Bird labels: inat_bird_labels.txt
 ```
 
-This downloads pre-compiled HEF models directly from the Model Zoo.
+**Model Requirements**:
+- **Detection**: COCO-compatible model (detects 80 classes including 'bird') - **REQUIRED**
+  - Supported models: YOLOv11s, YOLOv10s, YOLOv8s, YOLOv8m, YOLOv5s, SSD MobileNet v2
+  - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
+- **Classification**: Classification model (ImageNet or custom bird model) - **REQUIRED**
+  - Supported models: MobileNet v3, MobileNet v2
+  - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
+  - **Note**: Standard models are ImageNet-trained with ~59 bird species. For 964 bird species, you'll need a custom fine-tuned model or use the ImageNet model as a base.
 
-**If downloads fail**, check:
-
-1. **Raspberry Pi AI Kit Documentation** (may have example models):
-   - https://www.raspberrypi.com/documentation/accessories/ai-kit.html
-
-2. **Hailo Model Explorer** (find and download models):
-   - https://hailo.ai/de/products/hailo-software/model-explorer-vision/
-
-3. **Model Zoo Repository** (browse for HEF files):
-   - https://github.com/hailo-ai/hailo_model_zoo
-   - Look for: `hailo_models/<model>/hef/<model>.hef`
-
-**Model Priority**:
-- **Detection**: YOLOv5s (preferred) or SSD MobileNet v2 (fallback) - **REQUIRED**
-- **Classification**: MobileNet v2 (trained on 964 iNaturalist bird species) - Optional
-
-**Verify Models**:
-```bash
-ls -lh all_models/*.hef
-```
-
-All HEF files should show non-zero file sizes. If any are 0 bytes, remove them and re-download:
+All HEF files should show non-zero file sizes. If any are 0 bytes, remove them:
 ```bash
 ./fix_empty_models.sh
 ```
+Then download valid models from Hailo Model Explorer.
 
 ## Usage
 
@@ -186,10 +219,22 @@ source venv/bin/activate
 python3 leroy.py
 
 # Or with custom model/labels
-python3 leroy.py --model all_models/yolov5s.hef --labels all_models/coco_labels.txt
+python3 leroy.py --model all_models/yolov11s.hef --labels all_models/coco_labels.txt
+# Or: python3 leroy.py --model all_models/yolov8s.hef --labels all_models/coco_labels.txt
 ```
 
-**Default Model**: Automatically uses `yolov5s.hef` if available, otherwise falls back to `ssd_mobilenet_v2_coco.hef`.
+**Default Model Detection**: Automatically detects and uses any of these detection models (in priority order):
+- `detection_model.hef` (generic name)
+- `yolov11s.hef` (YOLOv11 small - latest)
+- `yolov10s.hef` (YOLOv10 small)
+- `yolov8s.hef` (YOLOv8 small)
+- `yolov5s.hef` (YOLOv5 small - backward compatibility)
+- `ssd_mobilenet_v2_coco.hef` (SSD MobileNet v2 - fallback)
+
+**Default Classification Model**: Automatically detects and uses any of these classification models (in priority order):
+- `mobilenet_v3.hef` (MobileNet v3 - recommended)
+- `mobilenet_v2_1.0_224_inat_bird.hef` (MobileNet v2 with iNaturalist naming)
+- `mobilenet_v2.hef` (MobileNet v2 - generic)
 
 ## Architecture
 
@@ -213,7 +258,7 @@ make web-preview
 # Or: docker-compose -f docker-compose.nginx.yml up
 ```
 
-See `web/README.md` for web interface details.
+The web interface displays visitations with multi-species support, scientific names, and photo galleries. It auto-refreshes every 60 seconds.
 
 ## Testing
 
@@ -233,22 +278,7 @@ make docker-pi5-test-file TEST=tests.test_visitation_processing  # Run specific 
 
 ## Active Learning
 
-The system can learn to identify new bird species not in the base model (964 iNaturalist species).
-
-**Workflow**:
-1. **Automatic Collection**: System collects low-confidence bird classifications
-2. **Human Labeling**: Review and label unknown bird photos in `storage/active_learning/`
-3. **Retraining**: Fine-tune model on new species data
-4. **Deployment**: Update model and labels
-
-**Quick Start**:
-```bash
-# After collecting and labeling unknown bird photos:
-python3 retrain_model.py \
-  --new_species_dir storage/active_learning/labeled/painted-bunting \
-  --new_species_name painted-bunting \
-  --new_class_id 965
-```
+The system automatically collects low-confidence bird classifications for review in `storage/active_learning/`. These can be used for future model fine-tuning.
 
 ## Social Media (Optional)
 
@@ -289,7 +319,7 @@ See `.cursor/rules/social-media-posting.mdc` for complete posting rules.
 3. **Common issues**:
    - **Camera not found**: Ensure HQ Camera is connected and accessible
    - **Hailo SDK not found**: Verify AI Kit is properly installed
-   - **Models missing**: Run `./download_models.sh` to download required models
+   - **Models missing**: Download models from Hailo Model Explorer (see Installation section)
    - **Virtual environment missing**: Re-run `./install-pi5.sh`
    - **Driver version mismatch (error 76)**: See "Hailo Driver Version Mismatch" below
 
@@ -491,7 +521,46 @@ grep CRON /var/log/syslog
 
 - **iNaturalist Integration**: Planned feature to submit visitations to iNaturalist. Data format is already compatible - one observation per species per visitation.
 
+## Quick Reference
+
+### Supported Model Names
+
+**Detection Models** (automatically detected):
+- `detection_model.hef` (generic)
+- `yolov11s.hef` (YOLOv11 small - latest, recommended)
+- `yolov10s.hef` (YOLOv10 small)
+- `yolov8s.hef` (YOLOv8 small)
+- `yolov8m.hef` (YOLOv8 medium)
+- `yolov5s.hef` (YOLOv5 small)
+- `ssd_mobilenet_v2_coco.hef` (SSD MobileNet v2)
+
+**Classification Models** (automatically detected):
+- `mobilenet_v3.hef` (MobileNet v3 - recommended)
+- `mobilenet_v2_1.0_224_inat_bird.hef` (MobileNet v2 with iNaturalist naming)
+- `mobilenet_v2.hef` (MobileNet v2 - generic)
+
+### Common Commands
+
+```bash
+# Verify models
+./download_models.sh
+
+# Start service
+sudo systemctl start leroy.service
+
+# View logs
+sudo journalctl -u leroy.service -f
+
+# Test manually
+source venv/bin/activate
+python3 leroy.py
+
+# Check camera
+./diagnose_camera.sh
+```
+
 ## Additional Resources
 
 - **Architecture**: `.cursor/rules/architecture.mdc` - Detailed system architecture
-- **Web Interface**: `web/README.md` - Web app details
+- **Hailo Model Explorer**: https://hailo.ai/products/hailo-software/model-explorer-vision/
+- **Raspberry Pi AI Kit Docs**: https://www.raspberrypi.com/documentation/accessories/ai-kit.html
