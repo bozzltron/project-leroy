@@ -13,7 +13,6 @@ import cv2
 import os
 import sys
 import numpy as np
-import re
 import logging
 import imutils
 import time
@@ -52,47 +51,31 @@ class BBox(collections.namedtuple('BBox', ['xmin', 'ymin', 'xmax', 'ymax'])):
     __slots__ = ()
 
 
-def has_bird_detection(objs, labels, threshold=0.4):
-    """Check if any detection is a bird above threshold."""
-    for obj in objs:
-        label = labels.get(obj.id, "")
-        if label.lower() == 'bird' and obj.score >= threshold:
-            return True
-    return False
-
-
 def filter_and_categorize_detections(objs, labels, threshold=0.4):
     """
-    Filter detections into birds, non-birds, and others.
+    Filter detections into birds and non-birds (squirrels, cats, etc).
     
     Returns:
-        (birds, non_birds, others) tuple of Object lists
+        (birds, non_birds) tuple of Object lists
     """
     birds = []
     non_birds = []
-    others = []
-    
     non_bird_classes = [
         'squirrel', 'cat', 'dog', 'rabbit', 'raccoon',
         'deer', 'fox', 'mouse', 'rat', 'chipmunk',
         'opossum', 'skunk', 'groundhog'
     ]
-    
+
     for obj in objs:
         label = labels.get(obj.id, "").lower()
-        score = obj.score
-        
-        if score < threshold:
+        if obj.score < threshold:
             continue
-        
         if label == 'bird':
             birds.append(obj)
         elif label in non_bird_classes:
             non_birds.append(obj)
-        else:
-            others.append(obj)
-    
-    return birds, non_birds, others
+
+    return birds, non_birds
 
 
 def convert_detections(detections, frame_shape):
@@ -128,130 +111,20 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     
     try:
-        # Get project root directory (where this script is located)
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = script_dir
-        
-        default_model_dir = os.path.join(project_root, 'all_models')
-        # Try generic detection_model.hef first, then check for various YOLO versions and fallbacks
-        detection_model_path = os.path.join(default_model_dir, 'detection_model.hef')
-        yolov11s_path = os.path.join(default_model_dir, 'yolov11s.hef')
-        yolov10s_path = os.path.join(default_model_dir, 'yolov10s.hef')
-        yolov8s_path = os.path.join(default_model_dir, 'yolov8s.hef')
-        yolov5s_path = os.path.join(default_model_dir, 'yolov5s.hef')
-        ssd_path = os.path.join(default_model_dir, 'ssd_mobilenet_v2_coco.hef')
-        
-        if os.path.exists(detection_model_path):
-            default_model = detection_model_path  # Generic name (works with any YOLO variant)
-        elif os.path.exists(yolov11s_path):
-            default_model = yolov11s_path  # YOLOv11s - latest version
-        elif os.path.exists(yolov10s_path):
-            default_model = yolov10s_path  # YOLOv10s
-        elif os.path.exists(yolov8s_path):
-            default_model = yolov8s_path  # YOLOv8s
-        elif os.path.exists(yolov5s_path):
-            default_model = yolov5s_path  # YOLOv5s - backward compatibility
-        elif os.path.exists(ssd_path):
-            default_model = ssd_path  # SSD MobileNet v2 - fallback
-        else:
-            # No models found - provide helpful error message
-            available_files = []
-            if os.path.exists(default_model_dir):
-                available_files = [f for f in os.listdir(default_model_dir) if f.endswith('.hef')]
-            
-            error_msg = (
-                f"\n"
-                f"ERROR: No detection model found in {default_model_dir}\n"
-                f"\n"
-            )
-            if available_files:
-                error_msg += (
-                    f"Found HEF files (may be incompatible):\n"
-                )
-                for f in available_files:
-                    size = os.path.getsize(os.path.join(default_model_dir, f))
-                    error_msg += f"  - {f} ({size:,} bytes)\n"
-                error_msg += (
-                    f"\n"
-                    f"If these models give 'HEF_NOT_COMPATIBLE' errors, they were compiled for wrong device.\n"
-                    f"Delete them and download Hailo-8L compatible models.\n"
-                    f"\n"
-                )
-            else:
-                error_msg += (
-                    f"No HEF files found in {default_model_dir}\n"
-                    f"\n"
-                )
-            error_msg += (
-                f"SOLUTION:\n"
-                f"1. Download Hailo-8L compatible models from:\n"
-                f"   https://hailo.ai/products/hailo-software/model-explorer-vision/\n"
-                f"2. Filter by: AI Processor = Hailo-8L (NOT Hailo-8 or Hailo-10)\n"
-                f"3. Download COMPILED HEF files (not pretrained)\n"
-                f"4. Copy to: {default_model_dir}/\n"
-                f"5. Supported names: yolov11s.hef, yolov10s.hef, yolov8s.hef, yolov5s.hef, detection_model.hef\n"
-                f"\n"
-            )
-            logger.error(error_msg)
-            raise FileNotFoundError(error_msg)
-        
-        # Try to find labels file - check multiple possible names and formats
-        coco_labels_txt = os.path.join(default_model_dir, 'coco_labels.txt')
-        coco_labels_json = os.path.join(default_model_dir, 'labels_coco.json')
-        inat_labels_path = os.path.join(default_model_dir, 'inat_bird_labels.txt')
-        
-        if os.path.exists(coco_labels_txt):
-            default_labels = coco_labels_txt
-        elif os.path.exists(coco_labels_json):
-            default_labels = coco_labels_json  # Support Hailo Model Zoo JSON format
-        elif os.path.exists(inat_labels_path):
-            default_labels = inat_labels_path
-        else:
-            # No labels found - provide helpful error message
-            available_files = []
-            if os.path.exists(default_model_dir):
-                available_files = [f for f in os.listdir(default_model_dir) if f.endswith('.txt')]
-            
-            error_msg = (
-                f"\n"
-                f"ERROR: No labels file found in {default_model_dir}\n"
-                f"Expected: coco_labels.txt or inat_bird_labels.txt\n"
-                f"\n"
-            )
-            if available_files:
-                error_msg += (
-                    f"Found text files:\n"
-                )
-                for f in available_files:
-                    error_msg += f"  - {f}\n"
-                error_msg += f"\n"
-            error_msg += (
-                f"SOLUTION:\n"
-                f"1. Labels files should be included with models or downloaded separately\n"
-                f"2. For COCO models (YOLO, SSD): Use coco_labels.txt (80 classes)\n"
-                f"3. For iNaturalist models: Use inat_bird_labels.txt (bird species)\n"
-                f"4. Place labels file in: {default_model_dir}/\n"
-                f"5. Labels files are typically available from:\n"
-                f"   - Model Zoo repositories\n"
-                f"   - Model documentation pages\n"
-                f"   - Hailo Model Explorer (check model details)\n"
-                f"\n"
-            )
-            logger.error(error_msg)
-            raise FileNotFoundError(error_msg)
-        
+
         parser = argparse.ArgumentParser(
             description='Project Leroy - Bird Detection with Hailo AI Kit'
         )
         parser.add_argument(
-            '--model',
-            help='HEF model path',
-            default=default_model
+            '--detection-model',
+            default='all_models/yolov11s.hef',
+            help='Detection HEF model path'
         )
         parser.add_argument(
-            '--labels',
-            help='Label file path',
-            default=default_labels
+            '--detection-labels',
+            default='all_models/yolo11s.txt',
+            help='Detection label file path'
         )
         parser.add_argument(
             '--top_k',
@@ -279,8 +152,14 @@ def main():
         )
         args = parser.parse_args()
 
+        # Resolve relative paths against project root
+        if not os.path.isabs(args.detection_model):
+            args.detection_model = os.path.join(script_dir, args.detection_model)
+        if not os.path.isabs(args.detection_labels):
+            args.detection_labels = os.path.join(script_dir, args.detection_labels)
+
         logger.info(f"Starting Project Leroy detection system")
-        logger.info(f"Model: {args.model}, Labels: {args.labels}")
+        logger.info(f"Detection: {args.detection_model}, {args.detection_labels}")
         
         # Get resolution info from camera manager
         from config import get_config
@@ -293,10 +172,10 @@ def main():
         logger.info("Initializing Hailo AI Kit...")
         hailo = HailoInference()
         hailo.initialize()
-        hailo.load_detection_model(args.model)
+        hailo.load_detection_model(args.detection_model)
         
-        # Load labels
-        labels = load_labels(args.labels)
+        # Load labels (HEF files don't contain labels)
+        labels = load_labels(args.detection_labels)
         logger.info(f"Loaded {len(labels)} labels")
 
         # Initialize camera manager
@@ -350,7 +229,7 @@ def main():
                 objs = convert_detections(detections, frame.shape)
 
                 # Filter and categorize detections (birds, non-birds, others)
-                bird_objs, non_bird_objs, other_objs = filter_and_categorize_detections(
+                bird_objs, non_bird_objs = filter_and_categorize_detections(
                     objs, labels, threshold=0.4
                 )
                 

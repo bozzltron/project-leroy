@@ -23,6 +23,7 @@ pyvenv.cfg
 # Environment variables
 .env
 .env.local
+leroy.env
 
 # Model files (large, download separately)
 *.hef

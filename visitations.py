@@ -36,26 +36,14 @@ class Visitations:
         height, width, channels = frame.shape
 
         bird_detected = False
-        boxes_to_draw = []
         object_label = ""
         percent = 0  # Initialize percent
         for obj in objs:
-            if hasattr(obj, 'bbox'):
-                # handle tflite result
-                x0, y0, x1, y1 = list(obj.bbox)
-                object_label = labels.get(obj.id, obj.id)
-            else:
-                # handle edgetpu result
-                box = obj.bounding_box
-                p0, p1 = list(box)
-                x0, y0 = list(p0)
-                x1, y1 = list(p1)
-                object_label = labels[obj.label_id]
+            x0, y0, x1, y1 = list(obj.bbox)
+            object_label = labels.get(obj.id, obj.id)
             percent = int(100 * obj.score)
             x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
 
-            label = '{}% {}'.format(percent, object_label)
-            
             if object_label == 'bird' and percent > 40:
                 bird_detected = True
                 
@@ -90,23 +78,6 @@ class Visitations:
                         self.started_tracking = time.time() + 60
                     else:
                         self.reset()
-
-            percent = int(100 * obj.score)
-            label = '{}% {}'.format(percent, object_label)
-
-            # postpone drawing so we don't get lines in the photos
-            # box = {
-            #     "p1": (x0, y0),
-            #     "p2": (x1, y1),
-            #     "label": label,
-            #     "label_p": (x0, y0+30)
-            # }
-            # boxes_to_draw.append(box)
-
-        #for box in boxes_to_draw:
-            #if "bird" in box["label"]:
-                #frame = cv2.rectangle(frame, box["p1"], box["p2"], (255, 32, 21), 3)
-                #frame = cv2.putText(frame, box["label"], box["label_p"], cv2.FONT_HERSHEY_SIMPLEX, 1.0, (169, 68, 66), 3)
 
         if self.full_photo_per_visitation_count < self.full_photo_per_visitation_max:
             if self.visitation_id:

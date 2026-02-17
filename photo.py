@@ -9,7 +9,7 @@ import time
 import logging 
 import threading
 from typing import Optional, Tuple, List, Dict
-from utils import clarity_from_image, is_focused
+from utils import clarity_from_image
 from photo_metadata import PhotoMetadata
 from config import get_config
 
@@ -20,10 +20,6 @@ logging.basicConfig(filename='storage/results.log',
 
 logger = logging.getLogger(__name__)
 
-# Backward compatibility: keep clarity() function for existing code
-def clarity(image):
-    """Backward compatibility wrapper for clarity_from_image."""
-    return clarity_from_image(image)
 
 def has_disk_space():
     hdd = psutil.disk_usage('/')

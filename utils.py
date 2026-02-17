@@ -6,10 +6,9 @@ import re
 import cv2
 import logging
 import numpy as np
-from typing import Dict, Union
+from typing import Dict
 
 logger = logging.getLogger(__name__)
-
 
 def load_labels(path: str) -> Dict[int, str]:
     """
@@ -63,43 +62,7 @@ def load_labels(path: str) -> Dict[int, str]:
                         num, text = match.groups()
                         labels[int(num)] = text.strip()
     except FileNotFoundError:
-        # Provide helpful error message with suggestions
-        import os
-        model_dir = os.path.dirname(path) if os.path.dirname(path) else 'all_models'
-        available_files = []
-        if os.path.exists(model_dir):
-            available_files = [f for f in os.listdir(model_dir) if f.endswith('.txt')]
-        
-        error_msg = (
-            f"Label file not found: {path}\n"
-            f"\n"
-        )
-        if available_files:
-            error_msg += (
-                f"Found text files in {model_dir}:\n"
-            )
-            for f in available_files:
-                error_msg += f"  - {f}\n"
-            error_msg += (
-                f"\n"
-                f"Tip: If you have a labels file with a different name, you can:\n"
-                f"  1. Rename it to coco_labels.txt (for COCO models)\n"
-                f"  2. Or use --labels flag: python leroy.py --labels /path/to/your_labels.txt\n"
-                f"\n"
-            )
-        else:
-            error_msg += (
-                f"No label files found in {model_dir}\n"
-                f"\n"
-                f"SOLUTION:\n"
-                f"1. Download labels file from model documentation or Model Zoo\n"
-                f"2. For COCO models: coco_labels.txt (80 classes)\n"
-                f"3. For iNaturalist: inat_bird_labels.txt (bird species)\n"
-                f"4. Place in: {model_dir}/\n"
-                f"\n"
-            )
-        logger.error(error_msg)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(f"Labels not found: {path}")
     except Exception as e:
         logger.error(f"Failed to load labels from {path}: {e}")
         raise
@@ -150,23 +113,4 @@ def clarity_from_path(image_path: str) -> float:
     except Exception as e:
         logger.warning(f"Error computing clarity from path {image_path}: {e}")
         return 0.0
-
-
-def is_focused(image: Union[np.ndarray, str], threshold: float = 100.0) -> bool:
-    """
-    Check if image is in focus.
-    
-    Args:
-        image: Image as numpy array or file path
-        threshold: Minimum clarity score to be considered focused
-        
-    Returns:
-        True if image clarity exceeds threshold
-    """
-    if isinstance(image, str):
-        clarity_score = clarity_from_path(image)
-    else:
-        clarity_score = clarity_from_image(image)
-    
-    return clarity_score > threshold
 
