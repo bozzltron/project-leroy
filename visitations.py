@@ -1,11 +1,10 @@
 import uuid
-import logging 
+import logging
 import time
-import os
 from photo import capture
 from random import randint
 
-#Initialize logging files
+# Initialize logging files
 logging.basicConfig(filename='storage/results.log',
                     format='%(asctime)s-%(message)s',
                     level=logging.DEBUG)
@@ -47,7 +46,7 @@ class Visitations:
             if object_label == 'bird' and percent > 40:
                 bird_detected = True
                 
-                if self.visitation_id == None:
+                if self.visitation_id is None:
                     self.visitation_id = self.add(obj, frame)
                     self.started_tracking = time.time()
                     logging.info("visitation {} started".format(self.visitation_id))
@@ -63,7 +62,7 @@ class Visitations:
                         resolution = (width, height)
                         bbox = (padded_x0, padded_y0, padded_x1, padded_y1)
                         capture(
-                            frame_without_boxes[int(padded_y0):int(padded_y1),int(padded_x0):int(padded_x1)], 
+                            frame_without_boxes[int(padded_y0):int(padded_y1), int(padded_x0):int(padded_x1)], 
                             self.visitation_id, 
                             obj.score,  # Pass as float 0-1, not percent
                             'boxed',
@@ -73,11 +72,16 @@ class Visitations:
                         logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
-                    if bird_detected == True:
+                    if bird_detected:
                         logging.info("Extending visitation by 60")
                         self.started_tracking = time.time() + 60
                     else:
                         self.reset()
+
+        # If no bird detected and past timeout, end visitation
+        if not bird_detected and self.visitation_id and self.started_tracking:
+            if time.time() - self.started_tracking >= self.vistation_max_seconds:
+                self.reset()
 
         if self.full_photo_per_visitation_count < self.full_photo_per_visitation_max:
             if self.visitation_id:
@@ -103,7 +107,8 @@ class Visitations:
         logging.info("visitation id {} over".format(self.visitation_id))
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
-        self.visitation_id = None   
+        self.visitation_id = None
+
 
 class Visitation:
     start_time = None
@@ -111,7 +116,7 @@ class Visitation:
     tracker = None
 
     def __init__(self):
-        self.id =  uuid.uuid4()
+        self.id = uuid.uuid4()
         self.color = randint(64, 255), randint(64, 255), randint(64, 255)
 
     def end(self, timestamp):

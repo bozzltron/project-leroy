@@ -3,6 +3,7 @@ Hailo AI Kit inference module for Project Leroy.
 Uses official Raspberry Pi Hailo SDK.
 """
 import logging
+import os
 import numpy as np
 import cv2
 from typing import List, Tuple, Optional, Dict
@@ -11,25 +12,12 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 try:
-    from hailo_platform import Device, InferVStreams, HEF
+    from hailo_platform import Device, InferVStreams
     HAILO_AVAILABLE = True
     HAILO_IMPORT_ERROR = None
 except ImportError as e:
     HAILO_AVAILABLE = False
     HAILO_IMPORT_ERROR = str(e)
-    # Try alternative import (some SDK versions may have different names)
-    try:
-        from hailo_platform import Device, InferVStreams
-        # HEF might be in a different module or named differently
-        HEF = None  # Will handle this in load methods
-        HAILO_AVAILABLE = True
-        HAILO_IMPORT_ERROR = None
-    except ImportError:
-        pass
-    import sys
-    logger.warning(f"Hailo SDK not available at import time. Import error: {e}")
-    logger.warning(f"Python executable: {sys.executable}")
-    logger.warning(f"Python version: {sys.version}")
 
 
 class HailoInference:
@@ -43,477 +31,76 @@ class HailoInference:
     def __init__(self):
         """Initialize Hailo inference engine."""
         global HAILO_AVAILABLE, HAILO_IMPORT_ERROR
-        
         if not HAILO_AVAILABLE:
-            import sys
-            import os
-            
-            # Try importing again at runtime (in case environment changed)
             try:
-                from hailo_platform import Device, InferVStreams, HEF
-                # Success! Update the global flag
+                from hailo_platform import Device, InferVStreams
                 HAILO_AVAILABLE = True
-                logger.info("Hailo SDK successfully imported at runtime")
-            except ImportError:
-                # Try without HEF (might be in different module)
-                try:
-                    from hailo_platform import Device, InferVStreams
-                    HEF = None  # Will handle in load methods
-                    HAILO_AVAILABLE = True
-                    logger.info("Hailo SDK imported (without HEF class)")
-                except ImportError as e:
-                    # Still failing - provide detailed diagnostics
-                    import_error = HAILO_IMPORT_ERROR if HAILO_IMPORT_ERROR else str(e)
-                    error_msg = (
-                        "Hailo SDK not available.\n"
-                        f"\n"
-                        f"Import error: {import_error}\n"
-                        f"\n"
-                        f"Diagnostics:\n"
-                        f"  Python executable: {sys.executable}\n"
-                        f"  Python version: {sys.version}\n"
-                        f"  Virtual environment: {os.environ.get('VIRTUAL_ENV', 'Not set')}\n"
-                        f"  PATH: {os.environ.get('PATH', 'Not set')}\n"
-                        f"\n"
-                        f"Python sys.path:\n"
-                    )
-                    for path in sys.path:
-                        error_msg += f"  - {path}\n"
-                    
-                    error_msg += (
-                        f"\n"
-                        f"To fix:\n"
-                        f"1. Verify Hailo SDK is installed system-wide:\n"
-                        f"   /usr/bin/python3 -c 'from hailo_platform import Device; print(\"OK\")'\n"
-                        f"\n"
-                        f"2. If system-wide works, ensure venv has --system-site-packages:\n"
-                        f"   Check: grep 'include-system-site-packages' venv/pyvenv.cfg\n"
-                        f"   Should show: include-system-site-packages = true\n"
-                        f"\n"
-                        f"3. If venv doesn't have system-site-packages, recreate it:\n"
-                        f"   rm -rf venv\n"
-                        f"   python3 -m venv --system-site-packages venv\n"
-                        f"   source venv/bin/activate\n"
-                        f"   pip install --upgrade pip setuptools wheel\n"
-                        f"   pip install numpy pillow opencv-contrib-python psutil imutils\n"
-                        f"\n"
-                        f"4. Verify from venv:\n"
-                        f"   venv/bin/python3 -c 'from hailo_platform import Device; print(\"OK\")'\n"
-                        f"\n"
-                        f"5. Follow official guide if still failing:\n"
-                        f"   https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
-                    )
-                    logger.error(error_msg)
-                    raise RuntimeError(error_msg)
-        
+            except ImportError as e:
+                err = HAILO_IMPORT_ERROR or str(e)
+                raise RuntimeError(
+                    f"Hailo SDK not available: {err}. "
+                    "Run: ./install-pi5.sh. See: https://www.raspberrypi.com/documentation/accessories/ai-kit.html"
+                )
         self.device = None
         self.detection_network = None
         self.classification_network = None
         self._initialized = False
     
     def initialize(self, device_id: Optional[str] = None):
-        """
-        Initialize Hailo device.
-        
-        Args:
-            device_id: Optional device ID to use. If None, uses default device.
-        """
+        """Initialize Hailo device."""
         if self._initialized:
             return
-        
-        # First, check if device is accessible via hailortcli
-        import subprocess
         try:
-            result = subprocess.run(
-                ['hailortcli', 'fw-control', 'identify'],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode != 0:
-                # Check for driver version mismatch
-                if 'Driver version' in result.stderr and 'library version' in result.stderr:
-                    logger.error("Driver/library version mismatch detected.")
-                    logger.error("Run: sudo apt-get install --reinstall hailo-all && sudo reboot")
-                    raise RuntimeError("Driver version mismatch - reinstall hailo-all and reboot")
-                else:
-                    logger.warning(f"hailortcli identify failed: {result.stderr}")
-            else:
-                logger.info(f"Hailo device identified: {result.stdout.strip()}")
-        except FileNotFoundError:
-            logger.warning("hailortcli not found - cannot verify device before initialization")
-        except Exception as e:
-            logger.warning(f"Could not verify device with hailortcli: {e}")
-        
-        try:
-            # Try to initialize device (with or without device_id)
-            if device_id is not None:
-                logger.info(f"Initializing Hailo device with ID: {device_id}")
-                self.device = Device(device_id=device_id)
-            else:
-                logger.info("Initializing Hailo device (default)")
-                self.device = Device()
-            
-            logger.info("Hailo device initialized successfully")
+            self.device = Device(device_id=device_id) if device_id else Device()
             self._initialized = True
+            logger.info("Hailo device initialized")
         except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Failed to initialize Hailo device: {e}")
-            
-            # Provide simple, actionable error message
-            if '76' in error_msg or 'INVALID_DRIVER_VERSION' in error_msg or 'Driver version' in error_msg:
-                logger.error("")
-                logger.error("Driver/library version mismatch detected.")
-                logger.error("This MUST be fixed before the service can run:")
-                logger.error("  1. Run: sudo apt-get update")
-                logger.error("  2. Run: sudo apt-get install --reinstall hailo-all")
-                logger.error("  3. Reboot: sudo reboot")
-                logger.error("  4. Verify: sudo hailortcli fw-control identify")
-                logger.error("")
-                logger.error("The install script should have done this - if it didn't, run it again.")
-            else:
-                logger.error("")
-                logger.error("Device not accessible. Check:")
-                logger.error("  1. Hardware connected: sudo hailortcli fw-control identify")
-                logger.error("  2. PCIe configured: grep pcie_gen3 /boot/firmware/config.txt")
-                logger.error("  3. Try specifying device ID if multiple devices: Device(device_id='...')")
-                logger.error("  4. Reboot may be required after installation")
-            
-            raise
+            err = str(e)
+            if '76' in err or 'Driver version' in err or 'INVALID_DRIVER' in err:
+                raise RuntimeError("Hailo driver mismatch. Run: sudo apt-get install --reinstall hailo-all && sudo reboot") from e
+            raise RuntimeError(f"Hailo device not accessible: {e}. Run: sudo hailortcli fw-control identify") from e
     
-    def load_detection_model(self, model_path: str) -> None:
-        """
-        Load detection model (HEF format).
-        
-        Args:
-            model_path: Path to HEF model file
-        """
+    def _load_model(self, model_path: str) -> object:
+        """Load HEF model. Validates path and returns network object."""
         if not self._initialized:
             self.initialize()
-        
-        # Validate file exists and is readable before attempting to load
-        import os
-        if not os.path.exists(model_path):
-            # Check if there are any HEF files in the models directory
-            model_dir = os.path.dirname(model_path) if os.path.dirname(model_path) else 'all_models'
-            available_models = []
-            if os.path.exists(model_dir):
-                available_models = [f for f in os.listdir(model_dir) if f.endswith('.hef')]
-            
-            error_msg = (
-                f"HEF model file not found: {model_path}\n"
-                f"\n"
-            )
-            if available_models:
-                error_msg += (
-                    f"Found HEF files in {model_dir}:\n"
-                )
-                for f in available_models:
-                    full_path = os.path.join(model_dir, f)
-                    size = os.path.getsize(full_path) if os.path.exists(full_path) else 0
-                    error_msg += f"  - {f} ({size:,} bytes)\n"
-                error_msg += (
-                    f"\n"
-                    f"If these models give 'HEF_NOT_COMPATIBLE' errors, they were compiled for wrong device.\n"
-                    f"Delete them and download Hailo-8L compatible models from Model Explorer.\n"
-                    f"\n"
-                )
-            else:
-                error_msg += (
-                    f"No HEF files found in {model_dir}\n"
-                    f"\n"
-                )
-            error_msg += (
-                f"SOLUTION:\n"
-                f"1. Download Hailo-8L compatible models from:\n"
-                f"   https://hailo.ai/products/hailo-software/model-explorer-vision/\n"
-                f"2. Filter by: AI Processor = Hailo-8L (NOT Hailo-8 or Hailo-10)\n"
-                f"3. Download COMPILED HEF files (not pretrained)\n"
-                f"4. Copy to: {model_dir}/\n"
-                f"5. Supported names: yolov11s.hef, yolov10s.hef, yolov8s.hef, yolov5s.hef, detection_model.hef\n"
-            )
-            raise FileNotFoundError(error_msg)
-        
-        if not os.path.isfile(model_path):
-            raise ValueError(f"Model path is not a file: {model_path}")
-        
-        # Check file size (HEF files should be > 0 bytes)
-        file_size = os.path.getsize(model_path)
-        if file_size == 0:
-            raise ValueError(
-                f"HEF model file is empty (0 bytes): {model_path}\n"
-                f"The file may be corrupted. Try re-downloading with download_models.sh"
-            )
-        
-        # Check file permissions
-        if not os.access(model_path, os.R_OK):
-            raise PermissionError(
-                f"Cannot read HEF model file (permission denied): {model_path}\n"
-                f"Check file permissions: ls -l {model_path}"
-            )
-        
-        logger.info(f"Loading detection model: {model_path} (size: {file_size:,} bytes)")
-        
-        try:
-            # Hailo SDK API: Use device.load_model() directly (correct API for Raspberry Pi AI Kit)
-            # Method 1: Try device.load_model() directly (preferred - correct API)
-            if hasattr(self.device, 'load_model'):
-                logger.debug(f"Attempting to load model using device.load_model()...")
-                self.detection_network = self.device.load_model(model_path)
-                logger.debug(f"Model loaded successfully using device.load_model()")
-            # Method 2: Try using HEF class with VDevice (if available)
-            elif HEF is not None:
-                try:
-                    # Some SDK versions require VDevice for configure()
-                    from hailo_platform import VDevice
-                    logger.debug(f"Attempting to load HEF using VDevice...")
-                    vdevice = VDevice()
-                    hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
-                    self.detection_network = vdevice.configure(hef)
-                    logger.debug(f"Model loaded successfully using VDevice.configure()")
-                except (ImportError, AttributeError, TypeError) as e:
-                    logger.debug(f"VDevice approach failed: {e}, trying HEF directly...")
-                    # Try HEF() constructor and see if device has other methods
-                    try:
-                        hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
-                        # Check if device has a method that accepts HEF
-                        if hasattr(self.device, 'load_hef'):
-                            self.detection_network = self.device.load_hef(hef)
-                        else:
-                            raise AttributeError("Device has no load_model, configure, or load_hef method")
-                    except Exception as e2:
-                        raise RuntimeError(
-                            f"Could not load model. Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}. "
-                            f"Error: {e2}"
-                        )
-            else:
-                # Method 3: Last resort - try to find any method that might work
-                available_methods = [m for m in dir(self.device) if not m.startswith('_') and 'load' in m.lower()]
-                if available_methods:
-                    logger.warning(f"Trying alternative methods: {available_methods}")
-                    # Try the first method that looks like it might load a model
-                    method = getattr(self.device, available_methods[0])
-                    self.detection_network = method(model_path)
-                else:
-                    raise RuntimeError(
-                        f"Could not load model. Device has no load_model method. "
-                        f"Available methods: {[m for m in dir(self.device) if not m.startswith('_')]}"
-                    )
-            
-            logger.info(f"Loaded detection model: {model_path}")
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Failed to load detection model {model_path}: {e}")
-            
-            # Provide specific guidance based on error type
-            if '93' in error_msg or 'HEF_NOT_COMPATIBLE' in error_msg or 'not compatible with device' in error_msg.lower():
-                logger.error("")
-                logger.error("=" * 60)
-                logger.error("HEF MODEL INCOMPATIBILITY ERROR")
-                logger.error("=" * 60)
-                logger.error("")
-                logger.error("The HEF file is not compatible with Hailo-8L device.")
-                logger.error("")
-                logger.error("CAUSE:")
-                logger.error("  The model was compiled for a different Hailo device:")
-                logger.error("  - Your device: Hailo-8L (Raspberry Pi AI Kit)")
-                logger.error("  - Model compiled for: Likely Hailo-8 or Hailo-10")
-                logger.error("")
-                logger.error("SOLUTION:")
-                logger.error("  1. Download models specifically compiled for Hailo-8L")
-                logger.error("  2. In Hailo Model Explorer, filter by:")
-                logger.error("     - AI Processor: Hailo-8L (NOT Hailo-8 or Hailo-10)")
-                logger.error("  3. Download the COMPILED HEF file (not pretrained)")
-                logger.error("  4. Verify the model name includes 'hailo8l' or '8l'")
-                logger.error("")
-                logger.error("Model Explorer: https://hailo.ai/products/hailo-software/model-explorer-vision/")
-                logger.error("")
-                logger.error(f"Current model: {model_path}")
-                logger.error(f"  File size: {os.path.getsize(model_path):,} bytes")
-                logger.error("")
-                logger.error("Delete this incompatible model and download a Hailo-8L compatible one.")
-                logger.error("")
-            elif '14' in error_msg or 'FILE_OPERATION_FAILURE' in error_msg or 'Failed parsing HEF' in error_msg:
-                logger.error("")
-                logger.error("HEF file parsing failed. Possible causes:")
-                logger.error("  1. File is corrupted or incomplete")
-                logger.error("  2. File format is incompatible with this Hailo SDK version")
-                logger.error("  3. File was not fully downloaded")
-                logger.error("")
-                logger.error(f"File info: {model_path}")
-                logger.error(f"  Size: {file_size:,} bytes")
-                logger.error(f"  Exists: {os.path.exists(model_path)}")
-                logger.error(f"  Readable: {os.access(model_path, os.R_OK)}")
-                logger.error("")
-                logger.error("Solutions:")
-                logger.error("  1. Download model from Hailo Model Explorer: https://hailo.ai/products/hailo-software/model-explorer-vision/")
-                logger.error("  2. Verify file integrity: file all_models/detection_model.hef")
-                logger.error("  3. Check if file is actually a HEF file (should start with HEF magic bytes)")
-                logger.error("  4. Run ./download_models.sh to verify models")
-            else:
-                logger.error(f"Device type: {type(self.device)}")
-                logger.error(f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}")
-            
-            raise
-    
-    def load_classification_model(self, model_path: str) -> None:
-        """
-        Load classification model (HEF format).
-        
-        Args:
-            model_path: Path to HEF model file
-        """
-        if not self._initialized:
-            self.initialize()
-        
-        # Validate file exists and is readable before attempting to load
-        import os
-        # Resolve relative paths to absolute paths based on script location
+
+        # Resolve relative paths
         if not os.path.isabs(model_path):
-            # Get the directory where this script is located (project root)
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            # Try resolving relative to project root first
-            resolved_path = os.path.join(script_dir, model_path)
-            if os.path.exists(resolved_path):
-                model_path = os.path.abspath(resolved_path)
-            else:
-                # Try resolving relative to current working directory
-                cwd_path = os.path.abspath(model_path)
-                if os.path.exists(cwd_path):
-                    model_path = cwd_path
-                else:
-                    # Keep original path for error message
-                    model_path = os.path.abspath(model_path)
-        
-        logger.debug(f"Resolved model path: {model_path} (absolute: {os.path.isabs(model_path)})")
-        
+            for base in [script_dir, os.getcwd()]:
+                candidate = os.path.join(base, model_path)
+                if os.path.exists(candidate):
+                    model_path = os.path.abspath(candidate)
+                    break
+
         if not os.path.exists(model_path):
-            raise FileNotFoundError(
-                f"HEF model file not found: {model_path}\n"
-                f"Please ensure the model file exists. Run download_models.sh to download models."
-            )
-        
+            raise FileNotFoundError(f"HEF not found: {model_path}. Download from https://hailo.ai/products/hailo-software/model-explorer-vision/ (filter: Hailo-8L)")
         if not os.path.isfile(model_path):
-            raise ValueError(f"Model path is not a file: {model_path}")
-        
-        # Check file size (HEF files should be > 0 bytes)
-        file_size = os.path.getsize(model_path)
-        if file_size == 0:
-            raise ValueError(
-                f"HEF model file is empty (0 bytes): {model_path}\n"
-                f"The file may be corrupted. Try re-downloading with download_models.sh"
-            )
-        
-        # Check file permissions
+            raise ValueError(f"Not a file: {model_path}")
+        if os.path.getsize(model_path) == 0:
+            raise ValueError(f"HEF empty (0 bytes): {model_path}")
         if not os.access(model_path, os.R_OK):
-            raise PermissionError(
-                f"Cannot read HEF model file (permission denied): {model_path}\n"
-                f"Check file permissions: ls -l {model_path}"
-            )
-        
-        logger.info(f"Loading classification model: {model_path} (size: {file_size:,} bytes)")
-        
+            raise PermissionError(f"Cannot read: {model_path}")
+
+        logger.info(f"Loading model: {model_path}")
         try:
-            # Hailo SDK API: Use device.load_model() directly (correct API for Raspberry Pi AI Kit)
-            # Method 1: Try device.load_model() directly (preferred - correct API)
-            if hasattr(self.device, 'load_model'):
-                logger.debug(f"Attempting to load model using device.load_model()...")
-                self.classification_network = self.device.load_model(model_path)
-                logger.debug(f"Model loaded successfully using device.load_model()")
-            # Method 2: Try using HEF class with VDevice (if available)
-            elif HEF is not None:
-                try:
-                    # Some SDK versions require VDevice for configure()
-                    from hailo_platform import VDevice
-                    logger.debug(f"Attempting to load HEF using VDevice...")
-                    vdevice = VDevice()
-                    hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
-                    self.classification_network = vdevice.configure(hef)
-                    logger.debug(f"Model loaded successfully using VDevice.configure()")
-                except (ImportError, AttributeError, TypeError) as e:
-                    logger.debug(f"VDevice approach failed: {e}, trying HEF directly...")
-                    # Try HEF() constructor and see if device has other methods
-                    try:
-                        hef = HEF.from_file(model_path) if hasattr(HEF, 'from_file') else HEF(model_path)
-                        # Check if device has a method that accepts HEF
-                        if hasattr(self.device, 'load_hef'):
-                            self.classification_network = self.device.load_hef(hef)
-                        else:
-                            raise AttributeError("Device has no load_model, configure, or load_hef method")
-                    except Exception as e2:
-                        raise RuntimeError(
-                            f"Could not load model. Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}. "
-                            f"Error: {e2}"
-                        )
-            else:
-                # Method 3: Last resort - try to find any method that might work
-                available_methods = [m for m in dir(self.device) if not m.startswith('_') and 'load' in m.lower()]
-                if available_methods:
-                    logger.warning(f"Trying alternative methods: {available_methods}")
-                    # Try the first method that looks like it might load a model
-                    method = getattr(self.device, available_methods[0])
-                    self.classification_network = method(model_path)
-                else:
-                    raise RuntimeError(
-                        f"Could not load model. Device has no load_model method. "
-                        f"Available methods: {[m for m in dir(self.device) if not m.startswith('_')]}"
-                    )
-            
-            logger.info(f"Loaded classification model: {model_path}")
+            return self.device.load_model(model_path)
         except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Failed to load classification model {model_path}: {e}")
-            
-            # Provide specific guidance based on error type
-            if '93' in error_msg or 'HEF_NOT_COMPATIBLE' in error_msg or 'not compatible with device' in error_msg.lower():
-                logger.error("")
-                logger.error("=" * 60)
-                logger.error("HEF MODEL INCOMPATIBILITY ERROR")
-                logger.error("=" * 60)
-                logger.error("")
-                logger.error("The HEF file is not compatible with Hailo-8L device.")
-                logger.error("")
-                logger.error("CAUSE:")
-                logger.error("  The model was compiled for a different Hailo device:")
-                logger.error("  - Your device: Hailo-8L (Raspberry Pi AI Kit)")
-                logger.error("  - Model compiled for: Likely Hailo-8 or Hailo-10")
-                logger.error("")
-                logger.error("SOLUTION:")
-                logger.error("  1. Download models specifically compiled for Hailo-8L")
-                logger.error("  2. In Hailo Model Explorer, filter by:")
-                logger.error("     - AI Processor: Hailo-8L (NOT Hailo-8 or Hailo-10)")
-                logger.error("  3. Download the COMPILED HEF file (not pretrained)")
-                logger.error("  4. Verify the model name includes 'hailo8l' or '8l'")
-                logger.error("")
-                logger.error("Model Explorer: https://hailo.ai/products/hailo-software/model-explorer-vision/")
-                logger.error("")
-                logger.error(f"Current model: {model_path}")
-                logger.error(f"  File size: {os.path.getsize(model_path):,} bytes")
-                logger.error("")
-                logger.error("Delete this incompatible model and download a Hailo-8L compatible one.")
-                logger.error("")
-            elif '14' in error_msg or 'FILE_OPERATION_FAILURE' in error_msg or 'Failed parsing HEF' in error_msg:
-                logger.error("")
-                logger.error("HEF file parsing failed. Possible causes:")
-                logger.error("  1. File is corrupted or incomplete")
-                logger.error("  2. File format is incompatible with this Hailo SDK version")
-                logger.error("  3. File was not fully downloaded")
-                logger.error("")
-                logger.error(f"File info: {model_path}")
-                logger.error(f"  Size: {file_size:,} bytes")
-                logger.error(f"  Exists: {os.path.exists(model_path)}")
-                logger.error(f"  Readable: {os.access(model_path, os.R_OK)}")
-                logger.error("")
-                logger.error("Solutions:")
-                logger.error("  1. Re-download the model: ./download_models.sh")
-                logger.error("  2. Verify file integrity: file all_models/mobilenet_v3.hef (or mobilenet_v2_1.0_224_inat_bird.hef)")
-                logger.error("  3. Check if file is actually a HEF file (should start with HEF magic bytes)")
-                logger.error("  4. Try a different model if available")
-            else:
-                logger.error(f"Device type: {type(self.device)}")
-                logger.error(f"Device methods: {[m for m in dir(self.device) if not m.startswith('_')]}")
-            
+            err = str(e)
+            if '93' in err or 'HEF_NOT_COMPATIBLE' in err or 'not compatible' in err.lower():
+                raise RuntimeError(f"HEF not compatible with Hailo-8L. Download Hailo-8L models from Model Explorer.") from e
+            if '14' in err or 'FILE_OPERATION' in err or 'parsing' in err.lower():
+                raise RuntimeError(f"HEF parse failed (corrupted?). Try re-downloading.") from e
             raise
+
+    def load_detection_model(self, model_path: str) -> None:
+        """Load detection model (HEF format)."""
+        self.detection_network = self._load_model(model_path)
+
+    def load_classification_model(self, model_path: str) -> None:
+        """Load classification model (HEF format)."""
+        self.classification_network = self._load_model(model_path)
     
     def detect(self, image: Image.Image, score_threshold: float = 0.1, top_k: int = 3) -> List[dict]:
         """

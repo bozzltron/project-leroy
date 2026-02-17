@@ -6,7 +6,7 @@ import unittest
 import sys
 import os
 from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,9 +19,7 @@ from visitation import (
     find_all_species,
     create_species_observations,
     get_scientific_name,
-    find_best_photo_for_species,
     find_best_photo,
-    clarity
 )
 
 
@@ -29,14 +27,14 @@ class TestParse(unittest.TestCase):
     """Test filename parsing function."""
     
     def test_parse_6_fields(self):
-        """Test parsing filename with 6 fields."""
+        """Test parsing filename with 5 data fields (date in filename)."""
         filename = "/var/www/html/classified/2024-01-15/abc123/boxed_2024-01-15_14-30-25_85_american-robin_92.png"
         result = parse(filename)
         
         self.assertEqual(result['species'], "american robin")
         self.assertEqual(result['detection_score'], "85")
         self.assertEqual(result['classification_score'], "92")
-        self.assertEqual(result['visitation_id'], "")
+        self.assertEqual(result['visitation_id'], "abc123")  # From path
         self.assertIsInstance(result['datetime'], datetime)
     
     def test_parse_7_fields(self):

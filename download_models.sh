@@ -92,20 +92,25 @@ if [ $CLASSIFICATION_FOUND -eq 0 ]; then
     fi
 fi
 
-# Download label files (these are publicly available)
+# Download label files (HEF models do NOT contain labels - they must be provided externally)
 echo ""
 echo "Downloading label files..."
-echo "Note: Labels may also be included with models from Hailo Model Explorer"
+echo "Note: If download fails, leroy.py will use embedded COCO labels (bird detection still works)"
 echo ""
 
-# Try downloading from Hailo Model Zoo first (JSON format, but we support it)
+# Google Coral source (reliable, text format) - try first
+if [ ! -f "coco_labels.txt" ]; then
+    wget -q --show-progress "https://dl.google.com/coral/canned_models/coco_labels.txt" -O "coco_labels.txt" 2>&1 || \
+        curl -L -f -s "https://dl.google.com/coral/canned_models/coco_labels.txt" -o "coco_labels.txt" 2>/dev/null || true
+    [ -f "coco_labels.txt" ] && echo "✓ COCO labels downloaded (Google Coral)"
+fi
+
+# Alternative: JSON format from Hailo (if Coral failed and no txt yet)
 if [ ! -f "coco_labels.txt" ] && [ ! -f "labels_coco.json" ]; then
-    # Try Hailo Model Zoo format (JSON)
     wget -q --show-progress "https://raw.githubusercontent.com/hailo-ai/hailo_model_zoo/master/datasets/labels_coco.json" -O "labels_coco.json" 2>&1 || \
         curl -L -f -s "https://raw.githubusercontent.com/hailo-ai/hailo_model_zoo/master/datasets/labels_coco.json" -o "labels_coco.json" 2>/dev/null || true
     if [ -f "labels_coco.json" ]; then
-        echo "✓ COCO labels downloaded from Hailo Model Zoo (JSON format)"
-        # Also create text format for compatibility
+        echo "✓ COCO labels downloaded from Hailo Model Zoo (JSON)"
         python3 -c "
 import json
 with open('labels_coco.json', 'r') as f:
@@ -121,13 +126,6 @@ with open('coco_labels.txt', 'w') as f:
         f.write(f'{i} {label}\n')
 " 2>/dev/null && echo "  → Converted to coco_labels.txt" || true
     fi
-fi
-
-# Fallback to Google Coral source (text format)
-if [ ! -f "coco_labels.txt" ]; then
-    wget -q --show-progress "https://dl.google.com/coral/canned_models/coco_labels.txt" -O "coco_labels.txt" 2>&1 || \
-        curl -L -f -s "https://dl.google.com/coral/canned_models/coco_labels.txt" -o "coco_labels.txt" 2>/dev/null || true
-    [ -f "coco_labels.txt" ] && echo "✓ COCO labels downloaded (text format)"
 fi
 
 # iNaturalist bird labels
@@ -180,7 +178,7 @@ else
     echo "✗ Classification model: MISSING (REQUIRED)"
 fi
 
-[ -f "coco_labels.txt" ] && echo "✓ COCO labels: coco_labels.txt" || echo "✗ COCO labels: MISSING"
+[ -f "coco_labels.txt" ] && echo "✓ COCO labels: coco_labels.txt" || echo "○ COCO labels: using embedded fallback (run script to download)"
 [ -f "inat_bird_labels.txt" ] && echo "✓ Bird labels: inat_bird_labels.txt" || echo "✗ Bird labels: MISSING"
 
 echo ""

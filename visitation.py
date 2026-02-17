@@ -36,11 +36,11 @@ def parse(filename):
   """
   path = filename.split('/')
   basename = os.path.basename(filename)
-  
+
   # Extract date and visitation_id from path
   # Path: /var/www/html/classified/{date}/{visitation_id}/filename
-  date_from_path = path[-2] if len(path) >= 2 else datetime.now().strftime('%Y-%m-%d')
-  visitation_id_from_path = path[-1].split('/')[0] if len(path) >= 1 else ""
+  date_from_path = path[-3] if len(path) >= 3 else datetime.now().strftime('%Y-%m-%d')
+  visitation_id_from_path = path[-2] if len(path) >= 2 else ""
   
   # Split basename by underscore
   parts = basename.replace('.png', '').split('_')
@@ -63,20 +63,34 @@ def parse(filename):
   data_start = 2 if is_12mp else 1
   data = parts[data_start:]
   
-  # For boxed images after classification: {time}_{score}_{species}_{class}
-  # For full images: {time}_{score}
+  # For boxed images: supports multiple formats
+  # Format A (4 fields): {time}_{score}_{species}_{class} - date/visitation_id from path
+  # Format B (5 fields): {date}_{time}_{score}_{species}_{class}
+  # Format C (6 fields): {date}_{time}_{score}_{visitation_id}_{species}_{class}
   if photo_type == "boxed" and len(data) >= 4:
-    # Format: {time}_{score}_{species}_{class}
-    time_str = data[0]  # HH-MM-SS
-    detection_score = data[1]
-    species = data[2].replace("-", " ")
-    classification_score = data[3]
-    
+    if len(data) >= 6:
+      # Format C: date, time, score, visitation_id, species, class
+      date_str, time_str = data[0], data[1]
+      detection_score, vid, species, classification_score = data[2], data[3], data[4].replace("-", " "), data[5]
+      datetime_str = "{} {}".format(date_str, time_str)
+      visitation_id = vid
+    elif len(data) >= 5:
+      # Format B: date and time in filename
+      date_str, time_str = data[0], data[1]
+      detection_score, species, classification_score = data[2], data[3].replace("-", " "), data[4]
+      datetime_str = "{} {}".format(date_str, time_str)
+      visitation_id = visitation_id_from_path
+    else:
+      # Format A: time only, date from path
+      time_str, detection_score, species, classification_score = data[0], data[1], data[2].replace("-", " "), data[3]
+      datetime_str = "{} {}".format(date_from_path, time_str)
+      visitation_id = visitation_id_from_path
+
     return {
       "filename": filename.replace('/var/www/html', ''),
-      "datetime": datetime.strptime("{} {}".format(date_from_path, time_str), '%Y-%m-%d %H-%M-%S'),
+      "datetime": datetime.strptime(datetime_str, '%Y-%m-%d %H-%M-%S'),
       "detection_score": detection_score,
-      "visitation_id": visitation_id_from_path,
+      "visitation_id": visitation_id,
       "species": species,
       "classification_score": classification_score
     }

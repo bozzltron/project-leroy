@@ -37,30 +37,15 @@ def main():
     parser = argparse.ArgumentParser(
         description='Project Leroy - Bird Classification with Hailo AI Kit'
     )
-    # Try to find classification model - check for various MobileNet versions
-    default_model_dir = os.path.join('all_models')
-    mobilenet_v3_path = os.path.join(default_model_dir, 'mobilenet_v3.hef')
-    mobilenet_v2_path = os.path.join(default_model_dir, 'mobilenet_v2_1.0_224_inat_bird.hef')
-    mobilenet_v2_alt_path = os.path.join(default_model_dir, 'mobilenet_v2.hef')
-    
-    if os.path.exists(mobilenet_v3_path):
-        default_classification_model = mobilenet_v3_path
-    elif os.path.exists(mobilenet_v2_path):
-        default_classification_model = mobilenet_v2_path
-    elif os.path.exists(mobilenet_v2_alt_path):
-        default_classification_model = mobilenet_v2_alt_path
-    else:
-        default_classification_model = mobilenet_v2_path  # Default (will error clearly if missing)
-    
     parser.add_argument(
-        '--model',
-        help='HEF model path',
-        default=default_classification_model
+        '--classification-model',
+        default='all_models/mobilenet_v3.hef',
+        help='Classification HEF model path'
     )
     parser.add_argument(
-        '--label',
-        help='Label file path',
-        default=os.path.join('all_models', 'inat_bird_labels.txt')
+        '--classification-labels',
+        default='all_models/mobilenet_v3.txt',
+        help='Classification label file path'
     )
     parser.add_argument(
         '--image',
@@ -92,17 +77,20 @@ def main():
     )
     args = parser.parse_args()
 
-    logger.info(f"Starting classification")
-    logger.info(f"Model: {args.model}, Labels: {args.label}")
+    # Resolve relative paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if not os.path.isabs(args.classification_model):
+        args.classification_model = os.path.join(script_dir, args.classification_model)
+    if not os.path.isabs(args.classification_labels):
+        args.classification_labels = os.path.join(script_dir, args.classification_labels)
 
-    # Initialize Hailo inference
-    logger.info("Initializing Hailo AI Kit...")
+    logger.info(f"Starting classification")
+    logger.info(f"Model: {args.classification_model}, Labels: {args.classification_labels}")
+
     hailo = HailoInference()
     hailo.initialize()
-    hailo.load_classification_model(args.model)
-
-    # Load labels
-    labels = load_labels(args.label)
+    hailo.load_classification_model(args.classification_model)
+    labels = load_labels(args.classification_labels)
     logger.info(f"Loaded {len(labels)} labels")
     
     # Initialize active learning collector

@@ -179,14 +179,26 @@ sudo systemctl stop leroy.service
 
 # Restart the service
 sudo systemctl restart leroy.service
+```
 
-# Disable auto-start on boot (if needed)
+#### Update Code
+
+To pull latest code and redeploy the web interface:
+
+```bash
+./update.sh
+sudo systemctl restart leroy.service
+```
+
+#### Disable Auto-Start on Boot
+
+```bash
 sudo systemctl disable leroy.service
 ```
 
 #### Service Behavior
 
-- **Auto-updates**: Pulls latest code from git when it starts (via `run.sh`)
+- **Updates**: Run `./update.sh` to pull code and deploy web; then restart service
 - **Auto-restart**: Restarts automatically if it crashes (`Restart=on-abort`)
 - **Auto-launch browser**: Launches browser with web app (if enabled, no duplicate windows)
 - **Custom port**: Web interface runs on port **8080** (configurable)
@@ -194,7 +206,18 @@ sudo systemctl disable leroy.service
 
 #### Configuration
 
-Create or edit `leroy.env` to customize settings:
+Create or edit `leroy.env` to customize settings. Four model/label paths (run.sh and classify.sh):
+
+```
+# Detection (leroy.py)
+LEROY_DETECTION_MODEL=all_models/yolov11s.hef
+LEROY_DETECTION_LABELS=all_models/yolo11s.txt
+# Classification (classify.py)
+LEROY_CLASSIFICATION_MODEL=all_models/mobilenet_v3.hef
+LEROY_CLASSIFICATION_LABELS=all_models/mobilenet_v3.txt
+```
+
+Or pass via CLI: `python leroy.py --detection-model ... --detection-labels ...`
 
 ```bash
 # Web Server Configuration
