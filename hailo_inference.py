@@ -260,151 +260,84 @@ class HailoInference:
     def _postprocess_detection(self, results, score_threshold: float, top_k: int) -> List[dict]:
         """
         Postprocess detection results from Hailo inference.
-        
+
+        Handles YOLOv11s NMS output format: a dict with one key
+        (e.g. 'yolov11s/yolov8_nms_postprocess') whose value is a
+        list of per-class numpy arrays, each shape (N, 5) with
+        columns [y_min, x_min, y_max, x_max, score].
+
         Args:
-            results: Raw inference results from Hailo (dict of output tensor names to arrays)
+            results: Raw inference results from Hailo
             score_threshold: Minimum confidence score
-            top_k: Maximum number of detections
-            
+            top_k: Maximum number of detections to return
+
         Returns:
-            List of detection dictionaries with keys: id, score, bbox
-            bbox format: {'xmin': float, 'ymin': float, 'xmax': float, 'ymax': float} (normalized 0-1)
+            List of detection dicts with keys: id, score, bbox
+            bbox: {'xmin', 'ymin', 'xmax', 'ymax'} normalized 0-1
         """
         detections = []
-        
+
         try:
-            # Hailo SDK returns results as dictionary of output tensor names to numpy arrays
-            # For SSD models, typical outputs are:
-            # - 'detection_boxes': [num_detections, 4] (ymin, xmin, ymax, xmax) normalized
-            # - 'detection_scores': [num_detections] confidence scores
-            # - 'detection_classes': [num_detections] class IDs
-            
-            # Try to extract output tensors
-            if isinstance(results, dict):
-                # Get output tensors
-                boxes = None
-                scores = None
-                classes = None
-                
-                # Try common output tensor names
-                for key in results.keys():
-                    key_lower = key.lower()
-                    if 'box' in key_lower or 'bbox' in key_lower:
-                        boxes = results[key]
-                    elif 'score' in key_lower or 'confidence' in key_lower:
-                        scores = results[key]
-                    elif 'class' in key_lower or 'label' in key_lower:
-                        classes = results[key]
-                
-                # If not found by name, try to infer from shape
-                if boxes is None or scores is None or classes is None:
-                    output_keys = list(results.keys())
-                    if len(output_keys) >= 3:
-                        # Assume order: boxes, scores, classes
-                        boxes = results[output_keys[0]]
-                        scores = results[output_keys[1]]
-                        classes = results[output_keys[2]]
-                    elif len(output_keys) == 1:
-                        # Single output tensor - might be combined format
-                        # Some models output [num_detections, 6] where columns are:
-                        # [xmin, ymin, xmax, ymax, score, class]
-                        combined = results[output_keys[0]]
-                        if len(combined.shape) == 2 and combined.shape[1] >= 6:
-                            boxes = combined[:, :4]
-                            scores = combined[:, 4]
-                            classes = combined[:, 5].astype(np.int32)
-                
-                # Process detections
-                if boxes is not None and scores is not None and classes is not None:
-                    # Ensure arrays are numpy arrays
-                    boxes = np.asarray(boxes)
-                    scores = np.asarray(scores)
-                    classes = np.asarray(classes).astype(np.int32)
-                    
-                    # Flatten if needed
-                    if len(scores.shape) > 1:
-                        scores = scores.flatten()
-                    if len(classes.shape) > 1:
-                        classes = classes.flatten()
-                    
-                    # Filter by score threshold
-                    valid_indices = scores >= score_threshold
-                    boxes = boxes[valid_indices]
-                    scores = scores[valid_indices]
-                    classes = classes[valid_indices]
-                    
-                    # Sort by score descending
-                    sorted_indices = np.argsort(scores)[::-1]
-                    boxes = boxes[sorted_indices]
-                    scores = scores[sorted_indices]
-                    classes = classes[sorted_indices]
-                    
-                    # Take top_k
-                    num_detections = min(top_k, len(scores))
-                    
-                    # Convert to detection format
-                    for i in range(num_detections):
-                        # Handle different bbox formats
-                        bbox = boxes[i]
-                        
-                        # Normalize bbox coordinates to [0, 1] if needed
-                        if len(bbox) == 4:
-                            # Check if coordinates are already normalized
-                            if bbox.max() > 1.0:
-                                # Assume pixel coordinates, need to normalize
-                                # But we don't know image size here, so assume already normalized
-                                # or use a default image size
-                                pass
-                            
-                            # Handle different bbox formats:
-                            # Format 1: [ymin, xmin, ymax, xmax] (SSD format)
-                            # Format 2: [xmin, ymin, xmax, ymax] (YOLO format)
-                            # Format 3: [center_x, center_y, width, height] (center format)
-                            
-                            # Try to detect format based on values
-                            if bbox[0] < bbox[2] and bbox[1] < bbox[3]:
-                                # Likely [ymin, xmin, ymax, xmax] or [xmin, ymin, xmax, ymax]
-                                if bbox[0] < bbox[1]:
-                                    # [ymin, xmin, ymax, xmax]
-                                    ymin, xmin, ymax, xmax = bbox
-                                else:
-                                    # [xmin, ymin, xmax, ymax]
-                                    xmin, ymin, xmax, ymax = bbox
-                            else:
-                                # Assume [xmin, ymin, xmax, ymax] format
-                                xmin, ymin, xmax, ymax = bbox
-                            
-                            # Ensure values are in [0, 1] range
-                            xmin = max(0.0, min(1.0, float(xmin)))
-                            ymin = max(0.0, min(1.0, float(ymin)))
-                            xmax = max(0.0, min(1.0, float(xmax)))
-                            ymax = max(0.0, min(1.0, float(ymax)))
-                            
+            if not isinstance(results, dict):
+                logger.warning(f"Unexpected results type: {type(results)}")
+                return detections
+
+            for output_name, output_value in results.items():
+                if isinstance(output_value, list):
+                    # NMS format: list of per-class arrays
+                    for class_id, class_array in enumerate(output_value):
+                        if not isinstance(class_array, np.ndarray):
+                            class_array = np.asarray(class_array)
+                        if class_array.size == 0 or class_array.shape[0] == 0:
+                            continue
+                        # Each row: [y_min, x_min, y_max, x_max, score]
+                        for row in class_array:
+                            if len(row) < 5:
+                                continue
+                            y_min, x_min, y_max, x_max, score = row[:5]
+                            if score < score_threshold:
+                                continue
                             detections.append({
-                                'id': int(classes[i]),
-                                'score': float(scores[i]),
+                                'id': int(class_id),
+                                'score': float(score),
                                 'bbox': {
-                                    'xmin': xmin,
-                                    'ymin': ymin,
-                                    'xmax': xmax,
-                                    'ymax': ymax
+                                    'xmin': float(x_min),
+                                    'ymin': float(y_min),
+                                    'xmax': float(x_max),
+                                    'ymax': float(y_max),
                                 }
                             })
-            
-            elif isinstance(results, np.ndarray):
-                # Single numpy array output - try to parse
-                # This might be a combined format or single tensor
-                logger.warning("Single array output detected - may need model-specific parsing")
-                # For now, return empty - would need model-specific knowledge
-            
-            else:
-                logger.warning(f"Unexpected results type: {type(results)}")
-        
+                elif isinstance(output_value, np.ndarray):
+                    # Single array format (non-NMS or combined)
+                    arr = output_value
+                    if arr.ndim == 2 and arr.shape[1] >= 6:
+                        # [xmin, ymin, xmax, ymax, score, class]
+                        for row in arr:
+                            if len(row) < 6:
+                                continue
+                            score = float(row[4])
+                            if score < score_threshold:
+                                continue
+                            detections.append({
+                                'id': int(row[5]),
+                                'score': score,
+                                'bbox': {
+                                    'xmin': float(row[0]),
+                                    'ymin': float(row[1]),
+                                    'xmax': float(row[2]),
+                                    'ymax': float(row[3]),
+                                }
+                            })
+                else:
+                    logger.debug(f"Unknown output format for {output_name}: {type(output_value)}")
+
         except Exception as e:
             logger.error(f"Error in detection postprocessing: {e}")
             logger.exception("Full traceback:")
-        
-        return detections
+
+        # Sort by score descending, take top_k
+        detections.sort(key=lambda d: d['score'], reverse=True)
+        return detections[:top_k]
     
     def _postprocess_classification(self, results, top_k: int, threshold: float) -> List[Tuple[int, float]]:
         """
