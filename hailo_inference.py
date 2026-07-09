@@ -12,7 +12,7 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 try:
-    from hailo_platform import Device, InferVStreams
+    from hailo_platform import VDevice, InferVStreams
     HAILO_AVAILABLE = True
     HAILO_IMPORT_ERROR = None
 except ImportError as e:
@@ -33,7 +33,7 @@ class HailoInference:
         global HAILO_AVAILABLE, HAILO_IMPORT_ERROR
         if not HAILO_AVAILABLE:
             try:
-                from hailo_platform import Device, InferVStreams
+                from hailo_platform import VDevice, InferVStreams
                 HAILO_AVAILABLE = True
             except ImportError as e:
                 err = HAILO_IMPORT_ERROR or str(e)
@@ -51,7 +51,7 @@ class HailoInference:
         if self._initialized:
             return
         try:
-            self.device = Device(device_id=device_id) if device_id else Device()
+            self.device = VDevice(device_id=device_id) if device_id else VDevice()
             self._initialized = True
             logger.info("Hailo device initialized")
         except Exception as e:
@@ -85,7 +85,17 @@ class HailoInference:
 
         logger.info(f"Loading model: {model_path}")
         try:
-            return self.device.load_model(model_path)
+            network_group = self.device.load_model(model_path)
+            logger.info(f"Model loaded: {model_path}")
+            logger.info(f"Network group: {network_group.name}")
+            try:
+                for in_name, in_info in network_group.input_vstreams().items():
+                    logger.info(f"  Input vstream: {in_name}, shape: {in_info.shape}")
+                for out_name, out_info in network_group.output_vstreams().items():
+                    logger.info(f"  Output vstream: {out_name}, shape: {out_info.shape}")
+            except Exception as inspect_err:
+                logger.debug(f"Could not introspect vstreams: {inspect_err}")
+            return network_group
         except Exception as e:
             err = str(e)
             if '93' in err or 'HEF_NOT_COMPATIBLE' in err or 'not compatible' in err.lower():
