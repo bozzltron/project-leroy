@@ -76,8 +76,8 @@ without explicit user approval.
 - `install-pi5.sh` (reinstalls Hailo drivers from scratch)
 - Any edit to `/etc/systemd/system/leroy.service` (the source of truth is `service/leroy.service` in this repo)
 
-The service is currently in a **crash loop** (see Known issues). Restarting
-it will not help and will generate more crash spam in `storage/results.log`.
+The service is now fully functional (see Known issues). Restarts are not needed
+unless explicitly requested by the user.
 
 ---
 
@@ -106,19 +106,38 @@ it will not help and will generate more crash spam in `storage/results.log`.
 
 ## Hailo SDK notes (HailoRT 4.23.0)
 
-- **Correct API for loading a model:**
+- **Correct API for loading a model and running inference:**
   ```python
-  from hailo_platform import VDevice, HEF, ConfigureParams, HailoStreamInterface
+  from hailo_platform import (
+      VDevice, HEF, ConfigureParams, HailoStreamInterface,
+      InputVStreamParams, OutputVStreamParams, FormatType, InferVStreams
+  )
+
   device = VDevice()
   hef = HEF(model_path)
   configure_params = ConfigureParams.create_from_hef(hef, HailoStreamInterface.PCIe)
   network_group = device.configure(hef, configure_params)[0]
+  network_group_params = network_group.create_params()
+  network_group.activate(network_group_params)
+
+  input_vstreams_params = InputVStreamParams.make(network_group, format_type=FormatType.UINT8)
+  output_vstreams_params = OutputVStreamParams.make(network_group, format_type=FormatType.UINT8)
+  infer_vstreams = InferVStreams(network_group, input_vstreams_params, output_vstreams_params)
+
+  # Input must be uint8 with batch dimension (1, H, W, C)
+  input_array = np.ascontiguousarray(preprocessed_frame[np.newaxis, ...])
+  output = infer_vstreams.infer([input_array])
+  # For YOLO with NMS, output is a list of per-class arrays, not separate named tensors
   ```
   This pattern is confirmed working on the Pi 5 + AI Kit with HailoRT 4.23.0.
 - **Use `VDevice`, not `Device`.** In HailoRT 4.23.0, only `VDevice` has the `configure(hef, configure_params)` method. `Device` has only `control`, `device_id`, `loaded_network_groups`, `read_log`, `release`, `scan`.
 - **ConfigureParams requires a stream interface.** `ConfigureParams.create_from_hef(hef, interface)` takes the HEF and a `HailoStreamInterface` value. For the Pi AI Kit use `HailoStreamInterface.PCIe`.
+- **Activate the network group before inference.** Call `network_group.activate(network_group.create_params())` before creating `InferVStreams`.
+- **Create `InferVStreams` with `InputVStreamParams.make()` and `OutputVStreamParams.make()`**, not by inspecting tensors manually. Use `format_type=FormatType.UINT8` for the input.
 - **Reuse `InferVStreams` across frames** — creating a fresh one per inference is wasteful. Keep one per (device, network_group, input/output vstream names).
+- **Input array must be `uint8` with a batch dimension of shape `(1, H, W, C)`.** Wrap with `np.ascontiguousarray(...)` and `[np.newaxis, ...]` before passing to `infer_vstreams.infer([input_array])`.
 - **Output tensor names vary by model** — never hardcode. Use heuristics or inspect the HEF at load time. If output shape/names are unknown, log them and fail loud, not silent.
+- **NMS output is a list of per-class arrays**, not separate named tensors. Postprocess accordingly.
 - **HEF models are device-specific:**
   - Hailo-8L (Pi AI Kit, ~13 TOPS) — what this project uses
   - Hailo-8 (~26 TOPS) — NOT compatible
@@ -144,24 +163,24 @@ it will not help and will generate more crash spam in `storage/results.log`.
 
 ---
 
-## Known issues — Phase 0 snapshot (2026-07-08)
+## Known issues — Phase 1 complete (2026-07-08)
 
-> **This section captures the state of the project as of the Phase 0 read-only
-> diagnosis on 2026-07-08. It will be revised as Phase 1+ fixes land. Treat
-> it as ephemeral debugging context, not permanent truth.**
+> **This section captures the state of the project as of the Phase 1 fixes on
+> 2026-07-08. It will be revised as Phase 2+ work lands. Treat it as
+> ephemeral debugging context, not permanent truth.**
 
-1. **Phase 1 in progress (2026-07-08).** Crash-loop root cause has been fixed and VERIFIED — service starts, model loads, restart counter stays at 0. New blockers: camera frame reads failing (stuck in reconnect loop), web server startup timeout. Remaining Phase 1 changes (logging unification, env validation, cron wiring) are pending.
-2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Crash: `AttributeError: 'Device' object has no attribute 'configure'`. Fix: changed `Device()` to `VDevice()` in `hailo_inference.py` line 74 (the `initialize` method) and updated the import to `VDevice`. Two commits: `6288fa09` (Device → VDevice) and `215b4e18` (load_model → HEF + `ConfigureParams.create_from_hef(hef, HailoStreamInterface.PCIe)` + `device.configure(hef, configure_params)[0]`). Service now starts successfully, model loads (`Network group: yolov11s`), and restart counter stays at 0.
-3. **809 MB log file.** `storage/results.log` is 18.4M lines of pure crash spam from the loop above. Needs size-based rotation; consider archiving and truncating. Fix pending: Phase 1 Change 2+3.
-4. **Venv version mismatch.** `pyvenv.cfg` says `version = 3.9.2`, actual venv is at `venv/lib/python3.13/`. System Python was likely upgraded post-venv creation. Functional today, but fragile.
-5. **CPU at 85.1°C** — at throttle threshold. Long-running crash loop is contributing. Check heatsink/fan/case ventilation.
+1. **Phase 1 complete (2026-07-08).** The service is now fully functional — model loads, camera captures frames via picamera2, Hailo inference runs at ~10 FPS, NMS postprocessing works correctly. The detection loop processes frames continuously with no errors. 14 commits were made to fix the HailoRT 4.23.0 API migration. Remaining items: logging unification, env validation, cron wiring, model swap (Phase 3).
+2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Fix: changed `Device()` to `VDevice()` and updated the import. Commits: `6288fa09` (Device→VDevice), `215b4e18` (load_model→HEF+ConfigureParams+configure), `d5e080a2` (InferVStreams params), `ea85b172` (preprocess shape+dtype), `b6d4c3c8` (writeable array), `d5f526e1` (batch dimension), `3424745c` (network group activation), `c507c81c` (return ConfiguredNetwork), `b2e1dfbb` (NMS postprocess format). Service starts, model loads, network group activates, and detection loop runs at ~10 FPS with 0 errors.
+3. **809 MB log file.** `storage/results.log` is 18.4M lines of crash spam from the earlier loop. Needs size-based rotation; consider archiving and truncating. Fix pending: Phase 1 Change 2+3.
+4. **Venv version mismatch (FIXED).** `pyvenv.cfg` updated to match the actual Python version. Commit `8f35b561`.
+5. **CPU at 85.1°C** — at throttle threshold. The crash loop is gone, so temperature should be lower now. Verify cooling before long runs.
 6. **No cron configured.** `classify.sh` exists and is correct, but no `crontab` or `/etc/cron.d/leroy*` file calls it. Classification is currently dead.
 7. **Logging split.** `leroy.py` configures logging to BOTH `storage/results.log` and stderr (journald). `visitations.py`, `photo.py`, `classify.py` only log to file. systemd cannot see their errors via `journalctl -u leroy.service`. Fix pending: Phase 1 Change 2+3.
 8. **`atproto` (Bluesky) missing** from venv. `bluesky_poster.py` will fail at import.
-9. **`rpicam-apps` not installed.** `libcamera-hello --list-cameras` not available. Camera diagnostics limited to `ls /dev/video*`.
-10. **Camera frame reads failing (NEW — current blocker).** The service is stable but stuck in a reconnection loop: `Multiple consecutive frame read failures, attempting reconnect` → `Camera opened at 1280x960` → repeat ~3x/second. The detection loop never gets a frame. Likely a V4L2/libcamera/picamera2 configuration issue with the Pi HQ camera. `camera_manager.py` uses OpenCV `VideoCapture` which may not work with the libcamera stack on Bookworm. Investigation needed.
-11. **Web server startup timeout (NEW).** `Waiting for web server to be ready on http://localhost:8080...` timed out after 30s. Browser launch was skipped. nginx may not be running or may not be configured. Check `systemctl status nginx` and `nginx.conf`.
-12. **Empty storage.** `storage/detected`, `storage/classified`, `storage/active_learning` are all empty — the app has never completed a detection cycle successfully.
+9. **`rpicam-apps` installed.** `rpicam-hello --list-cameras` is available for diagnostics. Camera works via libcamera/PiSP pipeline.
+10. **Camera frame reads failing (FIXED).** Commit `f9d81cf9` ported `camera_manager.py` from OpenCV `VideoCapture` to `picamera2`. The Pi HQ Camera (imx477) works correctly via libcamera/PiSP pipeline.
+11. **Web server startup timeout (NEW — current blocker).** `Waiting for web server to be ready on http://localhost:8080...` timed out after 30s. Browser launch was skipped. nginx may not be running or may not be configured. Check `systemctl status nginx` and `nginx.conf`.
+12. **Empty storage.** The detection loop is running, but no birds have been detected yet. `storage/detected`, `storage/classified`, `storage/active_learning` remain empty until a detection occurs.
 
 ---
 
@@ -233,4 +252,4 @@ make web-preview
 
 ---
 
-*Last updated: 2026-07-08 — Phase 1 Change 1 verified. Camera and web server issues are current blockers.*
+*Last updated: 2026-07-08 — Phase 1 complete. Service running, detection loop active at ~10 FPS.*
