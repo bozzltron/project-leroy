@@ -92,11 +92,13 @@ class HailoInference:
             logger.info(f"Model loaded: {model_path}")
             logger.info(f"Network group: {network_group.name}")
             # Activate the network group (required before inference in HailoRT 4.23.0)
+            # Keep the activation context alive but return the ConfiguredNetwork
+            # so InputVStreamParams.make() can access its internal methods
             activation_context = network_group.activate()
-            activated_network = activation_context.__enter__()
+            activation_context.__enter__()
             self._activation_contexts.append(activation_context)
             logger.info(f"Network group activated: {network_group.name}")
-            return activated_network
+            return network_group
         except Exception as e:
             err = str(e)
             if '93' in err or 'HEF_NOT_COMPATIBLE' in err or 'not compatible' in err.lower():
