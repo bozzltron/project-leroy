@@ -12,7 +12,7 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 try:
-    from hailo_platform import VDevice, InferVStreams, HEF, ConfigureParams, HailoStreamInterface
+    from hailo_platform import VDevice, InferVStreams, HEF, ConfigureParams, HailoStreamInterface, InputVStreamParams, OutputVStreamParams
     HAILO_AVAILABLE = True
     HAILO_IMPORT_ERROR = None
 except ImportError as e:
@@ -33,7 +33,7 @@ class HailoInference:
         global HAILO_AVAILABLE, HAILO_IMPORT_ERROR
         if not HAILO_AVAILABLE:
             try:
-                from hailo_platform import VDevice, InferVStreams, HEF, ConfigureParams, HailoStreamInterface
+                from hailo_platform import VDevice, InferVStreams, HEF, ConfigureParams, HailoStreamInterface, InputVStreamParams, OutputVStreamParams
                 HAILO_AVAILABLE = True
             except ImportError as e:
                 err = HAILO_IMPORT_ERROR or str(e)
@@ -134,8 +134,10 @@ class HailoInference:
             input_data = self._preprocess_image(image, self.detection_network)
             
             # Run inference
-            # InferVStreams expects input as dictionary of input tensor names to arrays
-            with InferVStreams(self.detection_network) as infer_pipeline:
+            # Create vstream params from the configured network group
+            input_vstreams_params = InputVStreamParams.make(self.detection_network)
+            output_vstreams_params = OutputVStreamParams.make(self.detection_network)
+            with InferVStreams(self.detection_network, input_vstreams_params, output_vstreams_params) as infer_pipeline:
                 # Infer returns dictionary of output tensor names to numpy arrays
                 results = infer_pipeline.infer(input_data)
             
@@ -167,8 +169,10 @@ class HailoInference:
             input_data = self._preprocess_image(image, self.classification_network)
             
             # Run inference
-            # InferVStreams expects input as dictionary of input tensor names to arrays
-            with InferVStreams(self.classification_network) as infer_pipeline:
+            # Create vstream params from the configured network group
+            input_vstreams_params = InputVStreamParams.make(self.classification_network)
+            output_vstreams_params = OutputVStreamParams.make(self.classification_network)
+            with InferVStreams(self.classification_network, input_vstreams_params, output_vstreams_params) as infer_pipeline:
                 # Infer returns dictionary of output tensor names to numpy arrays
                 results = infer_pipeline.infer(input_data)
             
