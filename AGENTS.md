@@ -114,6 +114,7 @@ it will not help and will generate more crash spam in `storage/results.log`.
   configure_params = ConfigureParams.create_from_hef(hef, HailoStreamInterface.PCIe)
   network_group = device.configure(hef, configure_params)[0]
   ```
+  This pattern is confirmed working on the Pi 5 + AI Kit with HailoRT 4.23.0.
 - **Use `VDevice`, not `Device`.** In HailoRT 4.23.0, only `VDevice` has the `configure(hef, configure_params)` method. `Device` has only `control`, `device_id`, `loaded_network_groups`, `read_log`, `release`, `scan`.
 - **ConfigureParams requires a stream interface.** `ConfigureParams.create_from_hef(hef, interface)` takes the HEF and a `HailoStreamInterface` value. For the Pi AI Kit use `HailoStreamInterface.PCIe`.
 - **Reuse `InferVStreams` across frames** — creating a fresh one per inference is wasteful. Keep one per (device, network_group, input/output vstream names).
@@ -149,16 +150,8 @@ it will not help and will generate more crash spam in `storage/results.log`.
 > diagnosis on 2026-07-08. It will be revised as Phase 1+ fixes land. Treat
 > it as ephemeral debugging context, not permanent truth.**
 
-1. **Phase 1 in progress (2026-07-08).** Crash-loop root cause has been fixed in `hailo_inference.py` (Device → VDevice) but the service has not yet been restarted to verify. Other Phase 1 changes (logging unification, env validation, venv fix done, cron wiring) are in progress. Items in this list are being addressed in this order; some may already be partially done.
-2. **Service crash loop — `hailo_inference.py:74` (FIXED, awaiting service verification).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Crash: `AttributeError: 'Device' object has no attribute 'configure'`. Fix: changed `Device()` to `VDevice()` in `hailo_inference.py` line 74 (the `initialize` method) and updated the import to `VDevice`. Pattern:
-   ```python
-   from hailo_platform import VDevice, HEF, ConfigureParams, HailoStreamInterface
-   device = VDevice()
-   hef = HEF(model_path)
-   configure_params = ConfigureParams.create_from_hef(hef, HailoStreamInterface.PCIe)
-   network_group = device.configure(hef, configure_params)[0]
-   ```
-   Service has not been restarted yet; verification pending.
+1. **Phase 1 in progress (2026-07-08).** Crash-loop root cause has been fixed and VERIFIED — service starts, model loads, restart counter stays at 0. New blockers: camera frame reads failing (stuck in reconnect loop), web server startup timeout. Remaining Phase 1 changes (logging unification, env validation, cron wiring) are pending.
+2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Crash: `AttributeError: 'Device' object has no attribute 'configure'`. Fix: changed `Device()` to `VDevice()` in `hailo_inference.py` line 74 (the `initialize` method) and updated the import to `VDevice`. Two commits: `6288fa09` (Device → VDevice) and `215b4e18` (load_model → HEF + `ConfigureParams.create_from_hef(hef, HailoStreamInterface.PCIe)` + `device.configure(hef, configure_params)[0]`). Service now starts successfully, model loads (`Network group: yolov11s`), and restart counter stays at 0.
 3. **809 MB log file.** `storage/results.log` is 18.4M lines of pure crash spam from the loop above. Needs size-based rotation; consider archiving and truncating. Fix pending: Phase 1 Change 2+3.
 4. **Venv version mismatch.** `pyvenv.cfg` says `version = 3.9.2`, actual venv is at `venv/lib/python3.13/`. System Python was likely upgraded post-venv creation. Functional today, but fragile.
 5. **CPU at 85.1°C** — at throttle threshold. Long-running crash loop is contributing. Check heatsink/fan/case ventilation.
@@ -166,7 +159,9 @@ it will not help and will generate more crash spam in `storage/results.log`.
 7. **Logging split.** `leroy.py` configures logging to BOTH `storage/results.log` and stderr (journald). `visitations.py`, `photo.py`, `classify.py` only log to file. systemd cannot see their errors via `journalctl -u leroy.service`. Fix pending: Phase 1 Change 2+3.
 8. **`atproto` (Bluesky) missing** from venv. `bluesky_poster.py` will fail at import.
 9. **`rpicam-apps` not installed.** `libcamera-hello --list-cameras` not available. Camera diagnostics limited to `ls /dev/video*`.
-10. **Empty storage.** `storage/detected`, `storage/classified`, `storage/active_learning` are all empty — the app has never completed a detection cycle successfully.
+10. **Camera frame reads failing (NEW — current blocker).** The service is stable but stuck in a reconnection loop: `Multiple consecutive frame read failures, attempting reconnect` → `Camera opened at 1280x960` → repeat ~3x/second. The detection loop never gets a frame. Likely a V4L2/libcamera/picamera2 configuration issue with the Pi HQ camera. `camera_manager.py` uses OpenCV `VideoCapture` which may not work with the libcamera stack on Bookworm. Investigation needed.
+11. **Web server startup timeout (NEW).** `Waiting for web server to be ready on http://localhost:8080...` timed out after 30s. Browser launch was skipped. nginx may not be running or may not be configured. Check `systemctl status nginx` and `nginx.conf`.
+12. **Empty storage.** `storage/detected`, `storage/classified`, `storage/active_learning` are all empty — the app has never completed a detection cycle successfully.
 
 ---
 
@@ -238,4 +233,4 @@ make web-preview
 
 ---
 
-*Last updated: 2026-07-08 — Phase 1 in progress (post-Change 1 fix).*
+*Last updated: 2026-07-08 — Phase 1 Change 1 verified. Camera and web server issues are current blockers.*
