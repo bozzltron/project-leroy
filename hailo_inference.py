@@ -229,7 +229,7 @@ class HailoInference:
         
         # Convert to numpy array
         # PIL Image is RGB, keep as RGB (most Hailo models expect RGB)
-        img_array = np.asarray(resized, dtype=np.uint8)
+        img_array = np.array(resized, dtype=np.uint8)
         
         # Note: PIL Image is RGB format, which is what most Hailo models expect
         # If model was trained on BGR (OpenCV), uncomment below:
