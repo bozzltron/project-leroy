@@ -52,6 +52,7 @@ Thumbs.db
 # Documentation files (except README.md)
 *.md
 !README.md
+!AGENTS.md
 
 # Temporary files
 *.tmp
