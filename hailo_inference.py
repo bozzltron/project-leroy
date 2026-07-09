@@ -44,6 +44,7 @@ class HailoInference:
         self.device = None
         self.detection_network = None
         self.classification_network = None
+        self._activation_contexts = []  # Track activation contexts for cleanup
         self._initialized = False
     
     def initialize(self, device_id: Optional[str] = None):
@@ -90,14 +91,12 @@ class HailoInference:
             network_group = self.device.configure(hef, configure_params)[0]
             logger.info(f"Model loaded: {model_path}")
             logger.info(f"Network group: {network_group.name}")
-            try:
-                for in_name, in_info in network_group.input_vstreams().items():
-                    logger.info(f"  Input vstream: {in_name}, shape: {in_info.shape}")
-                for out_name, out_info in network_group.output_vstreams().items():
-                    logger.info(f"  Output vstream: {out_name}, shape: {out_info.shape}")
-            except Exception as inspect_err:
-                logger.debug(f"Could not introspect vstreams: {inspect_err}")
-            return network_group
+            # Activate the network group (required before inference in HailoRT 4.23.0)
+            activation_context = network_group.activate()
+            activated_network = activation_context.__enter__()
+            self._activation_contexts.append(activation_context)
+            logger.info(f"Network group activated: {network_group.name}")
+            return activated_network
         except Exception as e:
             err = str(e)
             if '93' in err or 'HEF_NOT_COMPATIBLE' in err or 'not compatible' in err.lower():
@@ -484,6 +483,13 @@ class HailoInference:
     
     def cleanup(self):
         """Clean up resources."""
+        # Deactivate all network groups before releasing device
+        for ctx in self._activation_contexts:
+            try:
+                ctx.__exit__(None, None, None)
+            except Exception:
+                pass
+        self._activation_contexts = []
         self.detection_network = None
         self.classification_network = None
         self.device = None
