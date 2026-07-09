@@ -12,7 +12,7 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 try:
-    from hailo_platform import VDevice, InferVStreams
+    from hailo_platform import VDevice, InferVStreams, HEF, ConfigureParams, HailoStreamInterface
     HAILO_AVAILABLE = True
     HAILO_IMPORT_ERROR = None
 except ImportError as e:
@@ -33,7 +33,7 @@ class HailoInference:
         global HAILO_AVAILABLE, HAILO_IMPORT_ERROR
         if not HAILO_AVAILABLE:
             try:
-                from hailo_platform import VDevice, InferVStreams
+                from hailo_platform import VDevice, InferVStreams, HEF, ConfigureParams, HailoStreamInterface
                 HAILO_AVAILABLE = True
             except ImportError as e:
                 err = HAILO_IMPORT_ERROR or str(e)
@@ -85,7 +85,9 @@ class HailoInference:
 
         logger.info(f"Loading model: {model_path}")
         try:
-            network_group = self.device.load_model(model_path)
+            hef = HEF(model_path)
+            configure_params = ConfigureParams.create_from_hef(hef, HailoStreamInterface.PCIe)
+            network_group = self.device.configure(hef, configure_params)[0]
             logger.info(f"Model loaded: {model_path}")
             logger.info(f"Network group: {network_group.name}")
             try:
