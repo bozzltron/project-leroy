@@ -53,14 +53,26 @@ def load_labels(path: str) -> Dict[int, str]:
                     for idx, label in enumerate(data):
                         labels[idx] = str(label)
         else:
-            # Try text format: "ID label"
+            # Text format. Try "ID label" first (e.g., "16 bird"),
+            # then fall back to one-label-per-line with line number as ID.
             p = re.compile(r'\s*(\d+)(.+)')
             with open(path, 'r', encoding='utf-8') as f:
-                for line in f.readlines():
-                    match = p.match(line)
-                    if match:
-                        num, text = match.groups()
-                        labels[int(num)] = text.strip()
+                lines = f.readlines()
+            for idx, line in enumerate(lines):
+                match = p.match(line)
+                if match:
+                    num, text = match.groups()
+                    labels[int(num)] = text.strip()
+            if not labels and lines:
+                # Fallback: one label per line, line number (0-indexed) is the ID
+                logger.info(
+                    f"No 'ID label' format found in {path}; "
+                    f"using line number as ID (Hailo Model Zoo format)"
+                )
+                for idx, line in enumerate(lines):
+                    label = line.strip()
+                    if label:
+                        labels[idx] = label
     except FileNotFoundError:
         raise FileNotFoundError(f"Labels not found: {path}")
     except Exception as e:
