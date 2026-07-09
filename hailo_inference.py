@@ -251,7 +251,9 @@ class HailoInference:
         except (AttributeError, IndexError):
             input_name = 'input'
         
-        # Return as dictionary (Hailo SDK expects this format)
+        # Add batch dimension: (H, W, C) -> (1, H, W, C)
+        # HailoRT interprets the first dimension as batch size
+        img_array = np.expand_dims(img_array, axis=0)
         return {input_name: img_array}
     
     def _postprocess_detection(self, results, score_threshold: float, top_k: int) -> List[dict]:
