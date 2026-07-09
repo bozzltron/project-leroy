@@ -203,19 +203,23 @@ class HailoInference:
             if input_vstreams:
                 # Get first input vstream shape
                 input_shape = input_vstreams[0].shape
-                height, width = input_shape[1], input_shape[2]  # Typically (batch, height, width, channels)
+                # Handle both 3-element (H, W, C) and 4-element (N, H, W, C) shapes
+                if len(input_shape) == 4:
+                    height, width = input_shape[1], input_shape[2]
+                elif len(input_shape) == 3:
+                    height, width = input_shape[0], input_shape[1]
+                else:
+                    raise ValueError(f"Unexpected input shape length: {len(input_shape)}")
             else:
                 # Fallback: try common detection/classification input sizes
-                # Detection models often use 300x300 or 320x320
-                # Classification models often use 224x224
                 if self.detection_network is not None:
-                    height, width = 300, 300  # Common SSD input size
+                    height, width = 640, 640  # Common YOLO input size
                 else:
                     height, width = 224, 224  # Common classification input size
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, ValueError):
             # Fallback to default sizes
             if self.detection_network is not None:
-                height, width = 300, 300
+                height, width = 640, 640
             else:
                 height, width = 224, 224
         
@@ -232,9 +236,10 @@ class HailoInference:
         # if len(img_array.shape) == 3 and img_array.shape[2] == 3:
         #     img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
         
-        # Normalize to [0, 1] range (float32)
-        img_array = img_array.astype(np.float32) / 255.0
-        
+        # Keep as uint8 — Hailo HEF models with quantization handle
+        # the uint8-to-float conversion on-chip. Sending float32
+        # triggers a runtime warning and unnecessary conversion.
+
         # Hailo SDK expects input as dictionary of tensor names to arrays
         # Try to get input tensor name from network
         try:
