@@ -1,7 +1,7 @@
 # Makefile for Project Leroy
 # Raspberry Pi 5 + AI Kit (Hailo) implementation
 
-.PHONY: help service_* docker-pi5-* nginx-* web-preview tail cron_logs
+.PHONY: help service_* docker-pi5-* nginx-* web-preview tail cron_logs cron_status logrotate_status
 
 help:
 	@echo "Project Leroy - Makefile Commands"
@@ -27,6 +27,8 @@ help:
 	@echo "Utilities:"
 	@echo "  make tail                - Tail results.log"
 	@echo "  make cron_logs           - View cron logs"
+	@echo "  make cron_status         - Show cron file/log/active crontabs"
+	@echo "  make logrotate_status    - Show logrotate config + dry-run"
 
 # Service management (systemd)
 service_status:
@@ -74,4 +76,34 @@ tail:
 	tail -f storage/results.log
 
 cron_logs:
-	grep CRON /var/log/syslog
+	@echo "=== /etc/cron.d/leroy-classify ==="
+	@cat /etc/cron.d/leroy-classify 2>/dev/null || echo "(not installed)"
+	@echo ""
+	@echo "=== Last 30 lines of /var/log/leroy-classify.log ==="
+	@tail -n 30 /var/log/leroy-classify.log 2>/dev/null || echo "(no log yet)"
+	@echo ""
+	@echo "=== Recent CRON lines from syslog ==="
+	@grep CRON /var/log/syslog 2>/dev/null | tail -n 20 || echo "(no syslog cron entries)"
+
+cron_status:
+	@echo "=== Cron file ==="
+	@ls -la /etc/cron.d/leroy-classify 2>/dev/null || echo "(NOT INSTALLED — run install-pi5.sh or: sudo install -m 644 /dev/stdin /etc/cron.d/leroy-classify <<< '<line>')"
+	@echo ""
+	@echo "=== Cron log file ==="
+	@ls -la /var/log/leroy-classify.log 2>/dev/null || echo "(no log yet — will be created on first run)"
+	@echo ""
+	@echo "=== Active user crontabs ==="
+	@for u in $$(ls /var/spool/cron/crontabs/ 2>/dev/null); do echo "user: $$u"; crontab -u $$u -l 2>/dev/null; done
+	@echo ""
+	@echo "=== classify.sh perms ==="
+	@ls -la classify.sh
+
+logrotate_status:
+	@echo "=== /etc/logrotate.d/leroy ==="
+	@ls -la /etc/logrotate.d/leroy 2>/dev/null || echo "(NOT INSTALLED)"
+	@echo ""
+	@echo "=== logrotate -d (dry run) ==="
+	@sudo logrotate -d /etc/logrotate.d/leroy 2>&1 | head -30 || true
+	@echo ""
+	@echo "=== Current results.log size ==="
+	@ls -lh storage/results.log 2>/dev/null || echo "(no log file)"

@@ -1,0 +1,35 @@
+LEROY_PROJECT_DIR/storage/results.log {
+    # storage/ is owned by leroy:leroy. After copytruncate, the new
+    # file would be root-owned without this, breaking leroy.py's writes.
+    su leroy leroy
+    daily
+    size 100M
+    rotate 7
+    maxage 30
+    compress
+    delaycompress
+    # copytruncate required: leroy.py holds the file handle open continuously.
+    # Rename+create would lose subsequent writes to a detached inode.
+    copytruncate
+    missingok
+    notifempty
+    postrotate
+        # No restart needed; copytruncate preserves the open file handle.
+        true
+    endscript
+}
+
+/var/log/leroy-classify.log {
+    daily
+    size 100M
+    rotate 7
+    maxage 30
+    compress
+    delaycompress
+    copytruncate
+    missingok
+    notifempty
+    postrotate
+        true
+    endscript
+}

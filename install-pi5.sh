@@ -232,11 +232,32 @@ if [ $VALID_MODELS -eq 0 ]; then
     fi
 fi
 
-# Cron job
-CRON_SCRIPT="$(pwd)/classify.sh"
-CRON_JOB="0 * * * * $CRON_SCRIPT"
-crontab -l 2>/dev/null | grep -q "$CRON_SCRIPT" || \
-    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+# Cron job (every 30 min, runs as root via /etc/cron.d/)
+CRON_SCRIPT="$PROJECT_DIR/classify.sh"
+CRON_FILE="/etc/cron.d/leroy-classify"
+
+if [ -f "$CRON_FILE" ] && grep -q "$CRON_SCRIPT" "$CRON_FILE" 2>/dev/null; then
+    echo "Cron file $CRON_FILE already exists and points to $CRON_SCRIPT; skipping write."
+else
+    echo "Deploying cron file $CRON_FILE"
+    sudo tee "$CRON_FILE" > /dev/null <<EOF
+# Project Leroy - classification cron
+# Runs as root every 30 minutes. classify.sh stops/starts leroy.service itself.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PROJECT_DIR=$PROJECT_DIR
+*/30 * * * * root $PROJECT_DIR/classify.sh >> /var/log/leroy-classify.log 2>&1
+EOF
+    sudo chmod 644 "$CRON_FILE"
+    sudo chown root:root "$CRON_FILE"
+fi
+
+# Logrotate configuration
+sudo touch /var/log/leroy-classify.log && \
+    sudo chown leroy:leroy /var/log/leroy-classify.log && \
+    sudo chmod 644 /var/log/leroy-classify.log
+sed "s|LEROY_PROJECT_DIR|$PROJECT_DIR|g" deploy/logrotate-leroy | sudo tee /etc/logrotate.d/leroy > /dev/null && \
+    sudo chmod 644 /etc/logrotate.d/leroy
 
 # Deploy web interface
 [ -d "web" ] && [ -f "web/index.html" ] && \
@@ -257,3 +278,5 @@ echo ""
 echo "Installation complete!"
 echo "Start service: sudo systemctl start leroy.service"
 echo "View logs: sudo journalctl -u leroy.service -f"
+echo "Classification cron: /etc/cron.d/leroy-classify (every 30 min, runs as root)"
+echo "Logrotate: /etc/logrotate.d/leroy (daily, copytruncate, 7 rotations)"

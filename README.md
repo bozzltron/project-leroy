@@ -54,7 +54,8 @@ This will:
 - Install Python packages
 - Configure PCIe for AI Kit
 - Configure systemd service
-- Set up cron jobs
+- Set up cron jobs (classification every 30 minutes, runs as root via /etc/cron.d/leroy-classify)
+- Configure log rotation for storage/results.log and /var/log/leroy-classify.log (daily, 100M size trigger, 7 retained)
 - Configure and start nginx
 - Create storage directories
 - Check for HEF models (models must be downloaded from Hailo Model Explorer)
@@ -269,7 +270,7 @@ python3 leroy.py --model all_models/yolov11s.hef --labels all_models/coco_labels
 
 - **Detection**: Configurable resolution (default: 1280x960), resized to 500px for inference
 - **Photos**: Configurable high-resolution (default: 4056x3040) captured when birds are detected
-- **Classification**: Runs periodically via cron job
+- **Classification**: Runs every 30 minutes via `/etc/cron.d/leroy-classify` (root). During classification, `leroy.service` is briefly stopped and restarted by `classify.sh` — a few seconds of detection are missed per run, by design.
 - **Storage**: UUID-based filenames with JSON metadata for full scientific visitation schema support
 - **Camera Resolution**: Configurable via `leroy.env` (LEROY_DETECTION_WIDTH/HEIGHT, LEROY_PHOTO_WIDTH/HEIGHT)
 
@@ -541,9 +542,24 @@ Photos are stored in:
 
 ### Check Classification Status
 
-Classification runs automatically via cron job (hourly). Check cron logs:
+Classification runs automatically every 30 minutes via `/etc/cron.d/leroy-classify` (runs as root). Each run stops/starts `leroy.service` to safely move files between `storage/detected/` and `/var/www/html/classified/`.
+
+**View cron configuration and recent output:**
 ```bash
-grep CRON /var/log/syslog
+cat /etc/cron.d/leroy-classify
+tail -n 30 /var/log/leroy-classify.log
+```
+
+**Use the project's Makefile shortcuts:**
+```bash
+make cron_status       # Show cron file, log, active user crontabs
+make cron_logs         # Tail cron output + syslog CRON lines
+make logrotate_status  # Show logrotate config + dry-run
+```
+
+**Run classification manually (for testing):**
+```bash
+sudo /home/leroy/Projects/project-leroy/classify.sh
 ```
 
 ## Future Enhancements

@@ -171,10 +171,10 @@ unless explicitly requested by the user.
 
 1. **Phase 1 complete (2026-07-08).** The service is now fully functional — model loads, camera captures frames via picamera2, Hailo inference runs at ~10 FPS, NMS postprocessing works correctly. The detection loop processes frames continuously with no errors. 14 commits were made to fix the HailoRT 4.23.0 API migration. Remaining items: logging unification, env validation, cron wiring, model swap (Phase 3).
 2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Fix: changed `Device()` to `VDevice()` and updated the import. Commits: `6288fa09` (Device→VDevice), `215b4e18` (load_model→HEF+ConfigureParams+configure), `d5e080a2` (InferVStreams params), `ea85b172` (preprocess shape+dtype), `b6d4c3c8` (writeable array), `d5f526e1` (batch dimension), `3424745c` (network group activation), `c507c81c` (return ConfiguredNetwork), `b2e1dfbb` (NMS postprocess format). Service starts, model loads, network group activates, and detection loop runs at ~10 FPS with 0 errors.
-3. **809 MB log file.** `storage/results.log` is 18.4M lines of crash spam from the earlier loop. Needs size-based rotation; consider archiving and truncating. Fix pending: Phase 1 Change 2+3.
+3. **Historical log bloat.** `storage/results.log` is ~1.3 GB / 23.7M lines as of the Phase 1 fix, mostly picamera2 job spam. Logrotate is now configured (see item 6) and will pick this up on first daily run — the historical file becomes `results.log.1` and rolls off after 7 rotations (`maxage 30` days as a safety net). No manual intervention needed; the file is kept in place until logrotate prunes it.
 4. **Venv version mismatch (FIXED).** `pyvenv.cfg` updated to match the actual Python version. Commit `8f35b561`.
 5. **CPU at 85.1°C** — at throttle threshold. The crash loop is gone, so temperature should be lower now. Verify cooling before long runs.
-6. **No cron configured.** `classify.sh` exists and is correct, but no `crontab` or `/etc/cron.d/leroy*` file calls it. Classification is currently dead.
+6. **Cron now configured (post-Phase 1).** `/etc/cron.d/leroy-classify` runs `classify.sh` as root every 30 minutes (idempotent install via `install-pi5.sh`). Logrotate (`/etc/logrotate.d/leroy`, from `deploy/logrotate-leroy`) handles `storage/results.log` and `/var/log/leroy-classify.log` daily with 100M size trigger, `copytruncate`, and 7 retained. Once the system is in place, **log size is no longer a concern** — the 1.3 GB historical bloat will be picked up on the first daily rotation. Use `make cron_status` and `make logrotate_status` to verify on a deployed system.
 7. **Logging split.** `leroy.py` configures logging to BOTH `storage/results.log` and stderr (journald). `visitations.py`, `photo.py`, `classify.py` only log to file. systemd cannot see their errors via `journalctl -u leroy.service`. Fix pending: Phase 1 Change 2+3.
 8. **`atproto` (Bluesky) missing** from venv. `bluesky_poster.py` will fail at import.
 9. **`rpicam-apps` installed.** `rpicam-hello --list-cameras` is available for diagnostics. Camera works via libcamera/PiSP pipeline.
@@ -211,7 +211,8 @@ Strict rules. Violating these is a bug, not a style choice.
 | Main entry | `leroy.py` |
 | Model wrapper | `hailo_inference.py` |
 | Camera | `camera_manager.py` |
-| Classification | `classify.py` (via `classify.sh`, cron not configured) |
+| Classification | `classify.py` (via `classify.sh`) — runs every 30 min from `/etc/cron.d/leroy-classify` as root |
+| Log rotation | `deploy/logrotate-leroy` (installed to `/etc/logrotate.d/leroy`) — daily, 100M size trigger, copytruncate, 7 retained |
 | Visitation processing | `visitation.py` (post-classification web JSON gen) |
 | Visitation runtime | `visitations.py` (in-memory state machine) |
 | Photo storage | `photo.py` + `photo_metadata.py` |
