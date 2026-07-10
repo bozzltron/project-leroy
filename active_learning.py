@@ -6,7 +6,7 @@ import os
 import time
 import logging
 import cv2
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -46,36 +46,6 @@ class ActiveLearningCollector:
             'low_confidence': 0,
             'new_species_candidates': 0
         }
-    
-    def categorize_detection(self, obj, labels, threshold=0.4) -> Tuple[str, Optional[str]]:
-        """
-        Categorize detection as bird, non-bird, or unknown.
-        
-        Returns:
-            (category, label) tuple
-            category: 'bird', 'non_bird', 'other', or 'unknown'
-        """
-        label = labels.get(obj.id, "").lower()
-        score = obj.score
-        
-        if score < threshold:
-            return "unknown", None
-        
-        # Bird class
-        if label == 'bird':
-            return "bird", "bird"
-        
-        # Non-bird animals (filter these out)
-        if label in self.non_bird_classes:
-            return "non_bird", label
-        
-        # Other objects (person, car, etc.) - ignore
-        other_objects = ['person', 'car', 'truck', 'bicycle', 'motorcycle']
-        if label in other_objects:
-            return "other", label
-        
-        # Unknown - might be a bird we don't recognize
-        return "unknown", label
     
     def collect_unknown_bird(self, image: Image.Image, detection_score: float, 
                            classification_results: List[Tuple[int, float]], 

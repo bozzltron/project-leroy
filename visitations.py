@@ -1,8 +1,6 @@
-import uuid
 import logging
 import time
 from photo import capture
-from random import randint
 
 # Initialize logging files
 logging.basicConfig(filename='storage/results.log',
@@ -99,31 +97,11 @@ class Visitations:
                 self.full_photo_per_visitation_count = self.full_photo_per_visitation_count + 1
 
     def add(self, obj, frame):
-        visitation = Visitation()
-        visitation.start()
-        return visitation.id
+        import uuid
+        return uuid.uuid4()
 
     def reset(self):
         logging.info("visitation id {} over".format(self.visitation_id))
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
         self.visitation_id = None
-
-
-class Visitation:
-    start_time = None
-    end_time = None
-    tracker = None
-
-    def __init__(self):
-        self.id = uuid.uuid4()
-        self.color = randint(64, 255), randint(64, 255), randint(64, 255)
-
-    def end(self, timestamp):
-        self.end_time = timestamp
-
-    def start(self, timestamp=time.time()):
-        self.start_time = timestamp
-
-    def duration(self):
-        return self.end_time - self.start_time

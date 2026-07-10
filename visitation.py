@@ -1,13 +1,8 @@
 import argparse
 import os
-import shutil
-import string
-import itertools
 import json
-import cv2 
 import re
 
-from collections import defaultdict
 from datetime import datetime
 from operator import itemgetter
 from itertools import groupby
@@ -28,9 +23,7 @@ def parse(filename):
   Parse filename to extract metadata.
   Handles multiple formats:
   - boxed_{time}_{score}_{species}_{class}.png
-  - boxed_12mp_{time}_{score}_{species}_{class}.png
   - full_{time}_{score}.png
-  - full_12mp_{time}_{score}.png
   
   Path format: /var/www/html/classified/{date}/{visitation_id}/filename
   """
@@ -57,11 +50,9 @@ def parse(filename):
   
   # Determine photo type
   photo_type = parts[0]  # "boxed" or "full"
-  is_12mp = len(parts) > 1 and parts[1] == "12mp"
   
-  # Skip photo_type and optional "12mp"
-  data_start = 2 if is_12mp else 1
-  data = parts[data_start:]
+  # Skip photo_type
+  data = parts[1:]
   
   # For boxed images: supports multiple formats
   # Format A (4 fields): {time}_{score}_{species}_{class} - date/visitation_id from path
@@ -119,36 +110,20 @@ def parse(filename):
     "classification_score": "0"
   }
 
-def only_boxed(name):  
-    """Filter for boxed images, preferring 12MP versions."""
-    if "boxed" in name: 
+def only_boxed(name):
+    """Filter for boxed images."""
+    if "boxed" in name:
         return True
-    else: 
+    else:
         return False
 
-def only_full(name):  
-    """Filter for full images, preferring 12MP versions."""
-    if "full" in name: 
+def only_full(name):
+    """Filter for full images."""
+    if "full" in name:
         return True
-    else: 
+    else:
         return False
 
-def prefer_12mp(filenames):
-    """
-    Given a list of filenames, prefer 12MP versions over standard versions.
-    Returns filtered list with 12MP versions preferred.
-    """
-    if not filenames:
-        return filenames
-    
-    # Separate into 12MP and standard
-    high_res = [f for f in filenames if "_12mp" in f]
-    standard = [f for f in filenames if "_12mp" not in f]
-    
-    # Prefer 12MP, but keep standard as fallback
-    if high_res:
-        return high_res
-    return standard
 
 def initialize_visitation():
   return {
@@ -184,22 +159,7 @@ def find_full_image(full_images, visitation_id):
   if not matching:
     return ""
   
-  # Prefer 12MP versions
-  high_res = [f for f in matching if "_12mp" in f]
-  if high_res:
-    return high_res[0]
-  
-  # Fallback to standard resolution
   return matching[0]
-
-def datetime_parser(dct):
-    for k, v in dct.items():
-        if isinstance(v, str) and re.search(r"\ UTC", v):
-            try:
-                dct[k] = datetime.datetime.strptime(v, DATE_FORMAT)
-            except:
-                pass
-    return dct
 
 def get_scientific_name(common_name, labels_file_path=None):
   """
@@ -413,11 +373,9 @@ def main():
     if not boxed_records:
         # Fall back to old format parsing
         full_images_old = list(filter(only_full, filepaths))
-        full_images_old = prefer_12mp(full_images_old)
         full_images.extend(full_images_old)
         
         boxed_images_old = list(filter(only_boxed, filepaths))
-        boxed_images_old = prefer_12mp(boxed_images_old)
         boxed_records = [parse(f) for f in boxed_images_old]
     
     parsed = boxed_records

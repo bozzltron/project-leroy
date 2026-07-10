@@ -23,31 +23,6 @@ class TestActiveLearningCollector(unittest.TestCase):
         self.mock_obj.id = 14  # COCO bird class ID
         self.mock_obj.score = 0.85
     
-    def test_categorize_bird(self):
-        """Test that bird detections are categorized correctly."""
-        labels = {14: "bird"}
-        category, label = self.collector.categorize_detection(self.mock_obj, labels, threshold=0.4)
-        self.assertEqual(category, "bird")
-        self.assertEqual(label, "bird")
-    
-    def test_categorize_squirrel(self):
-        """Test that squirrel detections are categorized as non_bird."""
-        labels = {15: "squirrel"}  # Assuming squirrel has different ID
-        self.mock_obj.id = 15
-        # Note: This test assumes COCO has squirrel class, may need adjustment
-        # In reality, YOLOv5s COCO may not have squirrel - this is a placeholder
-        category, label = self.collector.categorize_detection(self.mock_obj, labels, threshold=0.4)
-        # If squirrel is in non_bird_classes, it should be filtered
-        if label and label.lower() in self.collector.non_bird_classes:
-            self.assertEqual(category, "non_bird")
-    
-    def test_categorize_low_score(self):
-        """Test that low-score detections are categorized as unknown."""
-        self.mock_obj.score = 0.3  # Below threshold
-        labels = {14: "bird"}
-        category, label = self.collector.categorize_detection(self.mock_obj, labels, threshold=0.4)
-        self.assertEqual(category, "unknown")
-    
     def test_non_bird_classes_list(self):
         """Test that non-bird classes are defined."""
         self.assertIn('squirrel', self.collector.non_bird_classes)

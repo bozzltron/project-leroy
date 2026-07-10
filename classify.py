@@ -119,10 +119,6 @@ def main():
         processed_count = 0
         error_count = 0
 
-        # Track processed files to avoid duplicates
-        processed_boxed = set()
-        processed_full = set()
-        
         for dirpath, dirnames, filenames in os.walk(args.dir):
             for filename in filenames:
                 try:
@@ -189,14 +185,6 @@ def main():
                                 processed_count += 1
                             continue
                         
-                        # Old format: Legacy filename parsing
-                        # Skip if we've already processed a higher-res version
-                        base_name = filename.replace("_12mp", "").replace("boxed", "").replace(".png", "")
-                        if base_name in processed_boxed and "_12mp" not in filename:
-                            logger.debug(f"Skipping {filename} (higher-res version already processed)")
-                            continue
-                        
-                        processed_boxed.add(base_name)
                         logger.info(f"Classifying {filepath}")
                         img = Image.open(filepath)
                         results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
@@ -273,14 +261,6 @@ def main():
                                     else:
                                         logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")
                             continue
-                        
-                        # Old format: Legacy handling
-                        base_name = filename.replace("_12mp", "").replace("full", "").replace(".png", "")
-                        if base_name in processed_full and "_12mp" not in filename:
-                            logger.debug(f"Skipping {filename} (higher-res version already processed)")
-                            continue
-                        
-                        processed_full.add(base_name)
                         
                         new_dir = get_new_dir(dirpath)
                         if new_dir:

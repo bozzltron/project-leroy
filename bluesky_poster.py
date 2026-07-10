@@ -6,9 +6,8 @@ Optional posting - only posts if authenticated, otherwise silently ignores
 import os
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List, Dict
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -173,82 +172,6 @@ class BlueskyPoster:
             
         except Exception as e:
             logger.error(f"Failed to post to Bluesky: {e}")
-            return False
-    
-    def post_with_image(self, text: str, image_path: str) -> bool:
-        """
-        Post with image to Bluesky.
-        
-        Args:
-            text: Post text content
-            image_path: Path to image file
-            
-        Returns:
-            True if posted successfully, False otherwise
-        """
-        if not self._can_post():
-            return False
-        
-        if not self.client or not self.authenticated:
-            logger.debug("Not authenticated with Bluesky, skipping post")
-            return False
-        
-        if not os.path.exists(image_path):
-            logger.error(f"Image file not found: {image_path}")
-            return False
-        
-        try:
-            # Read and upload image
-            with open(image_path, 'rb') as f:
-                image_data = f.read()
-            
-            # Upload image blob
-            upload = self.client.com.atproto.repo.upload_blob(image_data)
-            
-            # Create post with image embed
-            embed = models.AppBskyEmbedImages.Main(
-                images=[
-                    models.AppBskyEmbedImages.Image(
-                        image=upload.blob,
-                        alt=text[:200]  # Alt text
-                    )
-                ]
-            )
-            
-            # Create post with image embed
-            # Note: API may vary by atproto version - adjust if needed
-            if hasattr(self.client, 'send_post'):
-                # Simple API
-                self.client.send_post(text=text, embed=embed)
-            else:
-                # Advanced API
-                post_record = models.AppBskyFeedPost.Main(
-                    text=text,
-                    embed=embed,
-                    created_at=datetime.now().isoformat()
-                )
-                self.client.com.atproto.repo.create_record(
-                    models.ComAtprotoRepoCreateRecord.Data(
-                        repo=self.client.me.did,
-                        collection=models.ids.AppBskyFeedPost,
-                        record=post_record
-                    )
-                )
-            
-            # Record in history
-            self.post_history.append({
-                'timestamp': datetime.now().isoformat(),
-                'type': 'image',
-                'text': text[:100],
-                'image_path': image_path
-            })
-            self._save_post_history()
-            
-            logger.info(f"Posted to Bluesky with image: {text[:50]}...")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to post to Bluesky with image: {e}")
             return False
     
     def select_best_photos(self, visitations: List[Dict], count: int = 5) -> List[Dict]:
@@ -480,51 +403,5 @@ class BlueskyPoster:
         except Exception as e:
             logger.error(f"Failed to post to Bluesky with images: {e}")
             # Fallback to text-only post
-            return self.post_text(text)
-    
-    def post_visitation(self, visitation: Dict, photo_path: Optional[str] = None) -> bool:
-        """
-        Post individual visitation (for special visitations).
-        
-        Args:
-            visitation: Visitation dictionary
-            photo_path: Optional path to best photo
-            
-        Returns:
-            True if posted successfully, False otherwise
-        """
-        # Only post special visitations
-        # Criteria: high confidence, multiple species, or rare species
-        
-        confidence = 0
-        species_count = 1
-        
-        if 'species_observations' in visitation:
-            species_count = len(visitation['species_observations'])
-            # Get highest confidence
-            confidences = [obs.get('confidence', 0) for obs in visitation['species_observations']]
-            confidence = max(confidences) if confidences else 0
-        else:
-            # Old format - check records
-            records = visitation.get('records', [])
-            if records:
-                scores = [int(r.get('classification_score', 0)) for r in records]
-                confidence = max(scores) / 100.0 if scores else 0
-        
-        # Post if: high confidence (>85%) OR multiple species (3+)
-        if confidence < 0.85 and species_count < 3:
-            logger.debug(f"Skipping visitation post: confidence={confidence:.2f}, species_count={species_count}")
-            return False
-        
-        # Build post text
-        if species_count > 1:
-            text = f"Multiple species visited together! ({species_count} species)"
-        else:
-            species = visitation.get('species', 'Unknown')
-            text = f"Special visitor: {species}"
-        
-        if photo_path:
-            return self.post_with_image(text, photo_path)
-        else:
             return self.post_text(text)
 

@@ -12,7 +12,7 @@ from unittest.mock import patch
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from visitations import Visitations, Visitation
+from visitations import Visitations
 
 
 class TestVisitations(unittest.TestCase):
@@ -97,31 +97,6 @@ class TestVisitations(unittest.TestCase):
         self.visitations.update([], self.frame, labels)
 
         self.assertIsNone(self.visitations.visitation_id, "Visitation should reset after timeout when bird leaves")
-
-
-class TestVisitation(unittest.TestCase):
-    """Test Visitation class."""
-    
-    def test_visitation_creation(self):
-        """Test that visitation is created with UUID."""
-        visitation = Visitation()
-        self.assertIsNotNone(visitation.id)
-    
-    def test_visitation_start(self):
-        """Test that visitation start time is set."""
-        visitation = Visitation()
-        visitation.start()
-        self.assertIsNotNone(visitation.start_time)
-    
-    def test_visitation_duration(self):
-        """Test that duration is calculated correctly."""
-        visitation = Visitation()
-        visitation.start()
-        time.sleep(0.1)
-        visitation.end(time.time())
-        duration = visitation.duration()
-        self.assertGreater(duration, 0)
-        self.assertLess(duration, 1.0)  # Should be around 0.1 seconds
 
 
 if __name__ == '__main__':

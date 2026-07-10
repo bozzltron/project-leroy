@@ -274,8 +274,6 @@ python3 leroy.py --model all_models/yolov11s.hef --labels all_models/coco_labels
 - **Storage**: UUID-based filenames with JSON metadata for full scientific visitation schema support
 - **Camera Resolution**: Configurable via `leroy.env` (LEROY_DETECTION_WIDTH/HEIGHT, LEROY_PHOTO_WIDTH/HEIGHT)
 
-See `.cursor/rules/architecture.mdc` for detailed system architecture.
-
 ## Web Interface
 
 The web interface is a lightweight vanilla JavaScript app (no build step required).
@@ -329,8 +327,6 @@ export BLUESKY_APP_PASSWORD=your-app-password
 - **Evening posting** - 7:00 PM - 9:00 PM
 - **5 best photos** - Varying species, high clarity
 - Only posts if authenticated, otherwise silently ignores
-
-See `.cursor/rules/social-media-posting.mdc` for complete posting rules.
 
 ## Troubleshooting
 
@@ -606,6 +602,5 @@ python3 leroy.py
 
 ## Additional Resources
 
-- **Architecture**: `.cursor/rules/architecture.mdc` - Detailed system architecture
 - **Hailo Model Explorer**: https://hailo.ai/products/hailo-software/model-explorer-vision/
 - **Raspberry Pi AI Kit Docs**: https://www.raspberrypi.com/documentation/accessories/ai-kit.html
