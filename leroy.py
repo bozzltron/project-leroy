@@ -189,9 +189,23 @@ def main():
         active_learning = ActiveLearningCollector()
 
         logger.info(f"Starting detection loop at {det_res[0]}x{det_res[1]} (resized to {args.detection_width}px for inference, {photo_res[0]}x{photo_res[1]} photos when bird detected)...")
+
+        # Diagnostics: periodic summary
+        SUMMARY_INTERVAL_SECONDS = 30
+
+        logger.info(
+            f"Detection loop starting: model={args.detection_model}, "
+            f"threshold={args.threshold}, top_k={args.top_k}, "
+            f"summary_interval={SUMMARY_INTERVAL_SECONDS}s"
+        )
         frame_count = 0
         last_photo_time = 0
         photo_cooldown = 0.5  # Minimum seconds between high-res captures
+
+        last_summary_time = time.time()
+        window_frames = 0
+        window_detections = []  # list of (label, score) tuples
+        window_visitation_events = []  # list of strings like "started", "ended"
 
         while True:
             try:
@@ -225,11 +239,17 @@ def main():
                     objs, labels, threshold=0.4
                 )
                 
-                # Log non-bird detections (for learning)
+                # Track all detections for periodic summary
+                for obj in objs:
+                    label = labels.get(obj.id, "").lower()
+                    if label and obj.score >= 0.4:
+                        window_detections.append((label, obj.score))
+
+                # Log non-bird detections (for learning) at DEBUG to avoid per-frame noise
                 if non_bird_objs:
                     for obj in non_bird_objs:
                         label = labels.get(obj.id, "")
-                        logger.info(f"Non-bird detected: {label} (score: {obj.score:.2f})")
+                        logger.debug(f"Non-bird detected: {label} (score: {obj.score:.2f})")
                         # Collect non-bird for learning
                         height, width = frame.shape[:2]
                         bbox = (
@@ -239,7 +259,7 @@ def main():
                             int(obj.bbox.ymax * height)
                         )
                         active_learning.collect_non_bird(
-                            frame, label, obj.score, bbox, 
+                            frame, label, obj.score, bbox,
                             visitations.visitation_id or "unknown"
                         )
                 
@@ -248,7 +268,12 @@ def main():
                 
                 # Update visitations with bird detections only
                 # This handles visitation tracking and saves boxed photos from detection frame
+                prev_visitation_id = visitations.visitation_id
                 visitations.update(bird_objs, frame, labels)
+                if prev_visitation_id is None and visitations.visitation_id is not None:
+                    window_visitation_events.append("started")
+                elif prev_visitation_id is not None and visitations.visitation_id is None:
+                    window_visitation_events.append("ended")
 
                 # If bird detected and enough time has passed, capture high-res photo
                 if bird_detected:
@@ -331,6 +356,45 @@ def main():
                         f"{len(objs)} detections, "
                         f"bird_detected={bird_detected}"
                     )
+
+                # Periodic summary at INFO level (bounded, scannable)
+                window_frames += 1
+                if time.time() - last_summary_time >= SUMMARY_INTERVAL_SECONDS:
+                    elapsed = time.time() - last_summary_time
+                    fps = window_frames / elapsed if elapsed > 0 else 0
+
+                    if window_detections:
+                        label_scores = {}
+                        for label, score in window_detections:
+                            if label not in label_scores or score > label_scores[label]:
+                                label_scores[label] = score
+                        top_labels = sorted(
+                            label_scores.items(), key=lambda x: -x[1]
+                        )[:5]
+                        labels_str = ", ".join(
+                            f"{label}@{score:.2f}" for label, score in top_labels
+                        )
+                        summary = (
+                            f"{int(elapsed)}s summary: {window_frames} frames "
+                            f"({fps:.1f} fps), {len(window_detections)} "
+                            f"detections [{labels_str}]"
+                        )
+                        if window_visitation_events:
+                            events_str = ", ".join(window_visitation_events)
+                            summary += f", visitations: {events_str}"
+                    else:
+                        summary = (
+                            f"{int(elapsed)}s summary: {window_frames} frames "
+                            f"({fps:.1f} fps), 0 detections, no visitations"
+                        )
+
+                    logger.info(summary)
+
+                    # Reset window
+                    last_summary_time = time.time()
+                    window_frames = 0
+                    window_detections = []
+                    window_visitation_events = []
 
                 # Check for quit key (if display window is open)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
