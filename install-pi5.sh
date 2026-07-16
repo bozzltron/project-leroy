@@ -59,7 +59,7 @@ sudo apt-get install -y -qq chromium-browser 2>/dev/null || \
 
 # Install Hailo AI Kit
 echo "Installing Hailo AI Kit..."
-if ! python3 -c "from hailo_platform import Device" 2>/dev/null && \
+if ! python3 -c "from hailo_platform import VDevice" 2>/dev/null && \
    ! command -v hailortcli &> /dev/null; then
     
     # Configure repository

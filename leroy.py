@@ -53,11 +53,10 @@ def filter_and_categorize_detections(objs, labels, threshold=0.4):
     """
     birds = []
     non_birds = []
-    non_bird_classes = [
-        'squirrel', 'cat', 'dog', 'rabbit', 'raccoon',
-        'deer', 'fox', 'mouse', 'rat', 'chipmunk',
-        'opossum', 'skunk', 'groundhog'
-    ]
+    # COCO 80 only has cat (class 16) and dog (class 17) as small mammals.
+    # Other animals (squirrel, rabbit, etc.) are NOT in COCO 80.
+    # These non-bird detections are logged for future model training.
+    non_bird_classes = ['cat', 'dog']
 
     for obj in objs:
         label = labels.get(obj.id, "").lower()

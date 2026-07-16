@@ -30,7 +30,7 @@ if [ -d "$MODEL_ZOO_PATH" ]; then
     echo ""
     
     # Check if any are COCO-compatible (usually YOLO or SSD models)
-    echo "COCO-compatible models (YOLO/SSD - these work with coco_labels.txt):"
+    echo "COCO-compatible models (YOLO/SSD - these work with yolo11s.txt):"
     COCO_MODELS=$(find "$MODEL_ZOO_PATH/hailo_models" -name "*.hef" -type f 2>/dev/null | grep -E "(yolo|ssd)" -i | grep -v classification)
     if [ -n "$COCO_MODELS" ]; then
         echo "$COCO_MODELS" | while read hef_file; do

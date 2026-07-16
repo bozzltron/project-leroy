@@ -63,9 +63,9 @@ if [ $DETECTION_FOUND -eq 0 ]; then
     fi
 fi
 
-# Check for classification model - try MobileNet v3, v2 variants
+# Check for classification model - try iNat bird model first, then v3/v2 variants
 CLASSIFICATION_FOUND=0
-for model in "mobilenet_v3.hef" "mobilenet_v2_1.0_224_inat_bird.hef" "mobilenet_v2.hef"; do
+for model in "mobilenet_v2_1.0_224_inat_bird.hef" "mobilenet_v3.hef" "mobilenet_v2.hef"; do
     if [ -f "$model" ]; then
         size=$(stat -f%z "$model" 2>/dev/null || stat -c%s "$model" 2>/dev/null || echo "0")
         if [ "$size" = "0" ]; then
@@ -93,40 +93,10 @@ if [ $CLASSIFICATION_FOUND -eq 0 ]; then
 fi
 
 # Download label files (HEF models do NOT contain labels - they must be provided externally)
+# yolo11s.txt is committed in-repo; only iNaturalist bird labels are fetched if missing.
 echo ""
 echo "Downloading label files..."
-echo "Note: If download fails, leroy.py will use embedded COCO labels (bird detection still works)"
 echo ""
-
-# Google Coral source (reliable, text format) - try first
-if [ ! -f "coco_labels.txt" ]; then
-    wget -q --show-progress "https://dl.google.com/coral/canned_models/coco_labels.txt" -O "coco_labels.txt" 2>&1 || \
-        curl -L -f -s "https://dl.google.com/coral/canned_models/coco_labels.txt" -o "coco_labels.txt" 2>/dev/null || true
-    [ -f "coco_labels.txt" ] && echo "✓ COCO labels downloaded (Google Coral)"
-fi
-
-# Alternative: JSON format from Hailo (if Coral failed and no txt yet)
-if [ ! -f "coco_labels.txt" ] && [ ! -f "labels_coco.json" ]; then
-    wget -q --show-progress "https://raw.githubusercontent.com/hailo-ai/hailo_model_zoo/master/datasets/labels_coco.json" -O "labels_coco.json" 2>&1 || \
-        curl -L -f -s "https://raw.githubusercontent.com/hailo-ai/hailo_model_zoo/master/datasets/labels_coco.json" -o "labels_coco.json" 2>/dev/null || true
-    if [ -f "labels_coco.json" ]; then
-        echo "✓ COCO labels downloaded from Hailo Model Zoo (JSON)"
-        python3 -c "
-import json
-with open('labels_coco.json', 'r') as f:
-    data = json.load(f)
-    if isinstance(data, dict) and 'labels' in data:
-        labels = data['labels']
-    elif isinstance(data, dict):
-        labels = [data.get(str(i), '') for i in range(max(int(k) for k in data.keys()) + 1)]
-    else:
-        labels = data
-with open('coco_labels.txt', 'w') as f:
-    for i, label in enumerate(labels):
-        f.write(f'{i} {label}\n')
-" 2>/dev/null && echo "  → Converted to coco_labels.txt" || true
-    fi
-fi
 
 # iNaturalist bird labels
 if [ ! -f "inat_bird_labels.txt" ]; then
@@ -161,7 +131,7 @@ fi
 
 # Summary - find and display classification model
 CLASS_MODEL_FOUND=""
-for model in "mobilenet_v3.hef" "mobilenet_v2_1.0_224_inat_bird.hef" "mobilenet_v2.hef"; do
+for model in "mobilenet_v2_1.0_224_inat_bird.hef" "mobilenet_v3.hef" "mobilenet_v2.hef"; do
     if [ -f "$model" ]; then
         size=$(stat -f%z "$model" 2>/dev/null || stat -c%s "$model" 2>/dev/null || echo "0")
         if [ "$size" != "0" ]; then
@@ -178,7 +148,7 @@ else
     echo "✗ Classification model: MISSING (REQUIRED)"
 fi
 
-[ -f "coco_labels.txt" ] && echo "✓ COCO labels: coco_labels.txt" || echo "○ COCO labels: using embedded fallback (run script to download)"
+[ -f "yolo11s.txt" ] && echo "✓ COCO labels: yolo11s.txt" || echo "✗ COCO labels: yolo11s.txt MISSING"
 [ -f "inat_bird_labels.txt" ] && echo "✓ Bird labels: inat_bird_labels.txt" || echo "✗ Bird labels: MISSING"
 
 echo ""
@@ -210,11 +180,10 @@ if [ $DETECTION_FOUND -eq 0 ] || [ $CLASSIFICATION_FOUND -eq 0 ]; then
     if [ $CLASSIFICATION_FOUND -eq 0 ]; then
         echo "5. For Classification Model:"
         echo "   - Task: Classification"
-        echo "   - Recommended: MobileNet v3 or MobileNet v2"
-        echo "   - Note: Standard models are ImageNet-trained (~59 bird species)"
-        echo "   - For 964 bird species, you'll need to fine-tune or find a custom model"
+        echo "   - Recommended: MobileNet v2 (mobilenet_v2_1.0_224_inat_bird.hef) - 964 bird species"
+        echo "   - Alternative: MobileNet v3 (ImageNet, ~59 bird species)"
         echo "   - Download the COMPILED HEF file"
-        echo "   - Save as: mobilenet_v3.hef (or mobilenet_v2_1.0_224_inat_bird.hef)"
+        echo "   - Save as: mobilenet_v2_1.0_224_inat_bird.hef"
         echo ""
     fi
     

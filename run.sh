@@ -7,7 +7,7 @@ cd "$SCRIPT_DIR"
 
 VENV_PYTHON="$SCRIPT_DIR/venv/bin/python3"
 [ ! -f "$VENV_PYTHON" ] && echo "ERROR: venv not found. Run: ./install-pi5.sh" && exit 1
-! "$VENV_PYTHON" -c "from hailo_platform import Device" 2>/dev/null && echo "ERROR: Hailo SDK not accessible. Run: ./install-pi5.sh" && exit 1
+! "$VENV_PYTHON" -c "from hailo_platform import VDevice" 2>/dev/null && echo "ERROR: Hailo SDK not accessible. Run: ./install-pi5.sh" && exit 1
 
 [ -f "leroy.env" ] && source leroy.env
 DET_MODEL="${LEROY_DETECTION_MODEL:-all_models/yolov11s.hef}"

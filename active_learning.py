@@ -32,12 +32,10 @@ class ActiveLearningCollector:
                          self.low_confidence_dir, self.new_species_dir]:
             os.makedirs(directory, exist_ok=True)
         
-        # Non-bird classes to filter
-        self.non_bird_classes = [
-            'squirrel', 'cat', 'dog', 'rabbit', 'raccoon',
-            'deer', 'fox', 'mouse', 'rat', 'chipmunk',
-            'opossum', 'skunk', 'groundhog'
-        ]
+        # COCO 80 only has cat (class 16) and dog (class 17) as small mammals.
+        # Other animals (squirrel, rabbit, etc.) are NOT in COCO 80.
+        # These non-bird detections are logged for future model training.
+        self.non_bird_classes = ['cat', 'dog']
         
         # Statistics
         self.stats = {

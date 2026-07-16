@@ -15,7 +15,7 @@ on a Raspberry Pi 5 with the AI Kit (Hailo-8L) and a Pi HQ camera.
 
 **Architecture:**
 
-- Detection loop: `leroy.py` → `hailo_inference.py` (YOLO on Hailo-8L) + `camera_manager.py` (V4L2 dual-resolution)
+- Detection loop: `leroy.py` → `hailo_inference.py` (YOLO on Hailo-8L) + `camera_manager.py` (picamera2 dual-resolution)
 - Photo storage: UUID filenames + companion JSON metadata, no database
 - Classification: `classify.py` (MobileNet on Hailo-8L) — runs periodically
 - Web UI: vanilla JS, served by nginx on port 8080, reads `/var/www/html/visitations.json`
@@ -33,7 +33,7 @@ EdgeTPU/pycoral code is intentionally removed — do not reintroduce it.
 - **OS:** Debian Bookworm, 64-bit (aarch64), kernel 6.12 (`rpi-2712`)
 - **Python venv:** `venv/` at project root, currently Python 3.13
   - `pyvenv.cfg` says `version = 3.9.2` (stale — see Known issues)
-  - `include-system-site-packages = false` (intentional, but creates the venv-version mismatch)
+  - `include-system-site-packages = false` (intentional)
 - **System packages used (NOT in venv):** `python3-opencv`, `python3-picamera2`, `python3-numpy`, `python3-pil` — installed via `apt`
 - **Hailo stack:** `hailo-all`, `hailort` 4.23.0, `hailort-pcie-driver` 4.23.0, `python3-hailort` 4.23.0-1, `hailo-tappas-core` 5.1.0
 - **CPU temperature observed:** 85.1°C — at throttle threshold. Verify cooling before long runs.
@@ -88,7 +88,7 @@ unless explicitly requested by the user.
 - **File structure:**
   - `leroy.py` — main entry, detection loop
   - `hailo_inference.py` — Hailo-8L NPU wrapper (detection + classification)
-  - `camera_manager.py` — V4L2 dual-resolution camera manager
+  - `camera_manager.py` — picamera2 dual-resolution camera manager
   - `visitations.py` — visitation state machine (in-memory, per-process)
   - `visitation.py` — visitation *processing* (post-classification, web JSON generation)
   - `photo.py` / `photo_metadata.py` — UUID-based photo capture and metadata
@@ -153,12 +153,12 @@ unless explicitly requested by the user.
 |------|------|---------|-------|
 | `all_models/yolov11s.hef` | ~25 MB | Detection (COCO 80 classes) | Bird = class 15. Currently used. |
 | `all_models/yolo11s.txt` | 624 B | COCO labels | Detection label set. |
-| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k) | ~59 bird species only. |
-| `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels | Classification label set. |
-| `all_models/inat_bird_labels.txt` | 37 KB | iNaturalist bird labels | **Currently unused** — label set does not match the MobileNet model. |
+| `all_models/mobilenet_v2_1.0_224_inat_bird.hef` | ~10 MB | Classification (iNaturalist birds) | **Currently used.** 964 bird species. |
+| `all_models/inat_bird_labels.txt` | 37 KB | iNaturalist bird labels | **Currently used.** Matches the iNat classifier. |
+| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k) | ~59 bird species only. Fallback if iNat unavailable. |
+| `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels | Classification label set (fallback). |
 
 - **HEFs are committed to the repo** (despite `.gitignore` listing `all_models/` — this rule was added after a partial commit; treat it as advisory).
-- **Planned swap (per user direction):** replace `mobilenet_v3.hef` with a Hailo Zoo bird-specific HEF (e.g., `mobilenet_v2_1.0_224_inat_bird.hef`) for better species coverage.
 - **When swapping models:** ensure the HEF is compiled for Hailo-8L, and that label files match the model's output classes.
 
 ---
@@ -169,7 +169,7 @@ unless explicitly requested by the user.
 > 2026-07-08. It will be revised as Phase 2+ work lands. Treat it as
 > ephemeral debugging context, not permanent truth.**
 
-1. **Phase 1 complete (2026-07-08).** The service is now fully functional — model loads, camera captures frames via picamera2, Hailo inference runs at ~10 FPS, NMS postprocessing works correctly. The detection loop processes frames continuously with no errors. 14 commits were made to fix the HailoRT 4.23.0 API migration. Remaining items: logging unification, env validation, cron wiring, model swap (Phase 3).
+1. **Phase 1 complete (2026-07-08).** The service is now fully functional — model loads, camera captures frames via picamera2, Hailo inference runs at ~10 FPS, NMS postprocessing works correctly. The detection loop processes frames continuously with no errors. 14 commits were made to fix the HailoRT 4.23.0 API migration. Remaining items: logging unification, env validation.
 2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Fix: changed `Device()` to `VDevice()` and updated the import. Commits: `6288fa09` (Device→VDevice), `215b4e18` (load_model→HEF+ConfigureParams+configure), `d5e080a2` (InferVStreams params), `ea85b172` (preprocess shape+dtype), `b6d4c3c8` (writeable array), `d5f526e1` (batch dimension), `3424745c` (network group activation), `c507c81c` (return ConfiguredNetwork), `b2e1dfbb` (NMS postprocess format). Service starts, model loads, network group activates, and detection loop runs at ~10 FPS with 0 errors.
 3. **Historical log bloat.** `storage/results.log` is ~1.3 GB / 23.7M lines as of the Phase 1 fix, mostly picamera2 job spam. Logrotate is now configured (see item 6) and will pick this up on first daily run — the historical file becomes `results.log.1` and rolls off after 7 rotations (`maxage 30` days as a safety net). No manual intervention needed; the file is kept in place until logrotate prunes it.
 4. **Venv version mismatch (FIXED).** `pyvenv.cfg` updated to match the actual Python version. Commit `8f35b561`.

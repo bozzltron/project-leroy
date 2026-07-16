@@ -89,13 +89,11 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
 3. **Download Classification Model** (REQUIRED):
    - **CRITICAL**: Filter by AI Processor = **Hailo-8L** (NOT Hailo-8 or Hailo-10)
    - Task = **Classification**
-   - Recommended: **MobileNet v3** or **MobileNet v2**
-   - Note: Standard models are ImageNet-trained (~59 bird species)
-   - For 964 bird species, you'll need a custom fine-tuned model
+   - Recommended: **MobileNet v2** (`mobilenet_v2_1.0_224_inat_bird.hef`) — 964 bird species on iNaturalist
+   - Alternative: **MobileNet v3** (ImageNet-trained, ~59 bird species)
    - Download the **COMPILED HEF** file
    - **Verify**: Model description should mention "Hailo-8L" or "hailo8l"
-   - Save as: `mobilenet_v3.hef` or `mobilenet_v2_1.0_224_inat_bird.hef`
-   - The code will automatically detect either name
+   - Save as: `mobilenet_v2_1.0_224_inat_bird.hef`
    - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
 
 4. **Copy Models to Project**:
@@ -107,8 +105,8 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
    # Or: cp ~/Downloads/yolov8s.hef all_models/
    
    # Classification model (use the actual filename you downloaded):
-   cp ~/Downloads/mobilenet_v3.hef all_models/
-   # Or: cp ~/Downloads/mobilenet_v2.hef all_models/mobilenet_v2_1.0_224_inat_bird.hef
+   cp ~/Downloads/mobilenet_v2_1.0_224_inat_bird.hef all_models/
+   # Or: cp ~/Downloads/mobilenet_v3.hef all_models/
    ```
 
 5. **Verify Models**:
@@ -122,8 +120,8 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
 ```bash
 $ ./download_models.sh
 ✓ Detection model found: yolov11s.hef (5242880 bytes)
-✓ Classification model found: mobilenet_v3.hef (3145728 bytes)
-✓ COCO labels: coco_labels.txt
+✓ Classification model found: mobilenet_v2_1.0_224_inat_bird.hef (3145728 bytes)
+✓ COCO labels: yolo11s.txt
 ✓ Bird labels: inat_bird_labels.txt
 ```
 
@@ -200,7 +198,7 @@ sudo systemctl disable leroy.service
 #### Service Behavior
 
 - **Updates**: Run `./update.sh` to pull code and deploy web; then restart service
-- **Auto-restart**: Restarts automatically if it crashes (`Restart=on-abort`)
+- **Auto-restart**: Restarts automatically if it crashes (`Restart=on-failure`)
 - **Auto-launch browser**: Launches browser with web app (if enabled, no duplicate windows)
 - **Custom port**: Web interface runs on port **8080** (configurable)
 - **Logs**: Output logged to systemd journal and `storage/results.log`
@@ -214,8 +212,8 @@ Create or edit `leroy.env` to customize settings. Four model/label paths (run.sh
 LEROY_DETECTION_MODEL=all_models/yolov11s.hef
 LEROY_DETECTION_LABELS=all_models/yolo11s.txt
 # Classification (classify.py)
-LEROY_CLASSIFICATION_MODEL=all_models/mobilenet_v3.hef
-LEROY_CLASSIFICATION_LABELS=all_models/mobilenet_v3.txt
+LEROY_CLASSIFICATION_MODEL=all_models/mobilenet_v2_1.0_224_inat_bird.hef
+LEROY_CLASSIFICATION_LABELS=all_models/inat_bird_labels.txt
 ```
 
 Or pass via CLI: `python leroy.py --detection-model ... --detection-labels ...`
@@ -249,22 +247,13 @@ source venv/bin/activate
 python3 leroy.py
 
 # Or with custom model/labels
-python3 leroy.py --model all_models/yolov11s.hef --labels all_models/coco_labels.txt
-# Or: python3 leroy.py --model all_models/yolov8s.hef --labels all_models/coco_labels.txt
+python3 leroy.py --detection-model all_models/yolov11s.hef --detection-labels all_models/yolo11s.txt
+# Or: python3 leroy.py --detection-model all_models/yolov8s.hef --detection-labels all_models/yolo11s.txt
 ```
 
-**Default Model Detection**: Automatically detects and uses any of these detection models (in priority order):
-- `detection_model.hef` (generic name)
-- `yolov11s.hef` (YOLOv11 small - latest)
-- `yolov10s.hef` (YOLOv10 small)
-- `yolov8s.hef` (YOLOv8 small)
-- `yolov5s.hef` (YOLOv5 small - backward compatibility)
-- `ssd_mobilenet_v2_coco.hef` (SSD MobileNet v2 - fallback)
-
-**Default Classification Model**: Automatically detects and uses any of these classification models (in priority order):
-- `mobilenet_v3.hef` (MobileNet v3 - recommended)
-- `mobilenet_v2_1.0_224_inat_bird.hef` (MobileNet v2 with iNaturalist naming)
-- `mobilenet_v2.hef` (MobileNet v2 - generic)
+**Model paths**: Configured explicitly via `leroy.env` (see Configuration above). The project uses:
+- Detection: `all_models/yolov11s.hef` + `all_models/yolo11s.txt`
+- Classification: `all_models/mobilenet_v2_1.0_224_inat_bird.hef` + `all_models/inat_bird_labels.txt`
 
 ## Architecture
 
@@ -481,24 +470,23 @@ This script checks:
    rpicam-still -o test.jpg  # Capture test image
    ```
 
-5. **Test with OpenCV (Python) - What Project Leroy uses:**
+5. **Test with picamera2 (What Project Leroy uses):**
    ```bash
-   # Quick test script
-   python3 test_camera_opencv.py
+   # Quick diagnostic script
+   ./diagnose_camera.sh
    
-   # Or manual test
+   # Or manual test with picamera2
    python3 << 'EOF'
-   import cv2
-   cap = cv2.VideoCapture(0)
-   if cap.isOpened():
-       ret, frame = cap.read()
-       if ret:
-           print(f"Camera working! Frame: {frame.shape[1]}x{frame.shape[0]}")
-       else:
-           print("Camera opened but can't read frames")
-       cap.release()
+   from picamera2 import Picamera2
+   picam2 = Picamera2()
+   picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (1280, 960)}))
+   picam2.start()
+   frame = picam2.capture_array()
+   if frame is not None:
+       print(f"Camera working! Frame: {frame.shape[1]}x{frame.shape[0]}")
    else:
-       print("Failed to open camera")
+       print("Camera opened but can't read frames")
+   picam2.stop()
    EOF
    ```
 
@@ -563,22 +551,6 @@ sudo /home/leroy/Projects/project-leroy/classify.sh
 - **iNaturalist Integration**: Planned feature to submit visitations to iNaturalist. Data format is already compatible - one observation per species per visitation.
 
 ## Quick Reference
-
-### Supported Model Names
-
-**Detection Models** (automatically detected):
-- `detection_model.hef` (generic)
-- `yolov11s.hef` (YOLOv11 small - latest, recommended)
-- `yolov10s.hef` (YOLOv10 small)
-- `yolov8s.hef` (YOLOv8 small)
-- `yolov8m.hef` (YOLOv8 medium)
-- `yolov5s.hef` (YOLOv5 small)
-- `ssd_mobilenet_v2_coco.hef` (SSD MobileNet v2)
-
-**Classification Models** (automatically detected):
-- `mobilenet_v3.hef` (MobileNet v3 - recommended)
-- `mobilenet_v2_1.0_224_inat_bird.hef` (MobileNet v2 with iNaturalist naming)
-- `mobilenet_v2.hef` (MobileNet v2 - generic)
 
 ### Common Commands
 

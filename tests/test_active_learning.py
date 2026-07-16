@@ -25,9 +25,9 @@ class TestActiveLearningCollector(unittest.TestCase):
     
     def test_non_bird_classes_list(self):
         """Test that non-bird classes are defined."""
-        self.assertIn('squirrel', self.collector.non_bird_classes)
         self.assertIn('cat', self.collector.non_bird_classes)
         self.assertIn('dog', self.collector.non_bird_classes)
+        self.assertEqual(len(self.collector.non_bird_classes), 2)
     
     def test_stats_tracking(self):
         """Test that statistics are tracked."""
