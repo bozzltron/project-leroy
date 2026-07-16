@@ -7,6 +7,8 @@ from datetime import datetime
 from operator import itemgetter
 from itertools import groupby
 from utils import clarity_from_path
+from setup_logging import setup_logging
+setup_logging()
 
 # Scientific names are extracted from classification labels or looked up dynamically
 # No static file required - will try to get from labels file format or return "Unknown"

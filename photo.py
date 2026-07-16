@@ -13,11 +13,6 @@ from utils import clarity_from_image
 from photo_metadata import PhotoMetadata
 from config import get_config
 
-#Initialize logging files
-logging.basicConfig(filename='storage/results.log',
-                    format='%(asctime)s-%(message)s',
-                    level=logging.DEBUG)
-
 logger = logging.getLogger(__name__)
 
 

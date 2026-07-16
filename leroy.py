@@ -31,15 +31,8 @@ Object = collections.namedtuple('Object', ['id', 'score', 'bbox'])
 # Ensure storage directory exists before logging
 os.makedirs('storage', exist_ok=True)
 
-# Initialize logging - log to both file and stderr (for systemd)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('storage/results.log'),
-        logging.StreamHandler(sys.stderr)  # Also log to stderr for systemd
-    ]
-)
+from setup_logging import setup_logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 

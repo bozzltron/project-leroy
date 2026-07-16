@@ -2,10 +2,7 @@ import logging
 import time
 from photo import capture
 
-# Initialize logging files
-logging.basicConfig(filename='storage/results.log',
-                    format='%(asctime)s-%(message)s',
-                    level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def add_padding_to_bbox(bbox, image_width, image_height, padding):
     x1, y1, x2, y2 = bbox
@@ -47,12 +44,12 @@ class Visitations:
                 if self.visitation_id is None:
                     self.visitation_id = self.add(obj, frame)
                     self.started_tracking = time.time()
-                    logging.info("visitation {} started".format(self.visitation_id))
+                    logger.info("visitation {} started".format(self.visitation_id))
                     
                 if time.time() - self.started_tracking < self.vistation_max_seconds:
                     if self.photo_per_visitation_count < self.photo_per_visitation_max:
-                        logging.info('full height {}, full width {}'.format(height, width))
-                        logging.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
+                        logger.info('full height {}, full width {}'.format(height, width))
+                        logger.info('saving photo {}, {}, {}, {}'.format([y0, y1, x0, x1], self.visitation_id, percent, 'boxed'))
                         frame_without_boxes = frame.copy()
                         padded_x0, padded_y0, padded_x1, padded_y1 = add_padding_to_bbox([x0, y0, x1, y1], width, height, 50)
                         # Get frame resolution
@@ -67,11 +64,11 @@ class Visitations:
                             resolution=resolution,
                             detection_bbox=bbox
                         )
-                        logging.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
+                        logger.info("saved boxed image {} of {}".format(self.photo_per_visitation_count, self.photo_per_visitation_max))
                         self.photo_per_visitation_count = self.photo_per_visitation_count + 1
                 else:
                     if bird_detected:
-                        logging.info("Extending visitation by 60")
+                        logger.info("Extending visitation by 60")
                         self.started_tracking = time.time() + 60
                     else:
                         self.reset()
@@ -93,7 +90,7 @@ class Visitations:
                     'full',
                     resolution=resolution
                 )
-                logging.info("saved full image {} of {}".format(self.full_photo_per_visitation_count, self.full_photo_per_visitation_max))
+                logger.info("saved full image {} of {}".format(self.full_photo_per_visitation_count, self.full_photo_per_visitation_max))
                 self.full_photo_per_visitation_count = self.full_photo_per_visitation_count + 1
 
     def add(self, obj, frame):
@@ -101,7 +98,7 @@ class Visitations:
         return uuid.uuid4()
 
     def reset(self):
-        logging.info("visitation id {} over".format(self.visitation_id))
+        logger.info("visitation id {} over".format(self.visitation_id))
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
         self.visitation_id = None

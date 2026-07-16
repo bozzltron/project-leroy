@@ -12,12 +12,8 @@ from hailo_inference import HailoInference
 from active_learning import ActiveLearningCollector
 from utils import load_labels
 
-# Initialize logging
-logging.basicConfig(
-    filename='storage/results.log',
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
-)
+from setup_logging import setup_logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
