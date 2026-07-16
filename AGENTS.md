@@ -36,7 +36,7 @@ EdgeTPU/pycoral code is intentionally removed — do not reintroduce it.
   - `include-system-site-packages = false` (intentional)
 - **System packages used (NOT in venv):** `python3-opencv`, `python3-picamera2`, `python3-numpy`, `python3-pil` — installed via `apt`
 - **Hailo stack:** `hailo-all`, `hailort` 4.23.0, `hailort-pcie-driver` 4.23.0, `python3-hailort` 4.23.0-1, `hailo-tappas-core` 5.1.0
-- **CPU temperature observed:** 85.1°C — at throttle threshold. Verify cooling before long runs.
+- **CPU temperature observed:** 85.1°C (185.2°F) — at throttle threshold. Verify cooling before long runs.
 
 ---
 
@@ -181,7 +181,7 @@ process not currently supported by the installer.
 2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Fix: changed `Device()` to `VDevice()` and updated the import. Commits: `6288fa09` (Device→VDevice), `215b4e18` (load_model→HEF+ConfigureParams+configure), `d5e080a2` (InferVStreams params), `ea85b172` (preprocess shape+dtype), `b6d4c3c8` (writeable array), `d5f526e1` (batch dimension), `3424745c` (network group activation), `c507c81c` (return ConfiguredNetwork), `b2e1dfbb` (NMS postprocess format). Service starts, model loads, network group activates, and detection loop runs at ~10 FPS with 0 errors.
 3. **Historical log bloat (resolved).** The 1.3 GB `storage/results.log` was rotated by logrotate (see item 6). Current log is bounded by `/etc/logrotate.d/leroy` (100M size trigger, 7 rotations, maxage 30 days). Log volume from the new periodic diagnostics (~120 lines/hour at INFO) is well within the rotation budget.
 4. **Venv version mismatch (FIXED).** `pyvenv.cfg` updated to match the actual Python version. Commit `8f35b561`.
-5. **CPU at 85.1°C** — at throttle threshold. The crash loop is gone, so temperature should be lower now. Verify cooling before long runs.
+5. **CPU at 85.1°C (185.2°F)** — at throttle threshold. The crash loop is gone, so temperature should be lower now. Verify cooling before long runs.
 6. **Cron now configured (post-Phase 1).** `/etc/cron.d/leroy-classify` runs `classify.sh` as root every 30 minutes (idempotent install via `install-pi5.sh`). Logrotate (`/etc/logrotate.d/leroy`, from `deploy/logrotate-leroy`) handles `storage/results.log` and `/var/log/leroy-classify.log` daily with 100M size trigger, `copytruncate`, and 7 retained. Once the system is in place, **log size is no longer a concern** — the 1.3 GB historical bloat will be picked up on the first daily rotation. Use `make cron_status` and `make logrotate_status` to verify on a deployed system.
 7. **Logging unified (post-Phase 1).** `setup_logging.py` configures the root logger with both file and stderr handlers. All entry points (leroy.py, classify.py, visitation.py) call `setup_logging()` at startup; library modules use `logging.getLogger(__name__)` which propagates to the root. systemd journald now sees errors from all modules.
 8. **`atproto` (Bluesky) missing** from venv. `bluesky_poster.py` will fail at import.

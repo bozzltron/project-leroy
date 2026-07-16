@@ -16,6 +16,7 @@ import logging
 import imutils
 import time
 import signal
+import subprocess
 from PIL import Image
 from visitations import Visitations
 from hailo_inference import HailoInference
@@ -33,6 +34,31 @@ os.makedirs('storage', exist_ok=True)
 from setup_logging import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
+
+# Thermal protection
+THERMAL_PAUSE_C = 85.0  # Pause detection above this temperature
+THERMAL_RESUME_C = 80.0  # Resume detection below this temperature
+THERMAL_CHECK_INTERVAL = 10  # Check every N seconds
+
+
+def get_cpu_temp_c():
+    """Read CPU temperature from vcgencmd. Returns float in Celsius, or None on error."""
+    try:
+        result = subprocess.run(
+            ['vcgencmd', 'measure_temp'],
+            capture_output=True, text=True, timeout=2
+        )
+        if result.returncode == 0:
+            # Output format: "temp=87.3'C"
+            temp_str = result.stdout.strip().replace("temp=", "").replace("'C", "")
+            return float(temp_str)
+    except (subprocess.TimeoutExpired, FileNotFoundError, ValueError):
+        pass
+    return None
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
 
 
 class BBox(collections.namedtuple('BBox', ['xmin', 'ymin', 'xmax', 'ymax'])):
@@ -194,16 +220,55 @@ def main():
             f"threshold={args.threshold}, top_k={args.top_k}, "
             f"summary_interval={SUMMARY_INTERVAL_SECONDS}s"
         )
+
+        # Log initial CPU temperature
+        initial_temp = get_cpu_temp_c()
+        if initial_temp is not None:
+            logger.info(
+                f"CPU temperature at startup: {initial_temp:.1f}°C "
+                f"({celsius_to_fahrenheit(initial_temp):.1f}°F)"
+            )
         frame_count = 0
         last_photo_time = 0
         photo_cooldown = 0.5  # Minimum seconds between high-res captures
 
+        # Diagnostic and thermal state
         last_summary_time = time.time()
+        last_thermal_check_time = time.time()
+        thermal_paused = False
         window_frames = 0
         window_detections = []  # list of (label, score) tuples
         window_visitation_events = []  # list of strings like "started", "ended"
 
         while True:
+            # Thermal protection: check CPU temp periodically, regardless of pause state
+            if time.time() - last_thermal_check_time >= THERMAL_CHECK_INTERVAL:
+                last_thermal_check_time = time.time()
+                temp_c = get_cpu_temp_c()
+                if temp_c is not None:
+                    if temp_c >= THERMAL_PAUSE_C and not thermal_paused:
+                        thermal_paused = True
+                        logger.warning(
+                            f"CPU temperature {temp_c:.1f}°C "
+                            f"({celsius_to_fahrenheit(temp_c):.1f}°F) "
+                            f"exceeds {THERMAL_PAUSE_C:.0f}°C — pausing "
+                            f"detection until temp drops below "
+                            f"{THERMAL_RESUME_C:.0f}°C "
+                            f"({celsius_to_fahrenheit(THERMAL_RESUME_C):.0f}°F)"
+                        )
+                    elif temp_c < THERMAL_RESUME_C and thermal_paused:
+                        thermal_paused = False
+                        logger.info(
+                            f"CPU temperature {temp_c:.1f}°C "
+                            f"({celsius_to_fahrenheit(temp_c):.1f}°F) "
+                            f"cooled below {THERMAL_RESUME_C:.0f}°C — resuming detection"
+                        )
+
+            # Thermal protection: if paused, sleep and skip detection
+            if thermal_paused:
+                time.sleep(5)
+                continue
+
             try:
                 # Get detection frame
                 ret, frame = camera.get_detection_frame()
@@ -388,9 +453,12 @@ def main():
 
                     # Reset window
                     last_summary_time = time.time()
-                    window_frames = 0
-                    window_detections = []
-                    window_visitation_events = []
+
+                # Reset window
+                last_summary_time = time.time()
+                window_frames = 0
+                window_detections = []
+                window_visitation_events = []
 
                 # Check for quit key (if display window is open)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
