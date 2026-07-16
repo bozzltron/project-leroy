@@ -124,52 +124,67 @@ def main():
                         # Skip JSON metadata files
                         if filename.endswith('.json'):
                             continue
-                        
-                        # Check if this is a UUID-based filename (new format)
+
                         # UUID format: {uuid}.png or {uuid}_full.png
-                        is_uuid_format = len(filename.replace('.png', '').replace('_full', '').split('-')) == 5
-                        
-                        if is_uuid_format:
-                            # New format: Load metadata, update with classification, save both
-                            from photo_metadata import PhotoMetadata
-                            
-                            metadata = PhotoMetadata.find_metadata_for_image(filepath)
-                            if not metadata:
-                                logger.warning(f"No metadata found for {filepath}, skipping")
-                                continue
-                            
-                            logger.info(f"Classifying {filepath} (UUID format)")
-                            img = Image.open(filepath)
-                            results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
-                            
-                            if results:
-                                class_id, score = results[0]
-                                label = labels.get(class_id, "unknown")
-                                
-                                # Update metadata with classification
-                                if "classifications" not in metadata:
-                                    metadata["classifications"] = []
-                                
-                                metadata["classifications"].append({
-                                    "species": label.replace(" ", "-"),
-                                    "scientific_name": "Unknown",  # TODO: Extract from labels
-                                    "score": float(score),
-                                    "confidence": "high" if score >= 0.8 else "medium" if score >= 0.5 else "low"
-                                })
-                                
-                                # Determine new directory
-                                path_sections = dirpath.split("/")
-                                new_dir = "/var/www/html/classified/"
-                                if len(path_sections) == 4:
-                                    date = path_sections[2]
-                                    visitation_id = path_sections[3]
-                                    new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
-                                
-                                # Move image and metadata
+                        from photo_metadata import PhotoMetadata
+
+                        metadata = PhotoMetadata.find_metadata_for_image(filepath)
+                        if not metadata:
+                            logger.warning(f"No metadata found for {filepath}, skipping")
+                            continue
+
+                        logger.info(f"Classifying {filepath}")
+                        img = Image.open(filepath)
+                        results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
+
+                        if results:
+                            class_id, score = results[0]
+                            label = labels.get(class_id, "unknown")
+
+                            # Update metadata with classification
+                            if "classifications" not in metadata:
+                                metadata["classifications"] = []
+
+                            metadata["classifications"].append({
+                                "species": label.replace(" ", "-"),
+                                "scientific_name": "Unknown",
+                                "score": float(score),
+                                "confidence": "high" if score >= 0.8 else "medium" if score >= 0.5 else "low"
+                            })
+
+                            new_dir = get_new_dir(dirpath)
+
+                            # Move image and metadata
+                            new_image_path = os.path.join(new_dir, filename)
+                            metadata_path = PhotoMetadata.get_metadata_filename(metadata["photo_id"], metadata["photo_type"])
+                            new_metadata_path = os.path.join(new_dir, metadata_path)
+
+                            if not args.dryrun:
+                                os.makedirs(new_dir, exist_ok=True)
+                                shutil.move(os.path.abspath(filepath), os.path.abspath(new_image_path))
+                                PhotoMetadata.save_metadata(metadata, new_metadata_path)
+                                logger.info(f"Moved {filepath} -> {new_image_path} (with metadata)")
+                            else:
+                                logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")
+
+                            processed_count += 1
+
+                    elif "full" in filename and filename.endswith('.png'):
+                        # Skip JSON metadata files
+                        if filename.endswith('.json'):
+                            continue
+
+                        # UUID format: {uuid}.png or {uuid}_full.png
+                        from photo_metadata import PhotoMetadata
+
+                        metadata = PhotoMetadata.find_metadata_for_image(filepath)
+                        if metadata:
+                            new_dir = get_new_dir(dirpath)
+                            if new_dir:
                                 new_image_path = os.path.join(new_dir, filename)
-                                metadata_path = PhotoMetadata.get_metadata_filename(metadata["photo_id"], metadata["photo_type"])
+                                metadata_path = PhotoMetadata.get_metadata_filename(metadata["photo_id"], "full")
                                 new_metadata_path = os.path.join(new_dir, metadata_path)
-                                
+
                                 if not args.dryrun:
                                     os.makedirs(new_dir, exist_ok=True)
                                     shutil.move(os.path.abspath(filepath), os.path.abspath(new_image_path))
@@ -177,99 +192,7 @@ def main():
                                     logger.info(f"Moved {filepath} -> {new_image_path} (with metadata)")
                                 else:
                                     logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")
-                                
-                                processed_count += 1
                             continue
-                        
-                        logger.info(f"Classifying {filepath}")
-                        img = Image.open(filepath)
-                        results = hailo.classify(img, top_k=args.top_k, threshold=args.threshold)
-
-                        if results:
-                            # Get top result
-                            class_id, score = results[0]
-                            label = labels.get(class_id, "unknown")
-                            percent = int(100 * score)
-                            
-                            # Collect for active learning if confidence is low
-                            if score < 0.5:  # Low confidence - unknown bird
-                                active_learning.collect_unknown_bird(
-                                    img, 1.0, results, labels, 
-                                    os.path.basename(os.path.dirname(filepath))
-                                )
-                            elif 0.5 <= score < 0.8:  # Medium confidence - worth reviewing
-                                active_learning.collect_low_confidence(
-                                    img, 1.0, results, labels,
-                                    os.path.basename(os.path.dirname(filepath))
-                                )
-
-                            if label != "background":
-                                # Determine new directory
-                                path_sections = dirpath.split("/")
-                                new_dir = "/var/www/html/classified/"
-                                if len(path_sections) == 4:
-                                    date = path_sections[2]
-                                    visitation_id = path_sections[3]
-                                    new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
-
-                                # Create new filename with species and score
-                                newname = filename.replace(
-                                    ".png",
-                                    "_{}_{}.png".format(label.replace(" ", "-"), percent)
-                                )
-                                newpath = os.path.join(new_dir, newname)
-
-                                logger.info(f"Moving {filepath} -> {newpath}")
-
-                                if not args.dryrun:
-                                    os.makedirs(new_dir, exist_ok=True)
-                                    shutil.move(os.path.abspath(filepath), os.path.abspath(newpath))
-                                else:
-                                    logger.info(f"[DRYRUN] Would move {filepath} -> {newpath}")
-
-                                processed_count += 1
-
-                    elif "full" in filename and filename.endswith('.png'):
-                        # Skip JSON metadata files
-                        if filename.endswith('.json'):
-                            continue
-                        
-                        # Check if this is a UUID-based filename (new format)
-                        is_uuid_format = len(filename.replace('.png', '').replace('_full', '').split('-')) == 5
-                        
-                        if is_uuid_format:
-                            # New format: Just move image and metadata
-                            from photo_metadata import PhotoMetadata
-                            
-                            metadata = PhotoMetadata.find_metadata_for_image(filepath)
-                            if metadata:
-                                new_dir = get_new_dir(dirpath)
-                                if new_dir:
-                                    new_image_path = os.path.join(new_dir, filename)
-                                    metadata_path = PhotoMetadata.get_metadata_filename(metadata["photo_id"], "full")
-                                    new_metadata_path = os.path.join(new_dir, metadata_path)
-                                    
-                                    if not args.dryrun:
-                                        os.makedirs(new_dir, exist_ok=True)
-                                        shutil.move(os.path.abspath(filepath), os.path.abspath(new_image_path))
-                                        PhotoMetadata.save_metadata(metadata, new_metadata_path)
-                                        logger.info(f"Moved {filepath} -> {new_image_path} (with metadata)")
-                                    else:
-                                        logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")
-                            continue
-                        
-                        new_dir = get_new_dir(dirpath)
-                        if new_dir:
-                            new_path = os.path.join(new_dir, filename)
-                            logger.info(f"Moving full image {filepath} -> {new_path}")
-
-                            if not args.dryrun:
-                                if os.path.exists(new_dir):
-                                    shutil.move(os.path.abspath(filepath), os.path.abspath(new_path))
-                                else:
-                                    logger.warning(f"Target directory does not exist: {new_dir}")
-                            else:
-                                logger.info(f"[DRYRUN] Would move {filepath} -> {new_path}")
 
                 except Exception as e:
                     error_count += 1

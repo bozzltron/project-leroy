@@ -32,7 +32,7 @@ EdgeTPU/pycoral code is intentionally removed — do not reintroduce it.
 - **Target:** Raspberry Pi 5 (8GB) + Raspberry Pi AI Kit (Hailo-8L) + Pi HQ Camera
 - **OS:** Debian Bookworm, 64-bit (aarch64), kernel 6.12 (`rpi-2712`)
 - **Python venv:** `venv/` at project root, currently Python 3.13
-  - `pyvenv.cfg` says `version = 3.9.2` (stale — see Known issues)
+  - `pyvenv.cfg` says `version = 3.13`
   - `include-system-site-packages = false` (intentional)
 - **System packages used (NOT in venv):** `python3-opencv`, `python3-picamera2`, `python3-numpy`, `python3-pil` — installed via `apt`
 - **Hailo stack:** `hailo-all`, `hailort` 4.23.0, `hailort-pcie-driver` 4.23.0, `python3-hailort` 4.23.0-1, `hailo-tappas-core` 5.1.0
@@ -179,15 +179,15 @@ process not currently supported by the installer.
 
 1. **Phase 1 complete (2026-07-08).** The service is now fully functional — model loads, camera captures frames via picamera2, Hailo inference runs at ~10 FPS, NMS postprocessing works correctly. The detection loop processes frames continuously with no errors. 14 commits were made to fix the HailoRT 4.23.0 API migration. Remaining items: logging unification, env validation.
 2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Fix: changed `Device()` to `VDevice()` and updated the import. Commits: `6288fa09` (Device→VDevice), `215b4e18` (load_model→HEF+ConfigureParams+configure), `d5e080a2` (InferVStreams params), `ea85b172` (preprocess shape+dtype), `b6d4c3c8` (writeable array), `d5f526e1` (batch dimension), `3424745c` (network group activation), `c507c81c` (return ConfiguredNetwork), `b2e1dfbb` (NMS postprocess format). Service starts, model loads, network group activates, and detection loop runs at ~10 FPS with 0 errors.
-3. **Historical log bloat.** `storage/results.log` is ~1.3 GB / 23.7M lines as of the Phase 1 fix, mostly picamera2 job spam. Logrotate is now configured (see item 6) and will pick this up on first daily run — the historical file becomes `results.log.1` and rolls off after 7 rotations (`maxage 30` days as a safety net). No manual intervention needed; the file is kept in place until logrotate prunes it.
+3. **Historical log bloat (resolved).** The 1.3 GB `storage/results.log` was rotated by logrotate (see item 6). Current log is bounded by `/etc/logrotate.d/leroy` (100M size trigger, 7 rotations, maxage 30 days). Log volume from the new periodic diagnostics (~120 lines/hour at INFO) is well within the rotation budget.
 4. **Venv version mismatch (FIXED).** `pyvenv.cfg` updated to match the actual Python version. Commit `8f35b561`.
 5. **CPU at 85.1°C** — at throttle threshold. The crash loop is gone, so temperature should be lower now. Verify cooling before long runs.
 6. **Cron now configured (post-Phase 1).** `/etc/cron.d/leroy-classify` runs `classify.sh` as root every 30 minutes (idempotent install via `install-pi5.sh`). Logrotate (`/etc/logrotate.d/leroy`, from `deploy/logrotate-leroy`) handles `storage/results.log` and `/var/log/leroy-classify.log` daily with 100M size trigger, `copytruncate`, and 7 retained. Once the system is in place, **log size is no longer a concern** — the 1.3 GB historical bloat will be picked up on the first daily rotation. Use `make cron_status` and `make logrotate_status` to verify on a deployed system.
-7. **Logging split.** `leroy.py` configures logging to BOTH `storage/results.log` and stderr (journald). `visitations.py`, `photo.py`, `classify.py` only log to file. systemd cannot see their errors via `journalctl -u leroy.service`. Fix pending: Phase 1 Change 2+3.
+7. **Logging unified (post-Phase 1).** `setup_logging.py` configures the root logger with both file and stderr handlers. All entry points (leroy.py, classify.py, visitation.py) call `setup_logging()` at startup; library modules use `logging.getLogger(__name__)` which propagates to the root. systemd journald now sees errors from all modules.
 8. **`atproto` (Bluesky) missing** from venv. `bluesky_poster.py` will fail at import.
 9. **`rpicam-apps` installed.** `rpicam-hello --list-cameras` is available for diagnostics. Camera works via libcamera/PiSP pipeline.
 10. **Camera frame reads failing (FIXED).** Commit `f9d81cf9` ported `camera_manager.py` from OpenCV `VideoCapture` to `picamera2`. The Pi HQ Camera (imx477) works correctly via libcamera/PiSP pipeline.
-11. **Web server startup timeout (NEW — current blocker).** `Waiting for web server to be ready on http://localhost:8080...` timed out after 30s. Browser launch was skipped. nginx may not be running or may not be configured. Check `systemctl status nginx` and `nginx.conf`.
+11. **Web server startup timeout (historical).** Earlier sessions saw `Waiting for web server to be ready on http://localhost:8080...` time out after 30s. nginx serves on port 80 by default on this system (repo's nginx.conf configures 8080 but the installed config is 80). The web UI is accessible at `http://localhost/`; `visitations.json` returns 404 when no detections exist, which is expected.
 12. **Empty storage.** The detection loop is running, but no birds have been detected yet. `storage/detected`, `storage/classified`, `storage/active_learning` remain empty until a detection occurs.
 
 ---

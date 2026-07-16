@@ -10,6 +10,11 @@ from typing import Dict
 
 logger = logging.getLogger(__name__)
 
+# COCO 80 only has cat (class 16) and dog (class 17) as small mammals.
+# Other animals (squirrel, rabbit, etc.) are NOT in COCO 80.
+# These non-bird detections are logged for future model training.
+NON_BIRD_CLASSES = ['cat', 'dog']
+
 def load_labels(path: str) -> Dict[int, str]:
     """
     Load label file and return as dictionary.

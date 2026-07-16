@@ -8,6 +8,7 @@ import logging
 import cv2
 from typing import List, Tuple
 from PIL import Image
+from utils import NON_BIRD_CLASSES
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +33,7 @@ class ActiveLearningCollector:
                          self.low_confidence_dir, self.new_species_dir]:
             os.makedirs(directory, exist_ok=True)
         
-        # COCO 80 only has cat (class 16) and dog (class 17) as small mammals.
-        # Other animals (squirrel, rabbit, etc.) are NOT in COCO 80.
-        # These non-bird detections are logged for future model training.
-        self.non_bird_classes = ['cat', 'dog']
+        self.non_bird_classes = NON_BIRD_CLASSES
         
         # Statistics
         self.stats = {

@@ -12,7 +12,6 @@ import collections
 import cv2
 import os
 import sys
-import numpy as np
 import logging
 import imutils
 import time
@@ -22,7 +21,7 @@ from visitations import Visitations
 from hailo_inference import HailoInference
 from camera_manager import CameraManager
 from active_learning import ActiveLearningCollector
-from utils import load_labels
+from utils import load_labels, NON_BIRD_CLASSES
 
 print("OpenCV version: " + cv2.__version__)
 
@@ -53,10 +52,7 @@ def filter_and_categorize_detections(objs, labels, threshold=0.4):
     """
     birds = []
     non_birds = []
-    # COCO 80 only has cat (class 16) and dog (class 17) as small mammals.
-    # Other animals (squirrel, rabbit, etc.) are NOT in COCO 80.
-    # These non-bird detections are logged for future model training.
-    non_bird_classes = ['cat', 'dog']
+    non_bird_classes = NON_BIRD_CLASSES
 
     for obj in objs:
         label = labels.get(obj.id, "").lower()

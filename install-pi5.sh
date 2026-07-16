@@ -216,7 +216,8 @@ if [ $VALID_MODELS -eq 0 ]; then
     echo "1. Visit: https://hailo.ai/products/hailo-software/model-explorer-vision/"
     echo "2. Sign in and filter by: AI Processor = Hailo-8L"
     echo "3. Download COMPILED HEF files (not pretrained):"
-    echo "   - Detection: YOLOv8s, YOLOv8m, or YOLOv5s (Object Detection task)"
+    echo "      - Detection: YOLOv11s (Object Detection task; recommended), or YOLOv8s/YOLOv5s
+"
     echo "   - Classification: MobileNet v3 (Classification task; ~59 ImageNet bird species)"
     echo "   - Note: MobileNet v2 iNaturalist bird (964 species) is not available as a pre-compiled HEF"
     echo "4. Copy to: $(pwd)/all_models/"

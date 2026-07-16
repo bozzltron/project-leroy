@@ -286,8 +286,15 @@ class HailoInference:
                 if isinstance(output_value, list):
                     # NMS format: list of per-class arrays
                     for class_id, class_array in enumerate(output_value):
+                        # Skip empty entries; np.asarray cannot build a uniform array from a
+                        # mixed list of empty lists and non-empty (N, 5) arrays.
+                        if isinstance(class_array, list) and len(class_array) == 0:
+                            continue
                         if not isinstance(class_array, np.ndarray):
-                            class_array = np.asarray(class_array)
+                            try:
+                                class_array = np.asarray(class_array)
+                            except (ValueError, TypeError):
+                                continue
                         if class_array.size == 0 or class_array.shape[0] == 0:
                             continue
                         # Each row: [y_min, x_min, y_max, x_max, score]

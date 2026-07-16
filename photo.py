@@ -11,7 +11,6 @@ import threading
 from typing import Optional, Tuple, List, Dict
 from utils import clarity_from_image
 from photo_metadata import PhotoMetadata
-from config import get_config
 
 logger = logging.getLogger(__name__)
 
