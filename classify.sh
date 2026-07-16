@@ -7,8 +7,8 @@ cd "$SCRIPT_DIR"
 
 [ -f "venv/bin/activate" ] && source venv/bin/activate || { echo "ERROR: venv not found"; exit 1; }
 [ -f "leroy.env" ] && source leroy.env
-CLASS_MODEL="${LEROY_CLASSIFICATION_MODEL:-all_models/mobilenet_v2_1.0_224_inat_bird.hef}"
-CLASS_LABELS="${LEROY_CLASSIFICATION_LABELS:-all_models/inat_bird_labels.txt}"
+CLASS_MODEL="${LEROY_CLASSIFICATION_MODEL:-all_models/mobilenet_v3.hef}"
+CLASS_LABELS="${LEROY_CLASSIFICATION_LABELS:-all_models/mobilenet_v3.txt}"
 
 systemctl stop leroy.service
 sleep 1

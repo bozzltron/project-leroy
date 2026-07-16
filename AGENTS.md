@@ -153,10 +153,18 @@ unless explicitly requested by the user.
 |------|------|---------|-------|
 | `all_models/yolov11s.hef` | ~25 MB | Detection (COCO 80 classes) | Bird = class 15. Currently used. |
 | `all_models/yolo11s.txt` | 624 B | COCO labels | Detection label set. |
-| `all_models/mobilenet_v2_1.0_224_inat_bird.hef` | ~10 MB | Classification (iNaturalist birds) | **Currently used.** 964 bird species. |
-| `all_models/inat_bird_labels.txt` | 37 KB | iNaturalist bird labels | **Currently used.** Matches the iNat classifier. |
-| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k) | ~59 bird species only. Fallback if iNat unavailable. |
-| `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels | Classification label set (fallback). |
+| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k) | **Currently used.** ~59 bird species. |
+| `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels | **Currently used.** Matches the v3 classifier. |
+| `all_models/mobilenet_v2_1.0_224_inat_bird.hef` | ~10 MB | Classification (iNaturalist birds) | 964 bird species. Not available as a pre-compiled HEF. |
+| `all_models/inat_bird_labels.txt` | 37 KB | iNaturalist bird labels | Matches the iNat classifier. Only useful if the iNat HEF is compiled locally. |
+
+**Note on iNaturalist bird classifier:** The original 2020 Coral-era
+classifier (`mobilenet_v2_1.0_224_inat_bird`) had 964 bird species but
+is not available as a pre-compiled HEF in the Hailo Model Explorer.
+The project currently uses MobileNet V3 (ImageNet-1k, ~59 bird species).
+To get more species, the iNat model would need to be compiled locally
+from the TFLite using the Hailo Dataflow Compiler — a non-trivial
+process not currently supported by the installer.
 
 - **HEFs are committed to the repo** (despite `.gitignore` listing `all_models/` — this rule was added after a partial commit; treat it as advisory).
 - **When swapping models:** ensure the HEF is compiled for Hailo-8L, and that label files match the model's output classes.

@@ -89,12 +89,19 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
 3. **Download Classification Model** (REQUIRED):
    - **CRITICAL**: Filter by AI Processor = **Hailo-8L** (NOT Hailo-8 or Hailo-10)
    - Task = **Classification**
-   - Recommended: **MobileNet v2** (`mobilenet_v2_1.0_224_inat_bird.hef`) — 964 bird species on iNaturalist
-   - Alternative: **MobileNet v3** (ImageNet-trained, ~59 bird species)
+   - Recommended: **MobileNet v3** (ImageNet-trained, ~59 bird species)
    - Download the **COMPILED HEF** file
    - **Verify**: Model description should mention "Hailo-8L" or "hailo8l"
-   - Save as: `mobilenet_v2_1.0_224_inat_bird.hef`
+   - Save as: `mobilenet_v3.hef`
    - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
+
+> **Note on iNaturalist bird classifier:** The original 2020 Coral-era
+> classifier (`mobilenet_v2_1.0_224_inat_bird`) had 964 bird species but
+> is not available as a pre-compiled HEF in the Hailo Model Explorer.
+> The project currently uses MobileNet V3 (ImageNet-1k, ~59 bird species).
+> To get more species, the iNat model would need to be compiled locally
+> from the TFLite using the Hailo Dataflow Compiler — a non-trivial
+> process not currently supported by the installer.
 
 4. **Copy Models to Project**:
    ```bash
@@ -105,8 +112,7 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
    # Or: cp ~/Downloads/yolov8s.hef all_models/
    
    # Classification model (use the actual filename you downloaded):
-   cp ~/Downloads/mobilenet_v2_1.0_224_inat_bird.hef all_models/
-   # Or: cp ~/Downloads/mobilenet_v3.hef all_models/
+   cp ~/Downloads/mobilenet_v3.hef all_models/
    ```
 
 5. **Verify Models**:
@@ -120,19 +126,19 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
 ```bash
 $ ./download_models.sh
 ✓ Detection model found: yolov11s.hef (5242880 bytes)
-✓ Classification model found: mobilenet_v2_1.0_224_inat_bird.hef (3145728 bytes)
+✓ Classification model found: mobilenet_v3.hef (3145728 bytes)
 ✓ COCO labels: yolo11s.txt
-✓ Bird labels: inat_bird_labels.txt
+✓ Classification labels: mobilenet_v3.txt
 ```
 
 **Model Requirements**:
 - **Detection**: COCO-compatible model (detects 80 classes including 'bird') - **REQUIRED**
   - Supported models: YOLOv11s, YOLOv10s, YOLOv8s, YOLOv8m, YOLOv5s, SSD MobileNet v2
   - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
-- **Classification**: Classification model (ImageNet or custom bird model) - **REQUIRED**
-  - Supported models: MobileNet v3, MobileNet v2
+- **Classification**: Classification model (ImageNet) - **REQUIRED**
+  - Supported model: MobileNet v3
   - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
-  - **Note**: Standard models are ImageNet-trained with ~59 bird species. For 964 bird species, you'll need a custom fine-tuned model or use the ImageNet model as a base.
+  - **Note**: MobileNet V3 is ImageNet-trained with ~59 bird species. The 964-species iNaturalist bird model is not available as a pre-compiled HEF.
 
 All HEF files should show non-zero file sizes. If any are 0 bytes, remove them:
 ```bash
@@ -212,8 +218,8 @@ Create or edit `leroy.env` to customize settings. Four model/label paths (run.sh
 LEROY_DETECTION_MODEL=all_models/yolov11s.hef
 LEROY_DETECTION_LABELS=all_models/yolo11s.txt
 # Classification (classify.py)
-LEROY_CLASSIFICATION_MODEL=all_models/mobilenet_v2_1.0_224_inat_bird.hef
-LEROY_CLASSIFICATION_LABELS=all_models/inat_bird_labels.txt
+LEROY_CLASSIFICATION_MODEL=all_models/mobilenet_v3.hef
+LEROY_CLASSIFICATION_LABELS=all_models/mobilenet_v3.txt
 ```
 
 Or pass via CLI: `python leroy.py --detection-model ... --detection-labels ...`
@@ -253,7 +259,7 @@ python3 leroy.py --detection-model all_models/yolov11s.hef --detection-labels al
 
 **Model paths**: Configured explicitly via `leroy.env` (see Configuration above). The project uses:
 - Detection: `all_models/yolov11s.hef` + `all_models/yolo11s.txt`
-- Classification: `all_models/mobilenet_v2_1.0_224_inat_bird.hef` + `all_models/inat_bird_labels.txt`
+- Classification: `all_models/mobilenet_v3.hef` + `all_models/mobilenet_v3.txt`
 
 ## Architecture
 

@@ -391,12 +391,12 @@ def main():
     birds = sorted(parsed, key=itemgetter('datetime'))
     
     # Try to find labels file to extract scientific names if available
-    # Look for inat_bird_labels.txt in common locations
+    # MobileNet V3 ImageNet labels are used for classification
     labels_file_path = None
     possible_label_paths = [
-      os.path.join('all_models', 'inat_bird_labels.txt'),
-      os.path.join(os.path.dirname(__file__), 'all_models', 'inat_bird_labels.txt'),
-      '/var/www/html/classified/../all_models/inat_bird_labels.txt'
+      os.path.join('all_models', 'mobilenet_v3.txt'),
+      os.path.join(os.path.dirname(__file__), 'all_models', 'mobilenet_v3.txt'),
+      '/var/www/html/classified/../all_models/mobilenet_v3.txt'
     ]
     for path in possible_label_paths:
       if os.path.exists(path):

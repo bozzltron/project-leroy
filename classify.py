@@ -35,12 +35,12 @@ def main():
     )
     parser.add_argument(
         '--classification-model',
-        default='all_models/mobilenet_v2_1.0_224_inat_bird.hef',
+        default='all_models/mobilenet_v3.hef',
         help='Classification HEF model path'
     )
     parser.add_argument(
         '--classification-labels',
-        default='all_models/inat_bird_labels.txt',
+        default='all_models/mobilenet_v3.txt',
         help='Classification label file path'
     )
     parser.add_argument(

@@ -63,9 +63,9 @@ if [ $DETECTION_FOUND -eq 0 ]; then
     fi
 fi
 
-# Check for classification model - try iNat bird model first, then v3/v2 variants
+# Check for classification model - try MobileNet v3 first, then v2 variants
 CLASSIFICATION_FOUND=0
-for model in "mobilenet_v2_1.0_224_inat_bird.hef" "mobilenet_v3.hef" "mobilenet_v2.hef"; do
+for model in "mobilenet_v3.hef" "mobilenet_v2.hef"; do
     if [ -f "$model" ]; then
         size=$(stat -f%z "$model" 2>/dev/null || stat -c%s "$model" 2>/dev/null || echo "0")
         if [ "$size" = "0" ]; then
@@ -85,25 +85,21 @@ if [ $CLASSIFICATION_FOUND -eq 0 ]; then
     SYSTEM_CLASS_MODEL=$(find /usr/share/rpi-camera-assets /opt/hailo /usr/share/hailo /usr/local/hailo -name "*mobilenet*.hef" -type f 2>/dev/null | head -1)
     if [ -n "$SYSTEM_CLASS_MODEL" ] && [ -f "$SYSTEM_CLASS_MODEL" ]; then
         echo "Found system classification model: $SYSTEM_CLASS_MODEL"
-        cp "$SYSTEM_CLASS_MODEL" "mobilenet_v2_1.0_224_inat_bird.hef"
-        size=$(stat -f%z "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || stat -c%s "mobilenet_v2_1.0_224_inat_bird.hef" 2>/dev/null || echo "unknown")
-        echo "✓ Copied system classification model: mobilenet_v2_1.0_224_inat_bird.hef ($size bytes)"
+        cp "$SYSTEM_CLASS_MODEL" "mobilenet_v3.hef"
+        size=$(stat -f%z "mobilenet_v3.hef" 2>/dev/null || stat -c%s "mobilenet_v3.hef" 2>/dev/null || echo "unknown")
+        echo "✓ Copied system classification model: mobilenet_v3.hef ($size bytes)"
         CLASSIFICATION_FOUND=1
     fi
 fi
 
 # Download label files (HEF models do NOT contain labels - they must be provided externally)
-# yolo11s.txt is committed in-repo; only iNaturalist bird labels are fetched if missing.
+# yolo11s.txt and mobilenet_v3.txt are committed in-repo; no external label fetch is needed.
 echo ""
 echo "Downloading label files..."
 echo ""
 
-# iNaturalist bird labels
-if [ ! -f "inat_bird_labels.txt" ]; then
-    wget -q --show-progress "https://github.com/google-coral/edgetpu/raw/master/test_data/inat_bird_labels.txt" -O "inat_bird_labels.txt" 2>&1 || \
-        curl -L -f -s "https://github.com/google-coral/edgetpu/raw/master/test_data/inat_bird_labels.txt" -o "inat_bird_labels.txt" 2>/dev/null || true
-    [ -f "inat_bird_labels.txt" ] && echo "✓ iNaturalist bird labels downloaded"
-fi
+# MobileNet v3 ImageNet labels are maintained in-repo as mobilenet_v3.txt
+# (iNaturalist bird labels are intentionally not fetched; the iNat HEF is not available.)
 
 echo ""
 echo "======================================================"
@@ -131,7 +127,7 @@ fi
 
 # Summary - find and display classification model
 CLASS_MODEL_FOUND=""
-for model in "mobilenet_v2_1.0_224_inat_bird.hef" "mobilenet_v3.hef" "mobilenet_v2.hef"; do
+for model in "mobilenet_v3.hef" "mobilenet_v2.hef"; do
     if [ -f "$model" ]; then
         size=$(stat -f%z "$model" 2>/dev/null || stat -c%s "$model" 2>/dev/null || echo "0")
         if [ "$size" != "0" ]; then
@@ -149,7 +145,7 @@ else
 fi
 
 [ -f "yolo11s.txt" ] && echo "✓ COCO labels: yolo11s.txt" || echo "✗ COCO labels: yolo11s.txt MISSING"
-[ -f "inat_bird_labels.txt" ] && echo "✓ Bird labels: inat_bird_labels.txt" || echo "✗ Bird labels: MISSING"
+[ -f "mobilenet_v3.txt" ] && echo "✓ Classification labels: mobilenet_v3.txt" || echo "✗ Classification labels: mobilenet_v3.txt MISSING"
 
 echo ""
 
@@ -180,10 +176,10 @@ if [ $DETECTION_FOUND -eq 0 ] || [ $CLASSIFICATION_FOUND -eq 0 ]; then
     if [ $CLASSIFICATION_FOUND -eq 0 ]; then
         echo "5. For Classification Model:"
         echo "   - Task: Classification"
-        echo "   - Recommended: MobileNet v2 (mobilenet_v2_1.0_224_inat_bird.hef) - 964 bird species"
-        echo "   - Alternative: MobileNet v3 (ImageNet, ~59 bird species)"
+        echo "   - Recommended: MobileNet v3 (ImageNet, ~59 bird species)"
         echo "   - Download the COMPILED HEF file"
-        echo "   - Save as: mobilenet_v2_1.0_224_inat_bird.hef"
+        echo "   - Save as: mobilenet_v3.hef"
+        echo "   - Note: MobileNet v2 iNaturalist bird (964 species) is not available as a pre-compiled HEF"
         echo ""
     fi
     
