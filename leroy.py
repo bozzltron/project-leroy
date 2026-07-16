@@ -36,8 +36,10 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 # Thermal protection
-THERMAL_PAUSE_C = 85.0  # Pause detection above this temperature
-THERMAL_RESUME_C = 80.0  # Resume detection below this temperature
+# Pi 5 throttles at 80°C (176°F) — pause just before throttle to maintain
+# full performance. Resume at 75°C (167°F) for 5°C headroom.
+THERMAL_PAUSE_C = 80.0  # Pause detection above this temperature
+THERMAL_RESUME_C = 75.0  # Resume detection below this temperature
 THERMAL_CHECK_INTERVAL = 10  # Check every N seconds
 
 

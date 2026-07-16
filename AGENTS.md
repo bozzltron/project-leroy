@@ -36,7 +36,7 @@ EdgeTPU/pycoral code is intentionally removed — do not reintroduce it.
   - `include-system-site-packages = false` (intentional)
 - **System packages used (NOT in venv):** `python3-opencv`, `python3-picamera2`, `python3-numpy`, `python3-pil` — installed via `apt`
 - **Hailo stack:** `hailo-all`, `hailort` 4.23.0, `hailort-pcie-driver` 4.23.0, `python3-hailort` 4.23.0-1, `hailo-tappas-core` 5.1.0
-- **CPU temperature observed:** 85.1°C (185.2°F) — at throttle threshold. Verify cooling before long runs.
+- **CPU temperature observed:** 85.1°C (185.2°F) — at throttle threshold. Verify cooling before long runs. Current thresholds pause at 80°C (176°F) and resume at 75°C (167°F).
 
 ---
 
@@ -173,7 +173,7 @@ process not currently supported by the installer.
 ### CPU temperature
 The Pi 5 + AI Kit generates significant heat under sustained Hailo inference.
 Active cooling is required for reliable operation. The detection loop includes
-thermal protection: it pauses above 85°C (185°F) and resumes below 80°C (176°F).
+thermal protection: it pauses above 80°C (176°F) and resumes below 75°C (167°F).
 
 ### Bluesky posting requires manual install
 `bluesky_poster.py` imports `atproto` at module load. If you want Bluesky
