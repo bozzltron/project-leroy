@@ -149,19 +149,16 @@ unless explicitly requested by the user.
 
 ## Models
 
-| File | Size | Purpose | Notes |
-|------|------|---------|-------|
-| `all_models/yolov11s.hef` | ~25 MB | Detection (COCO 80 classes) | Bird = class 15. Currently used. |
-| `all_models/yolo11s.txt` | 624 B | COCO labels | Detection label set. |
-| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k) | **Currently used.** ~59 bird species. |
-| `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels | **Currently used.** Matches the v3 classifier. |
-| `all_models/mobilenet_v2_1.0_224_inat_bird.hef` | ~10 MB | Classification (iNaturalist birds) | 964 bird species. Not available as a pre-compiled HEF. |
-| `all_models/inat_bird_labels.txt` | 37 KB | iNaturalist bird labels | Matches the iNat classifier. Only useful if the iNat HEF is compiled locally. |
+| File | Size | Purpose |
+|------|------|---------|
+| `all_models/yolov11s.hef` | ~25 MB | Detection (COCO 80 classes). Bird = class 15. |
+| `all_models/yolo11s.txt` | 624 B | COCO labels for detection. |
+| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k). ~59 bird species. |
+| `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels for classification. |
 
 **Note on iNaturalist bird classifier:** The original 2020 Coral-era
 classifier (`mobilenet_v2_1.0_224_inat_bird`) had 964 bird species but
 is not available as a pre-compiled HEF in the Hailo Model Explorer.
-The project currently uses MobileNet V3 (ImageNet-1k, ~59 bird species).
 To get more species, the iNat model would need to be compiled locally
 from the TFLite using the Hailo Dataflow Compiler — a non-trivial
 process not currently supported by the installer.
@@ -171,24 +168,18 @@ process not currently supported by the installer.
 
 ---
 
-## Known issues — Phase 1 complete (2026-07-08)
+## Known issues
 
-> **This section captures the state of the project as of the Phase 1 fixes on
-> 2026-07-08. It will be revised as Phase 2+ work lands. Treat it as
-> ephemeral debugging context, not permanent truth.**
+### CPU temperature
+The Pi 5 + AI Kit generates significant heat under sustained Hailo inference.
+Active cooling is required for reliable operation. The detection loop includes
+thermal protection: it pauses above 85°C (185°F) and resumes below 80°C (176°F).
 
-1. **Phase 1 complete (2026-07-08).** The service is now fully functional — model loads, camera captures frames via picamera2, Hailo inference runs at ~10 FPS, NMS postprocessing works correctly. The detection loop processes frames continuously with no errors. 14 commits were made to fix the HailoRT 4.23.0 API migration. Remaining items: logging unification, env validation.
-2. **Service crash loop — `hailo_inference.py:74` (FIXED and VERIFIED).** The code was calling `.configure()` on a `Device` instance, but `Device` in HailoRT 4.23.0 has no `configure` method — only `VDevice` does. Fix: changed `Device()` to `VDevice()` and updated the import. Commits: `6288fa09` (Device→VDevice), `215b4e18` (load_model→HEF+ConfigureParams+configure), `d5e080a2` (InferVStreams params), `ea85b172` (preprocess shape+dtype), `b6d4c3c8` (writeable array), `d5f526e1` (batch dimension), `3424745c` (network group activation), `c507c81c` (return ConfiguredNetwork), `b2e1dfbb` (NMS postprocess format). Service starts, model loads, network group activates, and detection loop runs at ~10 FPS with 0 errors.
-3. **Historical log bloat (resolved).** The 1.3 GB `storage/results.log` was rotated by logrotate (see item 6). Current log is bounded by `/etc/logrotate.d/leroy` (100M size trigger, 7 rotations, maxage 30 days). Log volume from the new periodic diagnostics (~120 lines/hour at INFO) is well within the rotation budget.
-4. **Venv version mismatch (FIXED).** `pyvenv.cfg` updated to match the actual Python version. Commit `8f35b561`.
-5. **CPU at 85.1°C (185.2°F)** — at throttle threshold. The crash loop is gone, so temperature should be lower now. Verify cooling before long runs.
-6. **Cron now configured (post-Phase 1).** `/etc/cron.d/leroy-classify` runs `classify.sh` as root every 30 minutes (idempotent install via `install-pi5.sh`). Logrotate (`/etc/logrotate.d/leroy`, from `deploy/logrotate-leroy`) handles `storage/results.log` and `/var/log/leroy-classify.log` daily with 100M size trigger, `copytruncate`, and 7 retained. Once the system is in place, **log size is no longer a concern** — the 1.3 GB historical bloat will be picked up on the first daily rotation. Use `make cron_status` and `make logrotate_status` to verify on a deployed system.
-7. **Logging unified (post-Phase 1).** `setup_logging.py` configures the root logger with both file and stderr handlers. All entry points (leroy.py, classify.py, visitation.py) call `setup_logging()` at startup; library modules use `logging.getLogger(__name__)` which propagates to the root. systemd journald now sees errors from all modules.
-8. **`atproto` (Bluesky) missing** from venv. `bluesky_poster.py` will fail at import.
-9. **`rpicam-apps` installed.** `rpicam-hello --list-cameras` is available for diagnostics. Camera works via libcamera/PiSP pipeline.
-10. **Camera frame reads failing (FIXED).** Commit `f9d81cf9` ported `camera_manager.py` from OpenCV `VideoCapture` to `picamera2`. The Pi HQ Camera (imx477) works correctly via libcamera/PiSP pipeline.
-11. **Web server startup timeout (historical).** Earlier sessions saw `Waiting for web server to be ready on http://localhost:8080...` time out after 30s. nginx serves on port 80 by default on this system (repo's nginx.conf configures 8080 but the installed config is 80). The web UI is accessible at `http://localhost/`; `visitations.json` returns 404 when no detections exist, which is expected.
-12. **Empty storage.** The detection loop is running, but no birds have been detected yet. `storage/detected`, `storage/classified`, `storage/active_learning` remain empty until a detection occurs.
+### Bluesky posting requires manual install
+`bluesky_poster.py` imports `atproto` at module load. If you want Bluesky
+posting, install it manually: `source venv/bin/activate && pip install atproto`.
+Without it, visitations are still processed and saved — only the social posting
+step is skipped.
 
 ---
 

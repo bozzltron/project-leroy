@@ -451,14 +451,11 @@ def main():
 
                     logger.info(summary)
 
-                    # Reset window
+                    # Reset window (only here, not every frame)
                     last_summary_time = time.time()
-
-                # Reset window
-                last_summary_time = time.time()
-                window_frames = 0
-                window_detections = []
-                window_visitation_events = []
+                    window_frames = 0
+                    window_detections = []
+                    window_visitation_events = []
 
                 # Check for quit key (if display window is open)
                 if cv2.waitKey(1) & 0xFF == ord('q'):

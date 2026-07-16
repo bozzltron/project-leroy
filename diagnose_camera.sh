@@ -75,51 +75,41 @@ else
     echo "     Install: sudo apt-get install rpicam-apps"
 fi
 
-# 5. Test with OpenCV (Python)
+# 5. Test with picamera2 (Python)
 echo ""
-echo "5. Testing Camera with OpenCV (Python)..."
+echo "5. Testing Camera with picamera2 (Python - what Project Leroy uses)..."
 python3 << 'EOF'
 import sys
-import cv2
 
-print("   Testing OpenCV camera access...")
 try:
-    cap = cv2.VideoCapture(0)
-    if cap.isOpened():
-        print("   ✓ Camera opened successfully")
-        
-        # Try to read a frame
-        ret, frame = cap.read()
-        if ret and frame is not None:
-            height, width = frame.shape[:2]
-            print(f"   ✓ Frame captured: {width}x{height}")
-            
-            # Get camera properties
-            actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            print(f"   ✓ Camera properties: {actual_width}x{actual_height} @ {fps} fps")
-        else:
-            print("   ✗ Could not read frame from camera")
-        
-        cap.release()
+    from picamera2 import Picamera2
+    print("   Testing picamera2 camera access...")
+    picam2 = Picamera2()
+    picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (1280, 960)}))
+    picam2.start()
+
+    frame = picam2.capture_array()
+    if frame is not None:
+        height, width = frame.shape[:2]
+        print(f"   ✓ Frame captured: {width}x{height}")
     else:
-        print("   ✗ Failed to open camera")
-        print("   Check:")
-        print("     - Camera is connected")
-        print("     - Camera interface is enabled")
-        print("     - User is in 'video' group: groups")
-        print("     - Permissions: ls -l /dev/video0")
+        print("   ✗ Could not read frame from camera")
+        sys.exit(1)
+
+    picam2.stop()
+except ImportError as e:
+    print(f"   ⚠ Could not import picamera2: {e}")
+    print("   (This is OK if dependencies aren't installed)")
 except Exception as e:
     print(f"   ✗ Error: {e}")
     sys.exit(1)
 EOF
 
-OPENCV_EXIT=$?
-if [ $OPENCV_EXIT -eq 0 ]; then
-    echo "   ✓ OpenCV test passed"
+PICAM2_EXIT=$?
+if [ $PICAM2_EXIT -eq 0 ]; then
+    echo "   ✓ picamera2 test passed"
 else
-    echo "   ✗ OpenCV test failed"
+    echo "   ✗ picamera2 test failed"
 fi
 
 # 6. Check user permissions

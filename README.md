@@ -78,12 +78,10 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
 2. **Download Detection Model** (REQUIRED):
    - **CRITICAL**: Filter by AI Processor = **Hailo-8L** (NOT Hailo-8 or Hailo-10)
    - Task = **Object Detection**
-   - Recommended: **YOLOv11s**, **YOLOv10s**, **YOLOv8s**, or **YOLOv8m** (best balance of speed/accuracy)
-   - Alternative: **YOLOv5s** or **SSD MobileNet v2**
+   - Recommended: **YOLOv11s**
    - Download the **COMPILED HEF** file (not pretrained)
    - **Verify**: Model description should mention "Hailo-8L" or "hailo8l"
-   - Save as: `yolov11s.hef`, `yolov10s.hef`, `yolov8s.hef`, `yolov5s.hef`, or `detection_model.hef`
-   - The code will automatically detect any of these names
+   - Save as: `yolov11s.hef`
    - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
 
 3. **Download Classification Model** (REQUIRED):
@@ -96,20 +94,14 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
    - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
 
 > **Note on iNaturalist bird classifier:** The original 2020 Coral-era
-> classifier (`mobilenet_v2_1.0_224_inat_bird`) had 964 bird species but
-> is not available as a pre-compiled HEF in the Hailo Model Explorer.
-> The project currently uses MobileNet V3 (ImageNet-1k, ~59 bird species).
-> To get more species, the iNat model would need to be compiled locally
-> from the TFLite using the Hailo Dataflow Compiler — a non-trivial
-> process not currently supported by the installer.
+> classifier had 964 bird species but is not available as a pre-compiled HEF,
+> so this project uses MobileNet V3 (ImageNet-1k, ~59 bird species).
 
 4. **Copy Models to Project**:
    ```bash
    # Copy downloaded HEF files to all_models/ directory
-   # Detection model (use the actual filename you downloaded):
-   cp ~/Downloads/yolov11s.hef all_models/
-   # Or: cp ~/Downloads/yolov10s.hef all_models/
-   # Or: cp ~/Downloads/yolov8s.hef all_models/
+    # Detection model (use the actual filename you downloaded):
+    cp ~/Downloads/yolov11s.hef all_models/
    
    # Classification model (use the actual filename you downloaded):
    cp ~/Downloads/mobilenet_v3.hef all_models/
@@ -133,12 +125,12 @@ $ ./download_models.sh
 
 **Model Requirements**:
 - **Detection**: COCO-compatible model (detects 80 classes including 'bird') - **REQUIRED**
-  - Supported models: YOLOv11s, YOLOv10s, YOLOv8s, YOLOv8m, YOLOv5s, SSD MobileNet v2
+  - Supported model: YOLOv11s
   - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
 - **Classification**: Classification model (ImageNet) - **REQUIRED**
   - Supported model: MobileNet v3
   - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
-  - **Note**: MobileNet V3 is ImageNet-trained with ~59 bird species. The 964-species iNaturalist bird model is not available as a pre-compiled HEF.
+  - **Note**: MobileNet V3 is ImageNet-trained with ~59 bird species.
 
 All HEF files should show non-zero file sizes. If any are 0 bytes, remove them:
 ```bash
@@ -254,7 +246,6 @@ python3 leroy.py
 
 # Or with custom model/labels
 python3 leroy.py --detection-model all_models/yolov11s.hef --detection-labels all_models/yolo11s.txt
-# Or: python3 leroy.py --detection-model all_models/yolov8s.hef --detection-labels all_models/yolo11s.txt
 ```
 
 **Model paths**: Configured explicitly via `leroy.env` (see Configuration above). The project uses:
@@ -407,7 +398,7 @@ If you see `404 Not Found` when updating packages, the Hailo repository may be:
 
 3. **Once repository is available, restore packages:**
    ```bash
-   sudo ./restore_hailo_from_repo.sh
+   sudo ./deploy/restore_hailo_from_repo.sh
    ```
 
 4. **Or manually:**
@@ -446,7 +437,7 @@ This script checks:
 - Camera interface status
 - Device detection (`/dev/video0`)
 - Camera permissions
-- OpenCV access
+- picamera2 access
 - Project Leroy camera manager
 
 **Manual Camera Tests:**
