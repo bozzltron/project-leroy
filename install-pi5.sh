@@ -150,13 +150,38 @@ sudo mkdir -p /var/www/html/classified
 sudo chown -R $USER:www-data /var/www/html/classified
 sudo chmod -R 775 /var/www/html/classified
 
-# Nginx configuration
+# Nginx configuration (HTTPS on 443; HTTP redirects to HTTPS)
 LEROY_WEB_PORT="${LEROY_WEB_PORT:-80}"
+PI_IP="$(ip -4 addr show 2>/dev/null | grep -oP 'inet \K[\d.]+' | grep -v 127.0.0.1 | head -1)"
+PI_HOST="$(hostname)"
+NGINX_SSL_CERT="/etc/nginx/ssl/leroy.crt"
+NGINX_SSL_KEY="/etc/nginx/ssl/leroy.key"
+# Self-signed cert covering local/LAN names + IP; regenerate only if absent.
+if [ ! -f "$NGINX_SSL_CERT" ] || [ ! -f "$NGINX_SSL_KEY" ]; then
+    sudo mkdir -p /etc/nginx/ssl
+    sudo openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
+        -keyout "$NGINX_SSL_KEY" -out "$NGINX_SSL_CERT" \
+        -subj "/CN=${PI_HOST}" \
+        -addext "subjectAltName=DNS:localhost,DNS:${PI_HOST},DNS:${PI_HOST}.local,DNS:raspberrypi,DNS:raspberrypi.local${PI_IP:+,IP:${PI_IP}}" 2>/dev/null
+fi
 NGINX_CONF="/etc/nginx/sites-available/leroy"
 [ ! -f "$NGINX_CONF" ] && sudo tee "$NGINX_CONF" > /dev/null <<EOF
 server {
     listen ${LEROY_WEB_PORT};
-    server_name localhost;
+    listen [::]:${LEROY_WEB_PORT};
+    server_name localhost ${PI_HOST} ${PI_HOST}.local raspberrypi raspberrypi.local;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name localhost ${PI_HOST} ${PI_HOST}.local raspberrypi raspberrypi.local;
+
+    ssl_certificate     ${NGINX_SSL_CERT};
+    ssl_certificate_key ${NGINX_SSL_KEY};
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
     root /var/www/html;
     index index.html;
 
@@ -188,7 +213,7 @@ server {
 EOF
 
 sudo ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/leroy
-[ -f /etc/nginx/sites-enabled/default ] && sudo rm /etc/nginx/sites-enabled/default
+[ -f /etc/nginx/sites-enabled/default ] && sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t -q && sudo systemctl reload nginx || (sudo systemctl enable nginx && sudo systemctl start nginx)
 
 # Systemd service
