@@ -12,9 +12,6 @@ setup_logging()
 
 # Scientific names are extracted from classification labels or looked up dynamically
 # No static file required - will try to get from labels file format or return "Unknown"
-def classification_scores(bird):
-  return bird["classification_score"]
-
 # Use shared clarity function from utils
 def clarity(image_path):
     """Backward compatibility wrapper for clarity_from_path."""

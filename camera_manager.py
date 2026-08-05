@@ -257,10 +257,6 @@ class CameraManager:
                 self.picam2 = None
             self._photo_capture_pending = False
 
-    def get_current_resolution(self) -> Tuple[int, int]:
-        """Get current camera resolution."""
-        return self.current_resolution
-
     def is_photo_capture_pending(self) -> bool:
         """Check if photo capture is in progress."""
         return self._photo_capture_pending

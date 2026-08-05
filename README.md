@@ -292,7 +292,7 @@ make docker-pi5-test-file TEST=tests.test_visitation_processing  # Run specific 
 
 ## Active Learning
 
-The system automatically collects low-confidence bird classifications for review in `storage/active_learning/`. These can be used for future model fine-tuning.
+The system automatically collects non-bird detections (e.g. squirrels, cats, dogs) into `storage/active_learning/non_birds/` when they exceed `LEROY_NON_BIRD_THRESHOLD`. These false positives can be used to fine-tune the detection model over time.
 
 ## Social Media (Optional)
 

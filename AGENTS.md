@@ -93,7 +93,7 @@ unless explicitly requested by the user.
   - `visitation.py` — visitation *processing* (post-classification, web JSON generation)
   - `photo.py` / `photo_metadata.py` — UUID-based photo capture and metadata
   - `classify.py` — batch classification runner
-  - `active_learning.py` — low-confidence / non-bird collection
+  - `active_learning.py` — non-bird false-positive collection (squirrels, cats, dogs)
   - `bluesky_poster.py` — optional Bluesky (atproto) posting
   - `utils.py` — shared helpers (label loading, image clarity, etc.)
   - `config.py` — env-based configuration
