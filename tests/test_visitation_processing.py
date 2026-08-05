@@ -207,6 +207,32 @@ class TestGetScientificName(unittest.TestCase):
         """Test when scientific name not found."""
         result = get_scientific_name('unknown-bird', None)
         self.assertEqual(result, 'Unknown')
+
+    def test_get_scientific_name_inat_format(self):
+        """Test iNaturalist format: '{id} Scientific (Common)'."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+            f.write("3 Cyanocitta cristata (Blue Jay)\n")
+            f.write("68 Cardinalis cardinalis (Northern Cardinal)\n")
+            f.write("964 background\n")
+            labels_path = f.name
+
+        try:
+            self.assertEqual(
+                get_scientific_name('Blue Jay', labels_path),
+                'Cyanocitta cristata')
+            self.assertEqual(
+                get_scientific_name('Northern Cardinal', labels_path),
+                'Cardinalis cardinalis')
+            # Dash-normalized common name should also resolve
+            self.assertEqual(
+                get_scientific_name('Blue-Jay', labels_path),
+                'Cyanocitta cristata')
+            self.assertEqual(
+                get_scientific_name('background', labels_path),
+                'Unknown')
+        finally:
+            os.unlink(labels_path)
     
     def test_get_scientific_name_no_labels_file(self):
         """Test when labels file not provided."""

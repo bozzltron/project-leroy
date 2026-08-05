@@ -163,44 +163,43 @@ def find_full_image(full_images, visitation_id):
 def get_scientific_name(common_name, labels_file_path=None):
   """
   Get scientific name from common name.
-  
+
   First tries to extract from classification labels if they include scientific names.
-  Otherwise, attempts to look up from eBird/iNaturalist taxonomy.
-  Falls back to "Unknown" if not found.
-  
+  Handles both label conventions:
+    iNaturalist: "{id} Scientific (Common)"  e.g. "3 Cyanocitta cristata (Blue Jay)"
+    legacy:      "{id} common-name (Scientific)"
+  Otherwise, falls back to "Unknown".
+
   Args:
-    common_name: Common name of the bird (e.g., "american-robin")
+    common_name: Common name of the bird (e.g., "Blue Jay")
     labels_file_path: Optional path to labels file to check format
-    
+
   Returns:
-    Scientific name (e.g., "Turdus migratorius") or "Unknown"
+    Scientific name (e.g., "Cyanocitta cristata") or "Unknown"
   """
-  # Try to extract from labels file if it contains scientific names
-  # Format might be: "1 american-robin (Turdus migratorius)" or similar
+  common_name = (common_name or "").strip()
   if labels_file_path and os.path.exists(labels_file_path):
     try:
       with open(labels_file_path, 'r', encoding='utf-8') as f:
         for line in f:
-          # Check if line contains common name
-          line_lower = line.lower()
-          common_name_normalized = common_name.lower().replace(" ", "-")
-          
-          if common_name_normalized in line_lower:
-            # Look for scientific name pattern: (Genus species) or Genus species
-            # Pattern: (Turdus migratorius) or Turdus migratorius
-            match = re.search(r'\(([A-Z][a-z]+ [a-z]+)\)', line)
-            if match:
-              return match.group(1)
-            # Also try without parentheses
-            match = re.search(r'\b([A-Z][a-z]+ [a-z]+)\b', line)
-            if match and match.group(1) != common_name:
-              return match.group(1)
+          m = re.match(r'^\s*\d+\s+(.+?)\s+\((.+)\)\s*$', line.strip())
+          if not m:
+            continue
+          first, parenthesized = m.group(1).strip(), m.group(2).strip()
+          # Compare tolerant of dash/space and case differences.
+          for candidate in (common_name,
+                            common_name.replace("-", " "),
+                            common_name.replace(" ", "-")):
+            if parenthesized.lower() == candidate.lower():
+              return first
+            if first.lower() == candidate.lower():
+              return parenthesized
     except Exception:
       pass
-  
+
   # TODO: Could add API lookup here (eBird, iNaturalist) if needed
   # For now, return "Unknown" - can be populated later or via API
-  
+
   return "Unknown"
 
 def find_species(records):
@@ -388,9 +387,12 @@ def main():
     birds = sorted(parsed, key=itemgetter('datetime'))
     
     # Try to find labels file to extract scientific names if available
-    # MobileNet V3 ImageNet labels are used for classification
+    # Prefer the iNaturalist bird labels; fall back to MobileNet V3 ImageNet labels.
     labels_file_path = None
     possible_label_paths = [
+      os.path.join('all_models', 'inat_bird_labels.txt'),
+      os.path.join(os.path.dirname(__file__), 'all_models', 'inat_bird_labels.txt'),
+      '/var/www/html/classified/../all_models/inat_bird_labels.txt',
       os.path.join('all_models', 'mobilenet_v3.txt'),
       os.path.join(os.path.dirname(__file__), 'all_models', 'mobilenet_v3.txt'),
       '/var/www/html/classified/../all_models/mobilenet_v3.txt'

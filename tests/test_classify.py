@@ -12,7 +12,35 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from classify import move_metadata
+from classify import move_metadata, split_scientific_common
+
+
+class TestSplitScientificCommon(unittest.TestCase):
+    """Test iNaturalist-style label splitting used for species metadata."""
+
+    def test_inat_label_with_common_name(self):
+        self.assertEqual(
+            split_scientific_common("Cyanocitta cristata (Blue Jay)"),
+            ("Cyanocitta cristata", "Blue Jay"),
+        )
+
+    def test_common_name_with_apostrophe(self):
+        self.assertEqual(
+            split_scientific_common("Haemorhous cassinii (Cassin's Finch)"),
+            ("Haemorhous cassinii", "Cassin's Finch"),
+        )
+
+    def test_background_label_passes_through(self):
+        self.assertEqual(
+            split_scientific_common("background"),
+            ("Unknown", "background"),
+        )
+
+    def test_imagenet_style_label_passes_through(self):
+        self.assertEqual(
+            split_scientific_common("goldfinch, Carduelis carduelis"),
+            ("Unknown", "goldfinch, Carduelis carduelis"),
+        )
 
 
 class TestMoveMetadata(unittest.TestCase):

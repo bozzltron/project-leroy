@@ -5,6 +5,7 @@ Raspberry Pi 5 + AI Kit (Hailo) Implementation
 """
 import argparse
 import os
+import re
 import shutil
 import logging
 from pathlib import Path
@@ -39,6 +40,18 @@ def move_metadata(filepath, new_metadata_path, metadata):
         shutil.move(os.path.abspath(src_metadata), os.path.abspath(new_metadata_path))
     else:
         PhotoMetadata.save_metadata(metadata, new_metadata_path)
+
+
+def split_scientific_common(label):
+    """Split an iNaturalist-style label 'Scientific (Common)' into its parts.
+
+    Labels without the '(Common)' suffix (e.g. plain ImageNet names or
+    'background') pass through unchanged with scientific_name 'Unknown'.
+    """
+    m = re.match(r'^\s*(.+?)\s+\((.+)\)\s*$', label)
+    if m:
+        return m.group(1), m.group(2)
+    return "Unknown", label
 
 
 def main():
@@ -153,9 +166,10 @@ def main():
                             if "classifications" not in metadata:
                                 metadata["classifications"] = []
 
+                            scientific_name, common_name = split_scientific_common(label)
                             metadata["classifications"].append({
-                                "species": label.replace(" ", "-"),
-                                "scientific_name": "Unknown",
+                                "species": common_name.replace(" ", "-"),
+                                "scientific_name": scientific_name,
                                 "score": float(score),
                                 "confidence": "high" if score >= 0.8 else "medium" if score >= 0.5 else "low"
                             })

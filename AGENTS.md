@@ -155,16 +155,23 @@ unless explicitly requested by the user.
 | `all_models/yolo11s.txt` | 624 B | COCO labels for detection. |
 | `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k). ~59 bird species. |
 | `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels for classification. |
+| `all_models/mobilenet_v2_1.0_224_inat_bird_quant.tflite` | 3.5 MB | iNaturalist 964-species classifier (Coral-era TFLite, source for HEF). |
+| `all_models/inat_bird_labels.txt` | ~30 KB | iNat labels: 964 `Scientific (Common)` lines + `background`. |
 
-**Note on iNaturalist bird classifier:** The original 2020 Coral-era
-classifier (`mobilenet_v2_1.0_224_inat_bird`) had 964 bird species but
-is not available as a pre-compiled HEF in the Hailo Model Explorer.
-To get more species, the iNat model would need to be compiled locally
-from the TFLite using the Hailo Dataflow Compiler — a non-trivial
-process not currently supported by the installer.
+**iNaturalist bird classifier (in progress):** The 964-species model
+(`mobilenet_v2_1.0_224_inat_bird_quant.tflite`) is staged and converted
+to a DFC-ready ONNX at `model_build/inat_bird_qdq.onnx`, validated
+against the TFLite (12/12 top-1 on real camera crops). The **only
+remaining step is compiling the HEF on an x86_64 host with the Hailo
+Dataflow Compiler** (DFC is x86-only and needs a Hailo PCIe device).
+Everything needed is in `model_build/` — see `model_build/README.md`
+for the workflow. Once `inat_bird.hef` lands, point
+`LEROY_CLASSIFICATION_MODEL`/`LEROY_CLASSIFICATION_LABELS` at it and
+re-run classification.
 
 - **HEFs are committed to the repo** (despite `.gitignore` listing `all_models/` — this rule was added after a partial commit; treat it as advisory).
 - **When swapping models:** ensure the HEF is compiled for Hailo-8L, and that label files match the model's output classes.
+- **Label formats differ per model:** iNat labels are `{id} Scientific (Common)`; ImageNet labels are `{common}, {scientific}`. `classify.py` extracts the common name for the `species` metadata field; `visitation.py` resolves the scientific name from either format.
 
 ---
 

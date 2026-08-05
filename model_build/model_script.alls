@@ -1,0 +1,10 @@
+# Hailo Dataflow Compiler model script for the iNat bird classifier.
+#
+# Input normalization:
+#   The Coral TFLite classifier normalizes raw uint8 pixels as
+#   (x - 128) / 128. We bake that on-chip so the compiled HEF accepts
+#   plain uint8 [224,224,3] frames with no host-side preprocessing.
+normalization1 = normalization([128, 128, 128], [128, 128, 128])
+
+# Give the compiler full freedom to maximize FPS (slower compile, faster HEF).
+performance_param(compiler_optimization_level=max)

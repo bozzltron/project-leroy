@@ -180,6 +180,7 @@ if [ $DETECTION_FOUND -eq 0 ] || [ $CLASSIFICATION_FOUND -eq 0 ]; then
         echo "   - Download the COMPILED HEF file"
         echo "   - Save as: mobilenet_v3.hef"
         echo "   - Note: MobileNet v2 iNaturalist bird (964 species) is not available as a pre-compiled HEF"
+        echo "     (staged TFLite + DFC-ready ONNX live in model_build/ — see model_build/README.md)"
         echo ""
     fi
     
