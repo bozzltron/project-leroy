@@ -57,7 +57,7 @@ def load_config():
     config['non_bird_threshold'] = float(os.environ.get('LEROY_NON_BIRD_THRESHOLD', '0.5'))
     
     # Web server configuration
-    config['web_port'] = int(os.environ.get('LEROY_WEB_PORT', '8080'))
+    config['web_port'] = int(os.environ.get('LEROY_WEB_PORT', '80'))
     config['web_host'] = os.environ.get('LEROY_WEB_HOST', 'localhost')
     config['auto_launch_browser'] = os.environ.get('LEROY_AUTO_LAUNCH_BROWSER', 'true').lower() == 'true'
     

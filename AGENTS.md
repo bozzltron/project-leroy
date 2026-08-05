@@ -18,7 +18,7 @@ on a Raspberry Pi 5 with the AI Kit (Hailo-8L) and a Pi HQ camera.
 - Detection loop: `leroy.py` → `hailo_inference.py` (YOLO on Hailo-8L) + `camera_manager.py` (picamera2 dual-resolution)
 - Photo storage: UUID filenames + companion JSON metadata, no database
 - Classification: `classify.py` (MobileNet on Hailo-8L) — runs periodically
-- Web UI: vanilla JS, served by nginx on port 8080, reads `/var/www/html/visitations.json`
+- Web UI: vanilla JS, served by nginx on port 80, reads `/var/www/html/visitations.json`
 - Service: `systemd` unit `leroy.service` runs `run.sh` → `leroy.py`; supervised by `hailort.service`
 
 **History (matters for context):** The project was refactored from Google Coral
@@ -47,7 +47,7 @@ EdgeTPU/pycoral code is intentionally removed — do not reintroduce it.
 - **Run a single test:** `make docker-pi5-test-file TEST=tests.test_foo`
 - **Lint:** `make docker-pi5-lint` (flake8 in Docker; rules in `.flake8`)
 - **Build Docker image:** `make docker-pi5-build`
-- **Local web preview:** `make web-preview` (nginx on `http://localhost:8080`)
+- **Local web preview:** `make web-preview` (nginx on `http://localhost:80`)
 - **Tail app log:** `make tail` (follows `storage/results.log`)
 
 > **Note:** Docker-based commands run inside `docker-compose.pi5.yml` and do
@@ -217,7 +217,7 @@ Strict rules. Violating these is a bug, not a style choice.
 | Photo storage | `photo.py` + `photo_metadata.py` |
 | Active learning | `active_learning.py` |
 | Web assets | `web/` (HTML, CSS, JS) |
-| nginx config | `nginx.conf` (port 8080) |
+| nginx config | `nginx.conf` (port 80) |
 | systemd unit | `service/leroy.service` (source of truth; deployed to `/etc/systemd/system/`) |
 | Service entry | `run.sh` (validates venv + Hailo, sources env, execs `leroy.py`) |
 | Environment | `leroy.env` (gitignored) / `leroy.env.example` (template) |

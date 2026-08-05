@@ -198,7 +198,7 @@ sudo systemctl disable leroy.service
 - **Updates**: Run `./update.sh` to pull code and deploy web; then restart service
 - **Auto-restart**: Restarts automatically if it crashes (`Restart=on-failure`)
 - **Auto-launch browser**: Launches browser with web app (if enabled, no duplicate windows)
-- **Custom port**: Web interface runs on port **8080** (configurable)
+- **Custom port**: Web interface runs on port **80** (configurable)
 - **Logs**: Output logged to systemd journal and `storage/results.log`
 
 #### Configuration
@@ -218,7 +218,7 @@ Or pass via CLI: `python leroy.py --detection-model ... --detection-labels ...`
 
 ```bash
 # Web Server Configuration
-LEROY_WEB_PORT=8080          # Custom port (default: 8080)
+LEROY_WEB_PORT=80             # Port (default: 80)
 LEROY_WEB_HOST=localhost     # Host (default: localhost)
 
 # Browser Auto-Launch
@@ -231,7 +231,7 @@ LEROY_PHOTO_WIDTH=4056       # Photo resolution width (default: 4056)
 LEROY_PHOTO_HEIGHT=3040      # Photo resolution height (default: 3040)
 ```
 
-**Security Note**: Using port 8080 instead of 80/443 reduces exposure to automated scanners while remaining accessible on local network.
+**Security Note**: Served over plain HTTP on port 80. HTTPS on port 443 (with a certificate) is planned long-term for encrypted remote access.
 
 #### Manual Run (Testing)
 
@@ -264,7 +264,7 @@ python3 leroy.py --detection-model all_models/yolov11s.hef --detection-labels al
 
 The web interface is a lightweight vanilla JavaScript app (no build step required).
 
-**On Raspberry Pi**: Nginx runs directly on the host (installed by `install-pi5.sh`). Access at `http://your-pi-ip:8080`.
+**On Raspberry Pi**: Nginx runs directly on the host (installed by `install-pi5.sh`). Access at `http://your-pi-ip/`.
 
 **Local Development**: Use Docker for preview:
 ```bash
@@ -519,7 +519,7 @@ This script checks:
 Photos are stored in:
 - **Detected (raw)**: `storage/detected/{date}/{visitation_id}/`
 - **Classified**: `/var/www/html/classified/{date}/{visitation_id}/`
-- **Web interface**: Visit `http://your-pi-ip:8080/`
+- **Web interface**: Visit `http://your-pi-ip/`
 
 ### Check Classification Status
 

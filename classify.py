@@ -7,8 +7,10 @@ import argparse
 import os
 import shutil
 import logging
+from pathlib import Path
 from PIL import Image
 from hailo_inference import HailoInference
+from photo_metadata import PhotoMetadata
 from utils import load_labels
 
 from setup_logging import setup_logging
@@ -25,6 +27,18 @@ def get_new_dir(dirpath):
         visitation_id = path_sections[3]
         new_dir = "/var/www/html/classified/{}/{}".format(date, visitation_id)
     return new_dir
+
+
+def move_metadata(filepath, new_metadata_path, metadata):
+    """Move the source metadata JSON alongside the photo, leaving no copy behind.
+
+    Falls back to writing a copy if the source JSON is missing.
+    """
+    src_metadata = str(Path(filepath).with_suffix('.json'))
+    if os.path.exists(src_metadata):
+        shutil.move(os.path.abspath(src_metadata), os.path.abspath(new_metadata_path))
+    else:
+        PhotoMetadata.save_metadata(metadata, new_metadata_path)
 
 
 def main():
@@ -122,8 +136,6 @@ def main():
                             continue
 
                         # UUID format: {uuid}.png (boxed crop) or {uuid}_full.png (wide shot)
-                        from photo_metadata import PhotoMetadata
-
                         metadata = PhotoMetadata.find_metadata_for_image(filepath)
                         if not metadata:
                             logger.warning(f"No metadata found for {filepath}, skipping")
@@ -158,7 +170,7 @@ def main():
                             if not args.dryrun:
                                 os.makedirs(new_dir, exist_ok=True)
                                 shutil.move(os.path.abspath(filepath), os.path.abspath(new_image_path))
-                                PhotoMetadata.save_metadata(metadata, new_metadata_path)
+                                move_metadata(filepath, new_metadata_path, metadata)
                                 logger.info(f"Moved {filepath} -> {new_image_path} (with metadata)")
                             else:
                                 logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")
@@ -171,8 +183,6 @@ def main():
                             continue
 
                         # UUID format: {uuid}.png (boxed crop) or {uuid}_full.png (wide shot)
-                        from photo_metadata import PhotoMetadata
-
                         metadata = PhotoMetadata.find_metadata_for_image(filepath)
                         if metadata:
                             new_dir = get_new_dir(dirpath)
@@ -184,7 +194,7 @@ def main():
                                 if not args.dryrun:
                                     os.makedirs(new_dir, exist_ok=True)
                                     shutil.move(os.path.abspath(filepath), os.path.abspath(new_image_path))
-                                    PhotoMetadata.save_metadata(metadata, new_metadata_path)
+                                    move_metadata(filepath, new_metadata_path, metadata)
                                     logger.info(f"Moved {filepath} -> {new_image_path} (with metadata)")
                                 else:
                                     logger.info(f"[DRYRUN] Would move {filepath} -> {new_image_path}")

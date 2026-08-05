@@ -135,12 +135,12 @@ pip install --upgrade -q pip setuptools wheel
 pip install -q numpy pillow opencv-contrib-python psutil imutils atproto || true
 
 # Create directories
-mkdir -p storage/{detected,classified,results,active_learning} all_models
+mkdir -p storage/{detected,active_learning} all_models
 
 # Environment config
 [ ! -f "leroy.env" ] && [ -f "leroy.env.example" ] && cp leroy.env.example leroy.env || \
     [ ! -f "leroy.env" ] && cat > leroy.env <<EOF
-LEROY_WEB_PORT=8080
+LEROY_WEB_PORT=80
 LEROY_WEB_HOST=localhost
 LEROY_AUTO_LAUNCH_BROWSER=true
 EOF
@@ -151,7 +151,7 @@ sudo chown -R $USER:www-data /var/www/html/classified
 sudo chmod -R 775 /var/www/html/classified
 
 # Nginx configuration
-LEROY_WEB_PORT="${LEROY_WEB_PORT:-8080}"
+LEROY_WEB_PORT="${LEROY_WEB_PORT:-80}"
 NGINX_CONF="/etc/nginx/sites-available/leroy"
 [ ! -f "$NGINX_CONF" ] && sudo tee "$NGINX_CONF" > /dev/null <<EOF
 server {

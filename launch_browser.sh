@@ -16,7 +16,7 @@ if [ -f "leroy.env" ]; then
 fi
 
 # Configuration (with defaults)
-LEROY_WEB_PORT="${LEROY_WEB_PORT:-8080}"
+LEROY_WEB_PORT="${LEROY_WEB_PORT:-80}"
 LEROY_WEB_HOST="${LEROY_WEB_HOST:-localhost}"
 LEROY_AUTO_LAUNCH_BROWSER="${LEROY_AUTO_LAUNCH_BROWSER:-true}"
 BROWSER_CMD="${LEROY_BROWSER_CMD:-chromium-browser}"

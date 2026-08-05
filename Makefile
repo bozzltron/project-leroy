@@ -68,7 +68,7 @@ docker-pi5-lint:
 # Web preview (local development only)
 web-preview:
 	@echo "Starting nginx for web preview..."
-	@echo "Open http://localhost:8080 in your browser"
+	@echo "Open http://localhost:80 in your browser"
 	docker-compose -f docker-compose.nginx.yml up
 
 # Utilities
