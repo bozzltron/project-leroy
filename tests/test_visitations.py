@@ -31,7 +31,8 @@ class TestVisitations(unittest.TestCase):
         self.frame = np.zeros((1536, 2048, 3), dtype=np.uint8)
 
     @patch('visitations.capture')
-    def test_visitation_creation(self, mock_capture):
+    @patch('visitations.get_config', return_value={'detection_threshold': 0.5})
+    def test_visitation_creation(self, mock_get_config, mock_capture):
         """Test that visitation is created when bird detected."""
         labels = {14: "bird"}
         objs = [self.mock_obj]
@@ -42,7 +43,8 @@ class TestVisitations(unittest.TestCase):
         self.assertEqual(self.visitations.photo_per_visitation_count, 1)
 
     @patch('visitations.capture')
-    def test_photo_limit(self, mock_capture):
+    @patch('visitations.get_config', return_value={'detection_threshold': 0.5})
+    def test_photo_limit(self, mock_get_config, mock_capture):
         """Test that photo count respects limit."""
         labels = {14: "bird"}
         objs = [self.mock_obj]
@@ -64,7 +66,8 @@ class TestVisitations(unittest.TestCase):
         self.assertEqual(self.visitations.photo_per_visitation_count, 2, "Photo count should not exceed max")
 
     @patch('visitations.capture')
-    def test_visitation_reset(self, mock_capture):
+    @patch('visitations.get_config', return_value={'detection_threshold': 0.5})
+    def test_visitation_reset(self, mock_get_config, mock_capture):
         """Test that visitation resets correctly."""
         labels = {14: "bird"}
         objs = [self.mock_obj]
@@ -81,7 +84,8 @@ class TestVisitations(unittest.TestCase):
         self.assertEqual(self.visitations.full_photo_per_visitation_count, 0)
 
     @patch('visitations.capture')
-    def test_visitation_timeout(self, mock_capture):
+    @patch('visitations.get_config', return_value={'detection_threshold': 0.5})
+    def test_visitation_timeout(self, mock_get_config, mock_capture):
         """Test that visitation times out after max seconds."""
         labels = {14: "bird"}
         objs = [self.mock_obj]

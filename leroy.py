@@ -71,9 +71,11 @@ class BBox(collections.namedtuple('BBox', ['xmin', 'ymin', 'xmax', 'ymax'])):
     __slots__ = ()
 
 
-def filter_and_categorize_detections(objs, labels, threshold=0.4):
+def filter_and_categorize_detections(objs, labels, threshold=0.8, non_bird_threshold=0.5):
     """
     Filter detections into birds and non-birds (squirrels, cats, etc).
+    Birds must exceed `threshold`; non-birds only need to exceed `non_bird_threshold`
+    so false positives are still collected for active learning.
     
     Returns:
         (birds, non_birds) tuple of Object lists
@@ -84,12 +86,12 @@ def filter_and_categorize_detections(objs, labels, threshold=0.4):
 
     for obj in objs:
         label = labels.get(obj.id, "").lower()
-        if obj.score < threshold:
-            continue
         if label == 'bird':
-            birds.append(obj)
+            if obj.score >= threshold:
+                birds.append(obj)
         elif label in non_bird_classes:
-            non_birds.append(obj)
+            if obj.score >= non_bird_threshold:
+                non_birds.append(obj)
 
     return birds, non_birds
 
@@ -182,6 +184,8 @@ def main():
         config = get_config()
         det_res = config['detection_resolution']
         photo_res = config['photo_resolution']
+        det_threshold = config['detection_threshold']
+        non_bird_threshold = config['non_bird_threshold']
         logger.info(f"Dual-resolution strategy: {det_res[0]}x{det_res[1]} detection (resized to {args.detection_width}px), {photo_res[0]}x{photo_res[1]} photos")
 
         # Initialize Hailo inference
@@ -232,7 +236,7 @@ def main():
             )
         frame_count = 0
         last_photo_time = 0
-        photo_cooldown = 0.5  # Minimum seconds between high-res captures
+        photo_cooldown = 30  # Minimum seconds between high-res captures
 
         # Diagnostic and thermal state
         last_summary_time = time.time()
@@ -299,13 +303,13 @@ def main():
 
                 # Filter and categorize detections (birds, non-birds, others)
                 bird_objs, non_bird_objs = filter_and_categorize_detections(
-                    objs, labels, threshold=0.4
+                    objs, labels, threshold=det_threshold, non_bird_threshold=non_bird_threshold
                 )
                 
                 # Track all detections for periodic summary
                 for obj in objs:
                     label = labels.get(obj.id, "").lower()
-                    if label and obj.score >= 0.4:
+                    if label and obj.score >= det_threshold:
                         window_detections.append((label, obj.score))
 
                 # Log non-bird detections (for learning) at DEBUG to avoid per-frame noise
@@ -373,7 +377,7 @@ def main():
                                     
                                     # Save high-res boxed photos for each bird detection
                                     for obj in current_objs:
-                                        if labels.get(obj.id, "").lower() == 'bird' and obj.score >= 0.4:
+                                        if labels.get(obj.id, "").lower() == 'bird' and obj.score >= det_threshold:
                                             # Scale bbox from detection frame (normalized) to high-res coordinates
                                             x0 = int(obj.bbox.xmin * width_hr)
                                             y0 = int(obj.bbox.ymin * height_hr)

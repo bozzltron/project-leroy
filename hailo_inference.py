@@ -264,7 +264,9 @@ class HailoInference:
         Handles YOLOv11s NMS output format: a dict with one key
         (e.g. 'yolov11s/yolov8_nms_postprocess') whose value is a
         list of per-class numpy arrays, each shape (N, 5) with
-        columns [y_min, x_min, y_max, x_max, score].
+        columns [y_min, x_min, y_max, x_max, score]. The per-class
+        list may be wrapped in a single-element outer list
+        (e.g. [class0, class1, ...]), which is unwrapped below.
 
         Args:
             results: Raw inference results from Hailo
@@ -284,8 +286,14 @@ class HailoInference:
 
             for output_name, output_value in results.items():
                 if isinstance(output_value, list):
-                    # NMS format: list of per-class arrays
-                    for class_id, class_array in enumerate(output_value):
+                    # NMS format: list of per-class arrays. The Hailo NMS
+                    # postprocess may wrap the per-class list in a single-
+                    # element outer list; unwrap it until we reach the actual
+                    # per-class arrays (or a non-list element).
+                    per_class = output_value
+                    while len(per_class) == 1 and isinstance(per_class[0], list):
+                        per_class = per_class[0]
+                    for class_id, class_array in enumerate(per_class):
                         # Skip empty entries; np.asarray cannot build a uniform array from a
                         # mixed list of empty lists and non-empty (N, 5) arrays.
                         if isinstance(class_array, list) and len(class_array) == 0:
@@ -395,9 +403,15 @@ class HailoInference:
                     # Take first item if batch dimension exists
                     output_array = output_array[0] if output_array.shape[0] == 1 else output_array.flatten()
                 
-                # Apply softmax if needed (check if values are logits)
-                # If values are negative or very large, they might be logits
-                if output_array.min() < 0 or output_array.max() > 1.0:
+                # Hailo classification HEFs output softmax probabilities quantized
+                # to uint8 (0-255). Normalize to valid probabilities (sum ~= 1.0).
+                # Only apply softmax to genuinely unnormalized float logits.
+                if output_array.dtype == np.uint8:
+                    output_array = output_array.astype(np.float64)
+                    total = np.sum(output_array)
+                    if total > 0:
+                        output_array /= total
+                elif output_array.min() < 0 or output_array.max() > 1.0:
                     # Likely logits, apply softmax
                     exp_scores = np.exp(output_array - np.max(output_array))  # Numerical stability
                     output_array = exp_scores / np.sum(exp_scores)

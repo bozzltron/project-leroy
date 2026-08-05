@@ -9,7 +9,6 @@ import shutil
 import logging
 from PIL import Image
 from hailo_inference import HailoInference
-from active_learning import ActiveLearningCollector
 from utils import load_labels
 
 from setup_logging import setup_logging
@@ -89,9 +88,6 @@ def main():
     labels = load_labels(args.classification_labels)
     logger.info(f"Loaded {len(labels)} labels")
     
-    # Initialize active learning collector
-    active_learning = ActiveLearningCollector()
-
     # Process single image
     if args.image:
         try:
@@ -120,12 +116,12 @@ def main():
                 try:
                     filepath = os.path.join(dirpath, filename)
 
-                    if "boxed" in filename and filename.endswith('.png'):
+                    if filename.endswith('.png') and '_full' not in filename:
                         # Skip JSON metadata files
                         if filename.endswith('.json'):
                             continue
 
-                        # UUID format: {uuid}.png or {uuid}_full.png
+                        # UUID format: {uuid}.png (boxed crop) or {uuid}_full.png (wide shot)
                         from photo_metadata import PhotoMetadata
 
                         metadata = PhotoMetadata.find_metadata_for_image(filepath)
@@ -169,12 +165,12 @@ def main():
 
                             processed_count += 1
 
-                    elif "full" in filename and filename.endswith('.png'):
+                    elif filename.endswith('_full.png'):
                         # Skip JSON metadata files
                         if filename.endswith('.json'):
                             continue
 
-                        # UUID format: {uuid}.png or {uuid}_full.png
+                        # UUID format: {uuid}.png (boxed crop) or {uuid}_full.png (wide shot)
                         from photo_metadata import PhotoMetadata
 
                         metadata = PhotoMetadata.find_metadata_for_image(filepath)

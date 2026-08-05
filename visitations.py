@@ -1,6 +1,7 @@
 import logging
 import time
 from photo import capture
+from config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,6 @@ def add_padding_to_bbox(bbox, image_width, image_height, padding):
     
     return (new_x1, new_y1, new_x2, new_y2)
 class Visitations:
-    boxes = []
     success = False
     photo_per_visitation_count = 0
     photo_per_visitation_max = 10
@@ -28,6 +28,7 @@ class Visitations:
 
     def update(self, objs, frame, labels):
         height, width, channels = frame.shape
+        detection_threshold = get_config()['detection_threshold']
 
         bird_detected = False
         object_label = ""
@@ -38,7 +39,7 @@ class Visitations:
             percent = int(100 * obj.score)
             x0, y0, x1, y1 = int(x0*width), int(y0*height), int(x1*width), int(y1*height)
 
-            if object_label == 'bird' and percent > 40:
+            if object_label == 'bird' and obj.score >= detection_threshold:
                 bird_detected = True
                 
                 if self.visitation_id is None:
@@ -95,7 +96,7 @@ class Visitations:
 
     def add(self, obj, frame):
         import uuid
-        return uuid.uuid4()
+        return str(uuid.uuid4())
 
     def reset(self):
         logger.info("visitation id {} over".format(self.visitation_id))

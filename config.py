@@ -49,6 +49,13 @@ def load_config():
     photo_height = int(os.environ.get('LEROY_PHOTO_HEIGHT', '3040'))
     config['photo_resolution'] = (photo_width, photo_height)
     
+    # Detection threshold (minimum score for a detection to count as a bird)
+    config['detection_threshold'] = float(os.environ.get('LEROY_DETECTION_THRESHOLD', '0.8'))
+    
+    # Non-bird capture threshold (lower than detection_threshold so false positives
+    # like squirrels/cats/dogs get collected for future model training)
+    config['non_bird_threshold'] = float(os.environ.get('LEROY_NON_BIRD_THRESHOLD', '0.5'))
+    
     # Web server configuration
     config['web_port'] = int(os.environ.get('LEROY_WEB_PORT', '8080'))
     config['web_host'] = os.environ.get('LEROY_WEB_HOST', 'localhost')
