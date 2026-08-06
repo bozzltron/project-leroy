@@ -279,16 +279,37 @@ def create_species_observations(records, labels_file_path=None):
     best_photo_record = find_best_photo_for_species(data['records'])
     best_photo = best_photo_record['filename'] if best_photo_record else data['records'][0]['filename']
     
-    # Collect all photos for this species
+    # Collect all photos for this species, sorted by quality score
     photos = []
     for record in data['records']:
+      try:
+        clarity_score = clarity('/var/www/html{}'.format(record['filename']))
+      except Exception:
+        clarity_score = 0
+      detection_score = int(record.get('detection_score', 0))
+      classification_score = int(record.get('classification_score', 0))
+      quality_score = detection_score + classification_score + clarity_score
       photos.append({
         'filename': record['filename'],
-        'detection_score': int(record.get('detection_score', 0)),
-        'classification_score': int(record.get('classification_score', 0)),
+        'detection_score': detection_score,
+        'classification_score': classification_score,
+        'quality_score': quality_score,
         'datetime': record['datetime'].strftime("%Y-%m-%d %H:%M:%S"),
         'is_best': record['filename'] == best_photo
       })
+    
+    # Sort by quality score (descending) and keep top 5 for gallery display
+    photos.sort(key=lambda x: x['quality_score'], reverse=True)
+    displayed_photos = photos[:5]
+    
+    # Recompute is_best after trimming
+    if displayed_photos:
+      best_filename = displayed_photos[0]['filename']
+      for p in displayed_photos:
+        p['is_best'] = (p['filename'] == best_filename)
+      # Remove quality_score from output (internal only)
+      for p in displayed_photos:
+        del p['quality_score']
     
     observation = {
       'common_name': species,
@@ -297,7 +318,7 @@ def create_species_observations(records, labels_file_path=None):
       'first_seen': data['first_seen'].strftime("%Y-%m-%d %H:%M:%S"),
       'last_seen': data['last_seen'].strftime("%Y-%m-%d %H:%M:%S"),
       'confidence': round(data['avg_confidence'], 2),
-      'photos': photos,
+      'photos': displayed_photos,
       'best_photo': best_photo
     }
     observations.append(observation)

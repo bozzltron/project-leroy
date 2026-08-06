@@ -18,7 +18,7 @@ def add_padding_to_bbox(bbox, image_width, image_height, padding):
 class Visitations:
     success = False
     photo_per_visitation_count = 0
-    photo_per_visitation_max = 10
+    photo_per_visitation_max = 20
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
     last_tracked = None
