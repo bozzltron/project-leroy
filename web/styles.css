@@ -356,9 +356,12 @@ main {
 
 .photo-item img {
     width: 100%;
-    height: 200px;
-    object-fit: cover;
+    height: auto;
+    min-height: 150px;
+    object-fit: contain;
     display: block;
+    border-radius: 8px;
+    background: #f0f0f0;
 }
 
 .photo-item.best-photo::after {
