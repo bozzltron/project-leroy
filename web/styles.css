@@ -17,9 +17,6 @@ header {
     background: white;
     color: #2c3e50;
     padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     position: sticky;
     top: 0;
@@ -32,13 +29,53 @@ header h1 {
     color: #2c3e50;
 }
 
-    .header-info {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-        font-size: 0.9rem;
-        color: #555;
-    }
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.date-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: white;
+    color: #2c3e50;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.menu-toggle:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+.menu-icon {
+    display: block;
+    transform: translateY(-2px);
+}
 
 /* Main Content */
 main {
@@ -115,6 +152,30 @@ main {
     border-radius: 12px;
     font-size: 0.85rem;
     font-weight: 600;
+}
+
+.confidence-badge {
+    display: inline-block;
+    margin-top: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.confidence-badge.high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.confidence-badge.medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.confidence-badge.low {
+    background: #f8d7da;
+    color: #721c24;
 }
 
 .scientific-name {
@@ -291,6 +352,23 @@ main {
     font-weight: 600;
 }
 
+.photo-score {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+
+.modal-species-conf {
+    margin-left: 0.5rem;
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+
 .species-section {
     margin-top: 2rem;
     padding-top: 2rem;
@@ -463,14 +541,32 @@ main {
 /* Responsive */
 @media (max-width: 768px) {
     header {
-        flex-direction: column;
-        gap: 0.5rem;
-        text-align: center;
+        padding: 1rem;
     }
 
-    .header-info {
+    .menu-toggle {
+        display: flex;
+    }
+
+    .header-nav {
+        display: none;
         flex-direction: column;
-        gap: 0.5rem;
+        align-items: flex-start;
+        gap: 0.75rem;
+        width: 100%;
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+        border-top: 1px solid #eee;
+    }
+
+    .header-nav.expanded {
+        display: flex;
+    }
+
+    .header-nav .date-nav,
+    .header-nav #carousel-btn {
+        width: 100%;
+        justify-content: flex-start;
     }
 
     main {

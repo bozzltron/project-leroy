@@ -10,6 +10,8 @@ class VisitationApp {
         this.carouselAutoplay = false;
         this.carouselAutoplayInterval = null;
         this.carouselAutoplayDelay = 5000; // 5 seconds per image
+        this.availableDates = [];
+        this.currentDateIndex = 0;
         this.init();
     }
 
@@ -20,6 +22,40 @@ class VisitationApp {
     }
 
     setupEventListeners() {
+        // Date navigation
+        document.getElementById('prev-day').addEventListener('click', () => {
+            this.navigateDate(-1);
+        });
+        document.getElementById('next-day').addEventListener('click', () => {
+            this.navigateDate(1);
+        });
+
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const headerNav = document.getElementById('header-nav');
+        if (menuToggle && headerNav) {
+            menuToggle.addEventListener('click', () => {
+                const isExpanded = headerNav.classList.toggle('expanded');
+                menuToggle.setAttribute('aria-expanded', String(isExpanded));
+                headerNav.setAttribute('aria-hidden', String(!isExpanded));
+            });
+        }
+
+        // Close mobile menu when clicking a nav button
+        if (headerNav) {
+            ['prev-day', 'next-day', 'carousel-btn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('click', () => {
+                        if (window.innerWidth <= 768) {
+                            headerNav.classList.remove('expanded');
+                            menuToggle.setAttribute('aria-expanded', 'false');
+                            headerNav.setAttribute('aria-hidden', 'true');
+                        }
+                    });
+                }
+            });
+        }
         // Modal close button
         document.querySelector('.close').addEventListener('click', () => {
             this.closeModal();
@@ -86,7 +122,23 @@ class VisitationApp {
             }
             const data = await response.json();
             this.visitations = data;
-            this.render();
+
+            // Extract unique dates (sorted)
+            const dates = data.map(v => (v.start_datetime || v.datetime || '').split(' ')[0]);
+            this.availableDates = [...new Set(dates)].sort();
+
+            const today = new Date().toISOString().split('T')[0];
+            this.currentDateIndex = this.availableDates.indexOf(today);
+            if (this.currentDateIndex === -1) {
+                this.currentDateIndex = this.availableDates.length - 1;
+            }
+
+            if (this.availableDates.length > 0) {
+                this.filterAndRender(this.availableDates[this.currentDateIndex]);
+                this.updateDateNav();
+            } else {
+                this.render();
+            }
             this.updateLastUpdate();
             
             // Update carousel if it's open
@@ -138,16 +190,92 @@ class VisitationApp {
         });
     }
 
+    updateDateNav() {
+        const dateEl = document.getElementById('current-date');
+        const prevBtn = document.getElementById('prev-day');
+        const nextBtn = document.getElementById('next-day');
+
+        if (this.availableDates.length === 0) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        this.currentDateIndex = this.availableDates.indexOf(today);
+        if (this.currentDateIndex === -1) {
+            this.currentDateIndex = 0;
+        }
+
+        const currentDate = this.availableDates[this.currentDateIndex];
+        dateEl.textContent = this.formatDateHeader(currentDate);
+        prevBtn.disabled = this.currentDateIndex <= 0;
+        nextBtn.disabled = this.currentDateIndex >= this.availableDates.length - 1;
+    }
+
+    formatDateHeader(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    navigateDate(direction) {
+        if (this.availableDates.length === 0) return;
+
+        this.currentDateIndex += direction;
+        if (this.currentDateIndex < 0) this.currentDateIndex = 0;
+        if (this.currentDateIndex >= this.availableDates.length) {
+            this.currentDateIndex = this.availableDates.length - 1;
+        }
+
+        const selectedDate = this.availableDates[this.currentDateIndex];
+        this.filterAndRender(selectedDate);
+        this.updateDateNav();
+    }
+
+    filterAndRender(dateStr) {
+        const filtered = this.visitations.filter(visit => {
+            const visitDate = (visit.start_datetime || visit.datetime || '').split(' ')[0];
+            return visitDate === dateStr;
+        });
+
+        const container = document.getElementById('visitations');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+
+        loading.style.display = 'none';
+        error.style.display = 'none';
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="loading">No visitations for this day.</div>';
+            return;
+        }
+
+        document.getElementById('visitation-count').textContent =
+            `${filtered.length} ${filtered.length === 1 ? 'visitation' : 'visitations'}`;
+
+        container.innerHTML = filtered.map((visit, index) => this.renderCard(visit, index)).join('');
+
+        filtered.forEach((visit, index) => {
+            const card = container.children[index];
+            if (card) {
+                card.addEventListener('click', () => this.openModal(visit));
+            }
+        });
+    }
+
     renderCard(visit, index) {
         // Get primary species (first in species_observations or fallback to species)
         const primarySpecies = visit.species_observations?.[0] || {
             common_name: visit.species || 'Unknown',
             scientific_name: 'Unknown',
-            count: visit.records?.length || 0
+            count: visit.records?.length || 0,
+            confidence: 0
         };
 
         const speciesCount = visit.species_count || 1;
         const hasMultipleSpecies = speciesCount > 1;
+        const confidencePct = Math.round((primarySpecies.confidence || 0) * 100);
+        const confidenceClass = confidencePct >= 80 ? 'high' : confidencePct >= 50 ? 'medium' : 'low';
 
         return `
             <div class="visitation-card" data-visitation-id="${visit.visitation_id}">
@@ -158,6 +286,7 @@ class VisitationApp {
                         <div>
                             <div class="card-title">${this.escapeHtml(primarySpecies.common_name)}</div>
                             <div class="scientific-name">${this.escapeHtml(primarySpecies.scientific_name)}</div>
+                            <div class="confidence-badge ${confidenceClass}">${confidencePct}% confidence</div>
                         </div>
                         ${hasMultipleSpecies ? `<span class="species-count-badge">${speciesCount} species</span>` : ''}
                     </div>
@@ -184,17 +313,22 @@ class VisitationApp {
         return `
             <div class="multi-species-list">
                 <h4>All Species in This Visitation</h4>
-                ${speciesObservations.map(obs => `
+                ${speciesObservations.map(obs => {
+                    const obsConfidence = Math.round((obs.confidence || 0) * 100);
+                    const obsClass = obsConfidence >= 80 ? 'high' : obsConfidence >= 50 ? 'medium' : 'low';
+                    return `
                     <div class="species-item">
                         <div>
                             <div class="species-item-name">${this.escapeHtml(obs.common_name)}</div>
                             <div class="scientific-name" style="font-size: 0.8rem; margin-top: 0.1rem;">
                                 ${this.escapeHtml(obs.scientific_name)}
                             </div>
+                            <div class="confidence-badge ${obsClass}">${obsConfidence}% confidence</div>
                         </div>
                         <div class="species-item-count">${obs.count} photos</div>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         `;
     }
@@ -236,20 +370,22 @@ class VisitationApp {
                     <h3>All Species (${visit.species_count})</h3>
                     ${visit.species_observations.map(obs => `
                         <div style="margin-bottom: 1.5rem;">
-                            <h4 style="margin-bottom: 0.5rem;">
-                                ${this.escapeHtml(obs.common_name)} 
-                                <span style="font-weight: normal; color: #7f8c8d; font-size: 0.9rem;">
-                                    (${this.escapeHtml(obs.scientific_name)})
-                                </span>
-                            </h4>
-                            <div class="photo-gallery">
-                                ${obs.photos.map(photo => `
-                                    <div class="photo-item ${photo.is_best ? 'best-photo' : ''}">
-                                        <img src="${photo.filename}" alt="${obs.common_name}" 
-                                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23ddd%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27%3ENo Image%3C/text%3E%3C/svg%3E'">
-                                    </div>
-                                `).join('')}
-                            </div>
+                <h4 style="margin-bottom: 0.5rem;">
+                                 ${this.escapeHtml(obs.common_name)} 
+                                 <span style="font-weight: normal; color: #7f8c8d; font-size: 0.9rem;">
+                                     (${this.escapeHtml(obs.scientific_name)})
+                                 </span>
+                                 <span class="modal-species-conf">${Math.round((obs.confidence || 0) * 100)}%</span>
+                             </h4>
+                             <div class="photo-gallery">
+                                 ${obs.photos.map(photo => `
+                                     <div class="photo-item ${photo.is_best ? 'best-photo' : ''}">
+                                         <img src="${photo.filename}" alt="${obs.common_name}" 
+                                              onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23ddd%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27%3ENo Image%3C/text%3E%3C/svg%3E'">
+                                         <div class="photo-score">${photo.detection_score}% · ${photo.classification_score}%</div>
+                                     </div>
+                                 `).join('')}
+                             </div>
                         </div>
                     `).join('')}
                 </div>
@@ -260,6 +396,7 @@ class VisitationApp {
                     <div class="photo-item ${record.filename === visit.best_photo ? 'best-photo' : ''}">
                         <img src="${record.filename}" alt="${record.species || 'Bird'}" 
                              onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23ddd%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27%3ENo Image%3C/text%3E%3C/svg%3E'">
+                        <div class="photo-score">${record.detection_score}% · ${record.classification_score}%</div>
                     </div>
                 `).join('')}
             </div>

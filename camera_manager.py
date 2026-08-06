@@ -50,12 +50,14 @@ class CameraManager:
     def _build_configs(self, resolution: Tuple[int, int]):
         """Build picamera2 configurations for the given resolution."""
         width, height = resolution
+        # picamera2 channel names are backwards from OpenCV/DRM naming:
+        # "RGB888" yields arrays ordered [B, G, R] (what OpenCV calls BGR).
         self._preview_config = self.picam2.create_preview_configuration(
-            main={"size": (width, height), "format": "BGR888"}
+            main={"size": (width, height), "format": "RGB888"}
         )
         photo_width, photo_height = self.photo_resolution
         self._still_config = self.picam2.create_still_configuration(
-            main={"size": (photo_width, photo_height), "format": "BGR888"}
+            main={"size": (photo_width, photo_height), "format": "RGB888"}
         )
 
     def _open_camera(self, resolution: Tuple[int, int]) -> bool:
@@ -212,7 +214,7 @@ class CameraManager:
         try:
             width, height = resolution
             preview_config = self.picam2.create_preview_configuration(
-                main={"size": (width, height), "format": "BGR888"}
+                main={"size": (width, height), "format": "RGB888"}
             )
             self.picam2.switch_mode(preview_config)
             self.current_resolution = resolution

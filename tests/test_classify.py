@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from classify import move_metadata, split_scientific_common
+from classify import move_metadata, split_scientific_common, get_new_dir
 
 
 class TestSplitScientificCommon(unittest.TestCase):
@@ -83,6 +83,30 @@ class TestMoveMetadata(unittest.TestCase):
         move_metadata(str(png), str(new_meta), {"photo_id": "xyz789", "photo_type": "full"})
 
         self.assertTrue(new_meta.exists(), "metadata should be written when source is missing")
+
+
+class TestGetNewDir(unittest.TestCase):
+    """Test get_new_dir path resolution for both source and classified paths."""
+
+    def test_source_path(self):
+        """Source path: storage/detected/{date}/{visitation_id}."""
+        result = get_new_dir("storage/detected/2026-08-06/abc123")
+        self.assertEqual(result, "/var/www/html/classified/2026-08-06/abc123")
+
+    def test_classified_path(self):
+        """Already-classified path stays in place."""
+        result = get_new_dir("/var/www/html/classified/2026-08-06/abc123")
+        self.assertEqual(result, "/var/www/html/classified/2026-08-06/abc123")
+
+    def test_path_with_extra_segments(self):
+        """Path with extra leading segments still resolves via date pattern."""
+        result = get_new_dir("/home/user/project/storage/detected/2026-08-06/abc123")
+        self.assertEqual(result, "/var/www/html/classified/2026-08-06/abc123")
+
+    def test_no_date_in_path(self):
+        """Path without a date pattern returns empty string."""
+        result = get_new_dir("storage/detected/visits/abc123")
+        self.assertEqual(result, "")
 
 
 if __name__ == '__main__':

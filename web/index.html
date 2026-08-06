@@ -8,14 +8,24 @@
 </head>
 <body>
     <header>
-        <h1>Project Leroy</h1>
-        <div class="header-info">
+        <div class="header-top">
+            <h1>Project Leroy</h1>
+            <button id="menu-toggle" class="menu-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="header-nav">
+                <span class="menu-icon" aria-hidden="true">≡</span>
+            </button>
+        </div>
+        <nav class="header-nav" id="header-nav" aria-hidden="true">
+            <div class="date-nav">
+                <button id="prev-day" class="btn btn-secondary" title="Previous day">‹</button>
+                <span id="current-date" class="current-date"></span>
+                <button id="next-day" class="btn btn-secondary" title="Next day">›</button>
+            </div>
             <span id="last-update"></span>
             <span id="visitation-count"></span>
             <button id="carousel-btn" class="btn btn-secondary" title="Fullscreen carousel of today's images">
                 Fullscreen
             </button>
-        </div>
+        </nav>
     </header>
 
     <main>
