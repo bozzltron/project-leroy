@@ -271,8 +271,8 @@ def main():
                             label = labels.get(class_id, "unknown")
 
                             # Update metadata with classification
-                            if "classifications" not in metadata:
-                                metadata["classifications"] = []
+                            # Reset the list so reclassification does not accumulate duplicates.
+                            metadata["classifications"] = []
 
                             scientific_name, common_name = split_scientific_common(label)
                             metadata["classifications"].append({
