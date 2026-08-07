@@ -85,26 +85,20 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
    - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
 
 3. **Download Classification Model** (REQUIRED):
-   - **CRITICAL**: Filter by AI Processor = **Hailo-8L** (NOT Hailo-8 or Hailo-10)
-   - Task = **Classification**
-   - Recommended: **MobileNet v3** (ImageNet-trained, ~59 bird species)
-   - Download the **COMPILED HEF** file
-   - **Verify**: Model description should mention "Hailo-8L" or "hailo8l"
-   - Save as: `mobilenet_v3.hef`
-   - **⚠️ If you get "HEF_NOT_COMPATIBLE" error**: The model was compiled for wrong device - delete it and download Hailo-8L version
+   - **Classification runs via ONNX Runtime on CPU** — no Hailo HEF needed.
+   - The Ornimetrics NABirds 555-species ONNX model is pre-downloaded in `all_models/`.
+   - See `leroy.env.example` for configuration (LEROY_CLASSIFICATION_MODEL/LABELS).
 
-> **Note on iNaturalist bird classifier:** The original 2020 Coral-era
-> classifier had 964 bird species but is not available as a pre-compiled HEF,
-> so this project uses MobileNet V3 (ImageNet-1k, ~59 bird species).
+> **Note**: HEF classification models compiled for Hailo-8 (26 TOPS) are **NOT**
+> compatible with the Pi AI Kit's Hailo-8L (13 TOPS). Use ONNX for classification.
 
 4. **Copy Models to Project**:
    ```bash
    # Copy downloaded HEF files to all_models/ directory
-    # Detection model (use the actual filename you downloaded):
+   # Detection model (use the actual filename you downloaded):
     cp ~/Downloads/yolov11s.hef all_models/
    
-   # Classification model (use the actual filename you downloaded):
-   cp ~/Downloads/mobilenet_v3.hef all_models/
+   # Classification model is pre-downloaded ONNX (no copy needed)
    ```
 
 5. **Verify Models**:
@@ -117,20 +111,18 @@ HEF models must be downloaded manually from **Hailo Model Explorer**:
 **Example Output** (after downloading models):
 ```bash
 $ ./download_models.sh
-✓ Detection model found: yolov11s.hef (5242880 bytes)
-✓ Classification model found: mobilenet_v3.hef (3145728 bytes)
+✓ Detection model found: yolov11s.hef (25565440 bytes)
+✓ Classification model found: species_classifier_nabirds.onnx (83382384 bytes)
 ✓ COCO labels: yolo11s.txt
-✓ Classification labels: mobilenet_v3.txt
+✓ Classification labels: nabirds_labels.txt
 ```
 
 **Model Requirements**:
 - **Detection**: COCO-compatible model (detects 80 classes including 'bird') - **REQUIRED**
-  - Supported model: YOLOv11s
-  - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
-- **Classification**: Classification model (ImageNet) - **REQUIRED**
-  - Supported model: MobileNet v3
-  - Must be compiled for Hailo-8L (download COMPILED HEF, not pretrained)
-  - **Note**: MobileNet V3 is ImageNet-trained with ~59 bird species.
+  - Supported model: YOLOv11s (HEF, compiled for Hailo-8L)
+- **Classification**: Ornimetrics NABirds 555-species - **REQUIRED**
+  - Pre-downloaded ONNX model (CPU via ONNX Runtime)
+  - Active config: `LEROY_CLASSIFICATION_MODEL=all_models/species_classifier_nabirds.onnx`
 
 All HEF files should show non-zero file sizes. If any are 0 bytes, remove them:
 ```bash
@@ -203,15 +195,16 @@ sudo systemctl disable leroy.service
 
 #### Configuration
 
-Create or edit `leroy.env` to customize settings. Four model/label paths (run.sh and classify.sh):
+Create or edit `leroy.env` to customize settings:
 
 ```
-# Detection (leroy.py)
+# Detection (HEF, Hailo-8L)
 LEROY_DETECTION_MODEL=all_models/yolov11s.hef
 LEROY_DETECTION_LABELS=all_models/yolo11s.txt
-# Classification (classify.py)
-LEROY_CLASSIFICATION_MODEL=all_models/mobilenet_v3.hef
-LEROY_CLASSIFICATION_LABELS=all_models/mobilenet_v3.txt
+
+# Classification (ONNX, CPU — HAILO8 HEFs are NOT compatible with Hailo-8L)
+LEROY_CLASSIFICATION_MODEL=all_models/species_classifier_nabirds.onnx
+LEROY_CLASSIFICATION_LABELS=all_models/nabirds_labels.txt
 ```
 
 Or pass via CLI: `python leroy.py --detection-model ... --detection-labels ...`
@@ -250,7 +243,7 @@ python3 leroy.py --detection-model all_models/yolov11s.hef --detection-labels al
 
 **Model paths**: Configured explicitly via `leroy.env` (see Configuration above). The project uses:
 - Detection: `all_models/yolov11s.hef` + `all_models/yolo11s.txt`
-- Classification: `all_models/mobilenet_v3.hef` + `all_models/mobilenet_v3.txt`
+- Classification: `all_models/species_classifier_nabirds.onnx` + `all_models/nabirds_labels.txt`
 
 ## Architecture
 
@@ -292,7 +285,7 @@ make docker-pi5-test-file TEST=tests.test_visitation_processing  # Run specific 
 
 ## Active Learning
 
-The system automatically collects non-bird detections (e.g. squirrels, cats, dogs) into `storage/active_learning/non_birds/` when they exceed `LEROY_NON_BIRD_THRESHOLD`. These false positives can be used to fine-tune the detection model over time.
+The system automatically collects non-bird detections (cats, dogs — the only non-bird COCO classes) into `storage/active_learning/non_birds/` when they exceed `LEROY_NON_BIRD_THRESHOLD`. These false positives can be used to fine-tune the detection model over time.
 
 ## Social Media (Optional)
 
@@ -552,7 +545,7 @@ sudo /home/leroy/Projects/project-leroy/classify.sh
 ### Common Commands
 
 ```bash
-# Verify models
+# Verify models (detection HEF + classification ONNX in all_models/)
 ./download_models.sh
 
 # Start service
@@ -567,6 +560,10 @@ python3 leroy.py
 
 # Check camera
 ./diagnose_camera.sh
+
+# View classification cron status
+cat /etc/cron.d/leroy-classify
+tail -n 30 /var/log/leroy-classify.log
 ```
 
 ## Additional Resources
