@@ -156,9 +156,6 @@ unless explicitly requested by the user.
 | `all_models/species_classifier_nabirds.onnx` | ~83 MB | **Active** — Ornimetrics NABirds 555-species ONNX classifier (CPU). |
 | `all_models/species_classifier_nabirds.json` | ~19 KB | Normalization config (rgb_mean/rgb_std) for NABirds ONNX. |
 | `all_models/nabirds_labels.txt` | ~23 KB | NABirds 555 labels: `{id} Scientific (Common)` format. |
-| `all_models/species_classifier_nabirds.hef` | ~24 MB | Ornimetrics NABirds HEF (**HAILO8 only** — incompatible with HAILO8L). |
-| `all_models/species_classifier_inat.onnx` | ~82 MB | Ornimetrics iNaturalist 302-species ONNX classifier (alternative). |
-| `all_models/inat_bird_labels.txt` | ~41 KB | iNat labels for the 302-species Ornimetrics model. |
 | `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k). ~59 bird species. Kept for fallback. |
 | `all_models/mobilenet_v3.txt` | 22 KB | ImageNet-1000 labels for fallback classifier. |
 
