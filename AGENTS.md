@@ -17,7 +17,7 @@ on a Raspberry Pi 5 with the AI Kit (Hailo-8L) and a Pi HQ camera.
 
 - Detection loop: `leroy.py` → `hailo_inference.py` (YOLO on Hailo-8L) + `camera_manager.py` (picamera2 dual-resolution)
 - Photo storage: UUID filenames + companion JSON metadata, no database
-- Classification: `classify.py` (MobileNet on Hailo-8L) — runs periodically
+- Classification: `classify.py` (Ornimetrics NABirds 555-species ONNX, CPU) — runs periodically via cron; Hailo HEF models are incompatible (HAILO8 vs HAILO8L)
 - Web UI: vanilla JS, served by nginx on port 80, reads `/var/www/html/visitations.json`
 - Service: `systemd` unit `leroy.service` runs `run.sh` → `leroy.py`; supervised by `hailort.service`
 
@@ -87,13 +87,13 @@ unless explicitly requested by the user.
 - **Linting:** flake8, see `.flake8`. Rules in effect: `max-line-length = 120`, excludes `venv,.git,__pycache__,web`, and ignores 25+ codes including E501/W503/E402/F401/F841.
 - **File structure:**
   - `leroy.py` — main entry, detection loop
-  - `hailo_inference.py` — Hailo-8L NPU wrapper (detection + classification)
+  - `hailo_inference.py` — Hailo-8L NPU wrapper (detection only)
   - `camera_manager.py` — picamera2 dual-resolution camera manager
   - `visitations.py` — visitation state machine (in-memory, per-process)
   - `visitation.py` — visitation *processing* (post-classification, web JSON generation)
   - `photo.py` / `photo_metadata.py` — UUID-based photo capture and metadata
   - `classify.py` — batch classification runner
-  - `active_learning.py` — non-bird false-positive collection (squirrels, cats, dogs)
+  - `active_learning.py` — non-bird false-positive collection (cats, dogs — COCO classes only; squirrels not in COCO)
   - `bluesky_poster.py` — optional Bluesky (atproto) posting
   - `utils.py` — shared helpers (label loading, image clarity, etc.)
   - `config.py` — env-based configuration
@@ -153,12 +153,19 @@ unless explicitly requested by the user.
 |------|------|---------|
 | `all_models/yolov11s.hef` | ~25 MB | Detection (COCO 80 classes). Bird = class 15. |
 | `all_models/yolo11s.txt` | 624 B | COCO labels for detection. |
-| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k). ~59 bird species. |
-| `all_models/mobilenet_v3.txt` | 21 KB | ImageNet-1000 labels for classification. |
-| `all_models/mobilenet_v2_1.0_224_inat_bird_quant.tflite` | 3.5 MB | iNaturalist 964-species classifier (Coral-era TFLite, source for HEF). |
-| `all_models/inat_bird_labels.txt` | ~30 KB | iNat labels: 964 `Scientific (Common)` lines + `background`. |
+| `all_models/species_classifier_nabirds.onnx` | ~83 MB | **Active** — Ornimetrics NABirds 555-species ONNX classifier (CPU). |
+| `all_models/species_classifier_nabirds.json` | ~19 KB | Normalization config (rgb_mean/rgb_std) for NABirds ONNX. |
+| `all_models/nabirds_labels.txt` | ~23 KB | NABirds 555 labels: `{id} Scientific (Common)` format. |
+| `all_models/species_classifier_nabirds.hef` | ~24 MB | Ornimetrics NABirds HEF (**HAILO8 only** — incompatible with HAILO8L). |
+| `all_models/species_classifier_inat.onnx` | ~82 MB | Ornimetrics iNaturalist 302-species ONNX classifier (alternative). |
+| `all_models/inat_bird_labels.txt` | ~41 KB | iNat labels for the 302-species Ornimetrics model. |
+| `all_models/mobilenet_v3.hef` | ~10 MB | Classification (ImageNet-1k). ~59 bird species. Kept for fallback. |
+| `all_models/mobilenet_v3.txt` | 22 KB | ImageNet-1000 labels for fallback classifier. |
 
-**iNaturalist bird classifier (in progress):** The 964-species model
+**Active model:** `species_classifier_nabirds.onnx` (Ornimetrics NABirds 555-species, CPU). The `.hef`
+version is HAILO8 and incompatible with the Pi AI Kit's HAILO8L.
+
+**iNaturalist 964-species (future):** The 964-species model
 (`mobilenet_v2_1.0_224_inat_bird_quant.tflite`) is staged and converted
 to a DFC-ready ONNX at `model_build/inat_bird_qdq.onnx`, validated
 against the TFLite (12/12 top-1 on real camera crops). The **only
@@ -171,7 +178,7 @@ re-run classification.
 
 - **HEFs are committed to the repo** (despite `.gitignore` listing `all_models/` — this rule was added after a partial commit; treat it as advisory).
 - **When swapping models:** ensure the HEF is compiled for Hailo-8L, and that label files match the model's output classes.
-- **Label formats differ per model:** iNat labels are `{id} Scientific (Common)`; ImageNet labels are `{common}, {scientific}`. `classify.py` extracts the common name for the `species` metadata field; `visitation.py` resolves the scientific name from either format.
+- **Label formats differ per model:** NABirds/iNat labels are `{id} Scientific (Common)`; ImageNet labels are `{common}, {scientific}`. `classify.py` extracts the common name for the `species` metadata field; `visitation.py` resolves the scientific name from either format.
 
 ---
 
@@ -230,7 +237,7 @@ Strict rules. Violating these is a bug, not a style choice.
 | Environment | `leroy.env` (gitignored) / `leroy.env.example` (template) |
 | Makefile | `./Makefile` — all common commands |
 | Tests | `tests/` — `python3 -m unittest discover tests` |
-| Models | `all_models/*.hef` + `*.txt` |
+| Models | `all_models/*.hef` + `*.onnx` + `*.txt` |
 | Runtime state | `storage/` (gitignored) — detected photos, classified photos, logs, active learning, results.log |
 
 ---
@@ -259,4 +266,4 @@ make web-preview
 
 ---
 
-*Last updated: 2026-07-08 — Phase 1 complete. Service running, detection loop active at ~10 FPS.*
+*Last updated: 2026-08-06 — NABirds ONNX classification, photo staging (20 cap, top-5 display), web UI improvements.*
