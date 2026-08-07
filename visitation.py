@@ -408,15 +408,12 @@ def main():
     birds = sorted(parsed, key=itemgetter('datetime'))
     
     # Try to find labels file to extract scientific names if available
-    # Prefer the iNaturalist bird labels; fall back to MobileNet V3 ImageNet labels.
+    # Prefer NABirds labels; fall back to MobileNet V3 ImageNet labels.
     labels_file_path = None
     possible_label_paths = [
       os.path.join('all_models', 'nabirds_labels.txt'),
       os.path.join(os.path.dirname(__file__), 'all_models', 'nabirds_labels.txt'),
       '/var/www/html/classified/../all_models/nabirds_labels.txt',
-      os.path.join('all_models', 'inat_bird_labels.txt'),
-      os.path.join(os.path.dirname(__file__), 'all_models', 'inat_bird_labels.txt'),
-      '/var/www/html/classified/../all_models/inat_bird_labels.txt',
       os.path.join('all_models', 'mobilenet_v3.txt'),
       os.path.join(os.path.dirname(__file__), 'all_models', 'mobilenet_v3.txt'),
       '/var/www/html/classified/../all_models/mobilenet_v3.txt'
