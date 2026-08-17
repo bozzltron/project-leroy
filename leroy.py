@@ -339,6 +339,26 @@ def main():
                 visitations.update(bird_objs, frame, labels)
                 if prev_visitation_id is None and visitations.visitation_id is not None:
                     window_visitation_events.append("started")
+                    current_visitation_id = visitations.visitation_id
+                    if not visitations.video_recorded:
+                        import threading
+                        def record_visitation_video(vid, vid_dir):
+                            time.sleep(2)
+                            video_path = os.path.join(vid_dir, f"{vid}_video.mp4")
+                            success = camera.start_video_recording(video_path, duration=10.0)
+                            if success:
+                                logger.info(f"Video recorded for visitation {vid}: {video_path}")
+                            else:
+                                logger.warning(f"Video recording failed for visitation {vid}")
+
+                        video_dir = f"storage/detected/{time.strftime('%Y-%m-%d')}/{current_visitation_id}"
+                        os.makedirs(video_dir, exist_ok=True)
+                        threading.Thread(
+                            target=record_visitation_video,
+                            args=(current_visitation_id, video_dir),
+                            daemon=True
+                        ).start()
+                        visitations.video_recorded = True
                 elif prev_visitation_id is not None and visitations.visitation_id is None:
                     window_visitation_events.append("ended")
 

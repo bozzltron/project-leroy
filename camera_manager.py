@@ -270,3 +270,57 @@ class CameraManager:
     def get_photo_resolution(self) -> Tuple[int, int]:
         """Get photo resolution."""
         return self.photo_resolution
+
+    def get_video_resolution(self) -> Tuple[int, int]:
+        """Get video resolution (720p for H.264 recording)."""
+        return (1280, 720)
+
+    def start_video_recording(self, output_path: str, duration: float = 10.0) -> bool:
+        """
+        Start video recording at 720p H.264.
+
+        Args:
+            output_path: Path to save the video file (.mp4)
+            duration: Recording duration in seconds
+
+        Returns:
+            True if recording started successfully
+        """
+        with self._lock:
+            try:
+                video_res = self.get_video_resolution()
+                video_config = self.picam2.create_video_configuration(
+                    main={"size": video_res, "format": "RGB888"},
+                    audio=False
+                )
+                self.picam2.switch_mode(video_config)
+                self.current_resolution = video_res
+
+                logger.info(f"Starting video recording: {output_path} at {video_res[0]}x{video_res[1]}, {duration}s")
+                self.picam2.start_recording(
+                    output_path,
+                    format='libav',
+                    bitrate=2000000,
+                    inline_headers=True
+                )
+
+                import time
+                time.sleep(duration)
+
+                self.picam2.stop_recording()
+                logger.info(f"Video recording saved: {output_path}")
+
+                self._switch_resolution(self.detection_resolution)
+                return True
+
+            except Exception as e:
+                logger.exception(f"Error during video recording: {e}")
+                try:
+                    self.picam2.stop_recording()
+                except Exception:
+                    pass
+                try:
+                    self._switch_resolution(self.detection_resolution)
+                except Exception:
+                    pass
+                return False

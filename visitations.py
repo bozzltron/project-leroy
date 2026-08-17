@@ -18,13 +18,15 @@ def add_padding_to_bbox(bbox, image_width, image_height, padding):
 class Visitations:
     success = False
     photo_per_visitation_count = 0
-    photo_per_visitation_max = 20
+    photo_per_visitation_max = 10
     full_photo_per_visitation_max = 1
     full_photo_per_visitation_count = 0
     last_tracked = None
     started_tracking = None
     visitation_id = None
     vistation_max_seconds = float(300)
+    video_recorded = False
+    video_start_time = None
 
     def update(self, objs, frame, labels):
         height, width, channels = frame.shape
@@ -103,3 +105,5 @@ class Visitations:
         self.photo_per_visitation_count = 0
         self.full_photo_per_visitation_count = 0
         self.visitation_id = None
+        self.video_recorded = False
+        self.video_start_time = None

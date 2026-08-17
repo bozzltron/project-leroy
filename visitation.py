@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 import re
+import time
 
 from datetime import datetime
 from operator import itemgetter
@@ -151,14 +152,28 @@ def find_full_image(full_images, visitation_id):
   """
   if not full_images:
     return ""
-  
+
   # Filter images that belong to this visitation (visitation_id in path)
   matching = [f for f in full_images if visitation_id in f]
-  
+
   if not matching:
     return ""
-  
+
   return matching[0]
+
+
+def find_video(dirpath, visitation_id):
+  """
+  Find video file for a visitation.
+  Video is stored in storage/detected/{date}/{visitation_id}/{visitation_id}_video.mp4
+  Returns URL path for nginx alias.
+  """
+  video_filename = f"{visitation_id}_video.mp4"
+  base_dir = os.path.dirname(os.path.dirname(os.path.dirname(dirpath)))
+  video_path = os.path.join(base_dir, 'storage', 'detected', time.strftime('%Y-%m-%d'), visitation_id, video_filename)
+  if os.path.exists(video_path):
+    return f"/detected/{time.strftime('%Y-%m-%d')}/{visitation_id}/{video_filename}"
+  return None
 
 def get_scientific_name(common_name, labels_file_path=None):
   """
@@ -440,19 +455,22 @@ def main():
         "start_datetime": records[0]["datetime"].strftime("%Y-%m-%d %H:%M:%S"),
         "end_datetime": records[-1]["datetime"].strftime("%Y-%m-%d %H:%M:%S"),
         "duration": (records[-1]["datetime"] - records[0]["datetime"]).total_seconds(),
-        
+
         # NEW: Multi-species support (scientific format)
         "species_observations": species_observations,
         "species_count": len(species_counts),
-        
+
         # BACKWARD COMPATIBLE: Keep single species field
         "species": find_species(records),
-        
+
         # Existing fields
         "records": records,
         "best_photo": records[best_photo_index]["filename"],
         "full_image": find_full_image(full_images, k).replace("/var/www/html", ""),
         "datetime": records[0]["datetime"].strftime("%Y-%m-%d %H:%M:%S"),  # Keep for backward compatibility
+
+        # Video
+        "video": find_video(dirpath, k),
       }
       #if len(sorted_records) > 0 and int(sorted_records[-1]['classification_score']) > 25:
       visitations.append(visitation)

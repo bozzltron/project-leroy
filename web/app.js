@@ -279,8 +279,10 @@ class VisitationApp {
 
         return `
             <div class="visitation-card" data-visitation-id="${visit.visitation_id}">
-                <img src="${visit.best_photo}" alt="${primarySpecies.common_name}" class="card-image" 
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23ddd%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27%3ENo Image%3C/text%3E%3C/svg%3E'">
+                <div class="card-image-wrapper">
+                    <img src="${visit.best_photo}" alt="${primarySpecies.common_name}" class="card-image"
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23ddd%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27%3ENo Image%3C/text%3E%3C/svg%3E'">
+                </div>
                 <div class="card-content">
                     <div class="card-header">
                         <div>
@@ -292,10 +294,11 @@ class VisitationApp {
                     </div>
                     
                     ${hasMultipleSpecies ? this.renderMultiSpeciesList(visit.species_observations) : ''}
-                    
+
                     <div class="card-meta">
                         <span>${this.formatDate(visit.start_datetime || visit.datetime)}</span>
                         <span>${this.formatDuration(visit.duration)}</span>
+                        ${visit.video ? '<span class="video-indicator">🎥 Video</span>' : ''}
                     </div>
                 </div>
                 <div class="card-actions">
@@ -353,11 +356,20 @@ class VisitationApp {
             <div class="modal-header">
                 <div class="modal-title">${this.escapeHtml(primarySpecies.common_name)}</div>
                 <div class="modal-subtitle">
-                    ${this.escapeHtml(primarySpecies.scientific_name)} • 
-                    ${this.formatDate(visit.start_datetime || visit.datetime)} • 
+                    ${this.escapeHtml(primarySpecies.scientific_name)} •
+                    ${this.formatDate(visit.start_datetime || visit.datetime)} •
                     Duration: ${this.formatDuration(visit.duration)}
                 </div>
             </div>
+
+            ${visit.video ? `
+                <div class="video-section">
+                    <video controls poster="${visit.best_photo}" style="max-width: 100%; border-radius: 8px;">
+                        <source src="${visit.video}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            ` : ''}
 
             ${visit.full_image ? `
                 <div class="photo-item best-photo">
