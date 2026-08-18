@@ -290,8 +290,7 @@ class CameraManager:
             try:
                 video_res = self.get_video_resolution()
                 video_config = self.picam2.create_video_configuration(
-                    main={"size": video_res, "format": "RGB888"},
-                    audio=False
+                    main={"size": video_res, "format": "RGB888"}
                 )
                 self.picam2.switch_mode(video_config)
                 self.current_resolution = video_res
