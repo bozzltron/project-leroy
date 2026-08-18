@@ -288,6 +288,8 @@ class CameraManager:
         """
         with self._lock:
             try:
+                from picamera2.encoders import LibavH264Encoder
+
                 video_res = self.get_video_resolution()
                 video_config = self.picam2.create_video_configuration(
                     main={"size": video_res, "format": "RGB888"}
@@ -295,13 +297,10 @@ class CameraManager:
                 self.picam2.switch_mode(video_config)
                 self.current_resolution = video_res
 
+                encoder = LibavH264Encoder(bitrate=2000000)
+
                 logger.info(f"Starting video recording: {output_path} at {video_res[0]}x{video_res[1]}, {duration}s")
-                self.picam2.start_recording(
-                    output_path,
-                    format='libav',
-                    bitrate=2000000,
-                    inline_headers=True
-                )
+                self.picam2.start_recording(encoder, output_path)
 
                 import time
                 time.sleep(duration)
