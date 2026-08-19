@@ -298,7 +298,6 @@ class VisitationApp {
                     <div class="card-meta">
                         <span>${this.formatDate(visit.start_datetime || visit.datetime)}</span>
                         <span>${this.formatDuration(visit.duration)}</span>
-                        ${visit.video ? '<span class="video-indicator">🎥 Video</span>' : ''}
                     </div>
                 </div>
                 <div class="card-actions">
@@ -453,7 +452,7 @@ class VisitationApp {
     formatDuration(seconds) {
         if (!seconds) return '';
         const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
+        const secs = Math.round(seconds % 60 * 10) / 10;
         if (mins > 0) {
             return `${mins}m ${secs}s`;
         }
