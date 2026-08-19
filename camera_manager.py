@@ -277,7 +277,7 @@ class CameraManager:
 
     def start_video_recording(self, output_path: str, duration: float = 10.0) -> bool:
         """
-        Start video recording at 720p H.264.
+        Start video recording at 720p H.264 in MP4 container.
 
         Args:
             output_path: Path to save the video file (.mp4)
@@ -289,6 +289,7 @@ class CameraManager:
         with self._lock:
             try:
                 from picamera2.encoders import LibavH264Encoder
+                from picamera2.outputs import FfmpegOutput
 
                 video_res = self.get_video_resolution()
                 video_config = self.picam2.create_video_configuration(
@@ -298,9 +299,10 @@ class CameraManager:
                 self.current_resolution = video_res
 
                 encoder = LibavH264Encoder(bitrate=2000000)
+                output = FfmpegOutput(output_path)
 
                 logger.info(f"Starting video recording: {output_path} at {video_res[0]}x{video_res[1]}, {duration}s")
-                self.picam2.start_recording(encoder, output_path)
+                self.picam2.start_recording(encoder, output)
 
                 import time
                 time.sleep(duration)
