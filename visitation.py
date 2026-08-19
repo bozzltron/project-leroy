@@ -169,10 +169,16 @@ def find_video(dirpath, visitation_id):
   Returns URL path for nginx alias.
   """
   video_filename = f"{visitation_id}_video.mp4"
-  base_dir = os.path.dirname(os.path.dirname(os.path.dirname(dirpath)))
-  video_path = os.path.join(base_dir, 'storage', 'detected', time.strftime('%Y-%m-%d'), visitation_id, video_filename)
+  parts = dirpath.split(os.sep)
+  if len(parts) >= 2:
+    video_date = parts[-2]
+  else:
+    video_date = time.strftime('%Y-%m-%d')
+  script_path = os.path.abspath(__file__)
+  script_dir = os.path.dirname(script_path)
+  video_path = os.path.join(script_dir, 'storage', 'detected', video_date, visitation_id, video_filename)
   if os.path.exists(video_path):
-    return f"/detected/{time.strftime('%Y-%m-%d')}/{visitation_id}/{video_filename}"
+    return f"/detected/{video_date}/{visitation_id}/{video_filename}"
   return None
 
 def get_scientific_name(common_name, labels_file_path=None):
