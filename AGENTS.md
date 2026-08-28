@@ -192,6 +192,13 @@ posting, install it manually: `source venv/bin/activate && pip install atproto`.
 Without it, visitations are still processed and saved — only the social posting
 step is skipped.
 
+When enabled, `BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD` come from `leroy.env`
+(which `classify.sh` sources before running `visitation.py`). Use a Bluesky
+**app-specific password** (Settings → App Passwords), not the account password.
+The poster is gated (`BLUESKY_ENABLED`) and safe: it posts at most once/day in
+the 7–9 PM window, silently no-ops if unauthenticated, and never crashes the
+visitation pipeline.
+
 ---
 
 ## What NOT to do

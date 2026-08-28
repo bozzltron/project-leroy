@@ -294,17 +294,22 @@ The system automatically collects non-bird detections (cats, dogs — the only n
 The system can optionally post to Bluesky with daily summaries.
 
 **Setup**:
-```bash
-# Set environment variables in leroy.env
-export BLUESKY_ENABLED=true
-export BLUESKY_HANDLE=@your-handle.bsky.social
-export BLUESKY_APP_PASSWORD=your-app-password
-```
+1. Install the optional `atproto` library into the venv:
+   ```bash
+   source venv/bin/activate && pip install atproto
+   ```
+2. Create an app-specific password in Bluesky (Settings → App Passwords).
+3. Set these in `leroy.env`:
+   ```bash
+   BLUESKY_ENABLED=true
+   BLUESKY_HANDLE=@your-handle.bsky.social
+   BLUESKY_APP_PASSWORD=your-app-password
+   ```
 
 **Posting Rules**:
 - **One post per day** - Single daily summary
 - **Evening posting** - 7:00 PM - 9:00 PM
-- **5 best photos** - Varying species, high clarity
+- **Up to 4 best photos** - Varying species, high clarity (Bluesky's per-post image limit)
 - Only posts if authenticated, otherwise silently ignores
 
 ## Troubleshooting
